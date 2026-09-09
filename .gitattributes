@@ -1,0 +1,11 @@
+# Normalize line endings to LF in the repository regardless of the developer's
+# platform, and let git decide the checkout ending per-platform. This project
+# targets Windows for delivery (Phase 7) while being developed cross-platform,
+# so this avoids CRLF/LF diff noise and Windows-vs-Linux inconsistency.
+
+* text=auto eol=lf
+
+*.png binary
+*.pdf binary
+*.woff binary
+*.woff2 binary

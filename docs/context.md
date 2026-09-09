@@ -410,6 +410,57 @@ This list grows as new cases are found.
 
 *Reverse-chronological. Newest first.*
 
+### 2026-09-10 — Session 5: pre-GitHub-push audit
+
+Requested by the client before pushing publicly, for review by their senior.
+This is repository-hygiene work, not a product/architecture decision, so
+recorded here rather than as a new ADR.
+
+**Audit performed**
+- Scanned the **entire git history**, not just the working tree, for anything
+  that shouldn't be public: `.env` has never been committed; no API keys,
+  passwords, or private-key material appear in any diff, ever. Confirmed clean.
+- Checked actual repository size for GitHub: `.git` is 3.5 MB despite 51 MB of
+  working-tree PNGs — the design mockups compress very well. Not a concern.
+- Checked commit author identity (`abdullah <99gondalabdullah@gmail.com>`, the
+  client's real email) and confirmed with the client this is acceptable to be
+  public, along with the client/shop-identifying details already present
+  throughout `docs/` (Al-Rehman General Store, Mr. Abdullah, AsCode Solution).
+
+**Decisions, confirmed by the client**
+- Repo will be **public**. Client/shop details stay as they are; no redaction.
+- **No Dockerfile.** Recommended against one: ADR-0001 deliberately chose an
+  offline Windows desktop install over any containerized deployment model, and
+  a Dockerfile would imply a deployment path that contradicts that. The
+  existing three-command venv setup already gets a reviewer running in under a
+  minute, so the narrower "convenience for review" case didn't clear its cost
+  either.
+
+**Done**
+- `.gitignore`: added `.vscode/`, `.idea/`, `*.swp` (gap found during audit,
+  harmless either way).
+- `.gitattributes`: added, normalising line endings to LF — relevant given
+  development happens cross-platform ahead of a Windows delivery target.
+- `LICENSE`: proprietary, all-rights-reserved notice, since the repo is public
+  but explicitly not open source. **Left a placeholder for the owner name** —
+  genuinely unclear whether that should be the client's personal name or
+  "AsCode Solution" as a company, and guessing felt worse than asking.
+- `README.md`: substantially rewritten. It was setup-instructions only; it now
+  opens with what the project is, states current phase status, and — the part
+  that actually matters for a reviewing senior — points explicitly at
+  `context.md` and `docs/adr/` as the real material to look at, not the Phase 0
+  skeleton code.
+- `.github/workflows/ci.yml`: a minimal GitHub Actions workflow running exactly
+  `scripts/run_tests.sh`'s checks (ruff + pytest + coverage) on every push and
+  PR to `main`. Validated as parseable YAML before committing.
+- Re-ran the full test suite after all changes; still green, unaffected.
+
+**Open / next**
+- **The LICENSE placeholder needs a real name filled in before this is fully
+  correct** — flagged to the client directly, not resolved here.
+- Everything else from Phase 0's completion still applies unchanged; Phase 1
+  is next.
+
 ### 2026-09-10 — Session 4: Phase 0 scaffolding, and Phase 0 complete
 
 **Done**
