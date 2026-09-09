@@ -1,7 +1,7 @@
 # 0001 — Technology Stack
 
-Status: **Proposed** — cannot be marked Accepted until the Phase 0 grill-with-docs
-session has run (Development Specification 1, 2.1).
+Status: **Accepted** 2026-09-10 — confirmed by the client without amendment; not
+independently stress-tested this session, as recorded in context.md.
 Date: 2026-09-06
 Phase: 0
 

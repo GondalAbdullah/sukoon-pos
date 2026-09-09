@@ -11,9 +11,9 @@ work session, not just every phase.
 | | |
 |---|---|
 | **Phase** | Phase 0 — Project Setup & Grill Session |
-| **Status** | **Phase 0 grill session substantively complete.** ADR-0004–0015 Accepted; ADR-0016 (consolidated schema) Proposed, awaiting sign-off. Schema-blocking questions resolved. See §4c STOP AND ASK. |
+| **Status** | **Phase 0 grill session and STOP AND ASK gate closed.** ADR-0001, 0003, 0004–0016 all Accepted. Remaining: the mechanical scaffolding steps (repo skeleton, venv, Flask app, config, logging, pytest) have not started. |
 | **Last session** | 2026-09-06 |
-| **Next action** | **Human confirms ADR-0016, 0001, 0003 (§4c).** On confirmation: mark all three Accepted, then begin Phase 0's remaining mechanical steps — repo skeleton, venv, Flask app skeleton, config, logging, pytest scaffold, smoke test. |
+| **Next action** | Begin Phase 0's remaining mechanical steps: repo skeleton, virtualenv, base Flask app, environment-based config, logging, pytest scaffold, smoke test confirming `flask run` serves a placeholder page. |
 
 Nothing has been implemented. There is no application code in this repository yet,
 and that is correct: Development Specification 13, step 3 says the agent must tell
@@ -24,10 +24,10 @@ makes skipping it a rule violation rather than a shortcut.
 
 | ADR | Decision | Status |
 |---|---|---|
-| [0001](adr/0001-technology-stack.md) | Technology stack — Flask + SQLite + htmx/Alpine/Tailwind, PyInstaller + Inno Setup | **Proposed** — unchallenged; see STOP AND ASK below |
+| [0001](adr/0001-technology-stack.md) | Technology stack — Flask + SQLite + htmx/Alpine/Tailwind, PyInstaller + Inno Setup | **Accepted** |
 | [0002](adr/0002-initial-data-model.md) | Initial data model (original draft) | **Superseded by 0016** |
-| [0003](adr/0003-module-boundaries.md) | Module boundaries — layered tree, `services/` never imports Flask | **Proposed** — unchallenged, and used correctly by 0005/0013; see STOP AND ASK below |
-| [0016](adr/0016-consolidated-data-model.md) | **Consolidated schema** — every table as it now stands, all nine amendments merged, three prose-only gaps closed | **Proposed** — the Phase 0 sign-off deliverable |
+| [0003](adr/0003-module-boundaries.md) | Module boundaries — layered tree, `services/` never imports Flask | **Accepted** |
+| [0016](adr/0016-consolidated-data-model.md) | **Consolidated schema** — every table as it now stands, all nine amendments merged, three prose-only gaps closed, invoice-counter yearly reset | **Accepted** |
 | [0004](adr/0004-quantity-representation.md) | Quantity stored as integer thousandths of a unit; `allows_fractional` is presentation-only | **Accepted** |
 | [0005](adr/0005-weighed-item-entry.md) | Weighed items entered manually by weight or by amount; scan becomes a resolver chain; scale hardware deferred behind a seam | **Accepted** |
 | [0006](adr/0006-document-authority.md) | Development Specification outranks the Design System on all technical matters; prototype is a style reference | **Accepted** |
@@ -198,31 +198,24 @@ be recorded here.
 - **Till summary — the "Discounts" line is removed.** No discount mechanism exists in
   v1. See ADR-0008.
 
-## 4c. STOP AND ASK — Phase 0 closing gate
+## 4c. STOP AND ASK — Phase 0 closing gate — CLOSED 2026-09-10
 
 Per Development Specification Phase 0: *"Confirm the draft database schema before it
 becomes the basis for Phase 1 migrations"* and *"Confirm the final module list (no
-additions/removals) before coding begins."* Presented explicitly here rather than
-self-reported, per Operating Rule 2.
+additions/removals) before coding begins."*
 
-**1. The schema — [ADR-0016](adr/0016-consolidated-data-model.md).** Fifteen tables,
-consolidating nine amendments made during this session's grill, plus three fields
-that prior ADRs described in prose but never formalised as columns (flagged
-explicitly in ADR-0016 itself, not hidden). This is what a Phase 1 migration would
-be built against.
+**Confirmed by the client, without amendment:**
+1. The schema — [ADR-0016](adr/0016-consolidated-data-model.md). Accepted.
+2. The module list — [ADR-0003](adr/0003-module-boundaries.md). Accepted.
+3. The stack — [ADR-0001](adr/0001-technology-stack.md). Accepted.
 
-**2. The module list — [ADR-0003](adr/0003-module-boundaries.md).** Unchanged since
-first written. Nothing decided this session contradicted it; two decisions
-(ADR-0005, ADR-0013) actively used its `services/` boundary correctly. It was not
-independently stress-tested the way the schema was — stated plainly rather than
-implied.
+**One follow-up question resolved during review, not requiring a fresh grill
+session** (a display/behaviour detail, not a new design area): whether
+`invoice_counter` resets yearly or counts continuously. **Resolved: resets on the
+first sale of each calendar year**, matching the prototype's own numbering format.
+Recorded as an addendum to ADR-0016.
 
-**3. The stack — [ADR-0001](adr/0001-technology-stack.md).** Unchanged since first
-written. Nothing decided this session gave a reason to revisit any stack choice.
-Also not independently stress-tested this session.
-
-**Awaiting explicit human confirmation on all three before Phase 0 can close and
-Phase 1 (which writes the actual migration) can begin.**
+**This gate is now closed.** Phase 1 may build its migration against ADR-0016.
 
 ## 5. Edge case and test matrix
 
@@ -382,6 +375,29 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-10 — Session 3 (continued): Phase 0 STOP AND ASK gate closed
+
+**Done**
+- Client reviewed and confirmed ADR-0016 (schema), ADR-0001 (stack), and ADR-0003
+  (module boundaries) without amendment. All three flipped from Proposed to
+  Accepted.
+- One follow-up question, raised during my own re-read of ADR-0016 rather than by
+  the client: whether the invoice counter resets each year or counts continuously.
+  Confirmed this did not need a fresh grill-with-docs invocation — a display
+  convention, not a new design area. Recommended and recorded a yearly reset,
+  matching the prototype's own number format, as an addendum to ADR-0016.
+- Explicitly noted for the client's benefit that a fresh `/grill-with-docs`
+  invocation *will* be needed at Phase 5 (WhatsApp) and Phase 7 (Windows
+  packaging), per Development Specification 1 — not before.
+- The Phase 0 STOP AND ASK gate (4c) is now recorded closed.
+
+**Open / next**
+- Phase 0's mechanical steps have not started: repo skeleton, virtualenv, base Flask
+  app, environment-based config, logging, pytest scaffold, smoke test. This is the
+  first actual code in the project.
+- Non-blocking items carried forward unchanged from the prior session: O-7, O-8,
+  O-9, O-10, O-11, O-12, O-17, O-18, O-20.
 
 ### 2026-09-10 — Session 3: closing the grill, consolidating the schema
 

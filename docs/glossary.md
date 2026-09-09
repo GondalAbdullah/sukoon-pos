@@ -162,6 +162,12 @@ authorising a credit sale that would take a customer's balance above their
 `credit_limit_paisa`. Recorded on the ledger entry with the authorising Admin's
 identity, distinct from the cashier who rang the sale. See ADR-0014.
 
+**Invoice year rollover** *(Settled)* — The invoice sequence resets to 1 on the first
+sale of a new calendar year, so numbers stay short (`INV-2024-0413`,
+`INV-2025-0001`) and match the shop's paper-invoice-book convention. Reset happens
+inside the same atomic claim that allocates the number, so two terminals racing on
+the year's first sale still cannot collide. See ADR-0016 addendum.
+
 **Consolidated schema** *(Settled)* — The single current-state data model document
 (ADR-0016) that merges every amendment made to the original draft (ADR-0002) during
 the grill session, so Phase 1 builds against one document instead of reading twelve.

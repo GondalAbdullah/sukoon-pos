@@ -1,8 +1,8 @@
 # 0003 — Module Boundaries
 
-Status: **Proposed** — awaiting the Phase 0 grill-with-docs session. The
-Development Specification's Phase 0 STOP AND ASK gate requires the human to confirm
-this module list, with no additions or removals, before coding begins.
+Status: **Accepted** 2026-09-10 — confirmed by the client without amendment; not
+independently stress-tested this session, but used consistently and without
+contradiction by ADR-0005 and ADR-0013.
 Date: 2026-09-06
 Phase: 0
 

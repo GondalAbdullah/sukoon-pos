@@ -1,8 +1,6 @@
 # 0016 — Consolidated Data Model
 
-Status: **Proposed** — this is the Phase 0 STOP AND ASK deliverable. It must not be
-treated as the basis for a Phase 1 migration until the human has reviewed it and
-recorded approval in context.md, per Development Specification Phase 0's own gate.
+Status: **Accepted** 2026-09-10 — confirmed by the client after review.
 Date: 2026-09-10
 Phase: 0 (grill-with-docs session 1, closing)
 Supersedes: [ADR-0002](0002-initial-data-model.md) in full
@@ -224,6 +222,21 @@ product — mirroring the pattern already established for `credit_limit_paisa` a
 and firing constantly. A newly created or provisional product therefore never
 triggers a low-stock alert until an Admin sets a real threshold.
 
+### Invoice counter behaviour, decided on review, 2026-09-10
+
+The table shape (`year` and `next_sequence` on one row) already supports either a
+continuous counter or a yearly-resetting one; the behaviour was not yet decided.
+**Decision: the sequence resets to 1 on the first sale of a new calendar year.**
+`INV-2024-0413`, then `INV-2025-0001`. This matches the format shown in the
+prototype's own mock and how a paper invoice book already works here — reasoning
+enough on its own, without needing a fresh grill session over a display convention.
+
+Concretely, the same atomic claim that increments `next_sequence` first checks
+whether the counter's stored `year` still matches the current year; if not, it
+resets `next_sequence` to 1 and updates `year`, inside the same transaction that
+claims the number — so two terminals racing to make the first sale of January 1st
+still cannot collide. Implementation is Phase 3's; the policy is decided here.
+
 ## Alternatives Considered
 
 - **Leaving ADR-0002 as the living document, edited in place** — rejected. The
@@ -254,3 +267,5 @@ citing what it supersedes here.
 - `product.low_stock_threshold_milli = NULL` never fires a low-stock alert
 - `notification_queue.notification_type` accepts all three values, rejects a fourth
 - `credit_ledger_entry.override_authorised_by_user_id` is populated only on an override entry
+- The first sale of a new calendar year resets the sequence to 1 and updates `year`
+- Two terminals racing on the year's first sale still produce no duplicate number
