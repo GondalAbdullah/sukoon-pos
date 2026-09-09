@@ -1,10 +1,15 @@
 # 0002 — Initial Data Model
 
-Status: **Proposed** — this is the draft the Phase 0 grill-with-docs session exists
-to interrogate. It must not become the basis for a migration until that session has
-run and the human has approved the field list at the Phase 1 STOP AND ASK gate.
+Status: **Superseded by [ADR-0016](0016-consolidated-data-model.md)**
 Date: 2026-09-06
 Phase: 0
+
+> This was the original draft schema, written to be interrogated. It was amended
+> piecemeal by ADR-0004, 0007, 0008, 0009, 0011, 0012, 0013, 0014, and 0015 during
+> the grill session that followed. Rather than continue editing it in place,
+> ADR-0016 consolidates all of those amendments into one current document.
+> **This file is kept as-is, unedited below this notice, as the historical record of
+> where the schema started.** Do not build against it — build against ADR-0016.
 
 ## Context
 

@@ -11,9 +11,9 @@ work session, not just every phase.
 | | |
 |---|---|
 | **Phase** | Phase 0 — Project Setup & Grill Session |
-| **Status** | **Phase 0, Step 1 — grill session in progress.** ADR-0004 – 0015 Accepted. No blocking items remain. Open: O-3, O-7 … O-12, O-17, O-18, O-20. |
+| **Status** | **Phase 0 grill session substantively complete.** ADR-0004–0015 Accepted; ADR-0016 (consolidated schema) Proposed, awaiting sign-off. Schema-blocking questions resolved. See §4c STOP AND ASK. |
 | **Last session** | 2026-09-06 |
-| **Next action** | Continue the grill. Remaining open: O-3 tax, O-7 refund screen, O-8 second-terminal, O-9 auto-advance, O-10 date range, O-11 cart component, O-12 scale hardware, O-17 SKU, O-18 OTP, O-20 reminder/statement collision. |
+| **Next action** | **Human confirms ADR-0016, 0001, 0003 (§4c).** On confirmation: mark all three Accepted, then begin Phase 0's remaining mechanical steps — repo skeleton, venv, Flask app skeleton, config, logging, pytest scaffold, smoke test. |
 
 Nothing has been implemented. There is no application code in this repository yet,
 and that is correct: Development Specification 13, step 3 says the agent must tell
@@ -24,9 +24,10 @@ makes skipping it a rule violation rather than a shortcut.
 
 | ADR | Decision | Status |
 |---|---|---|
-| [0001](adr/0001-technology-stack.md) | Technology stack — Flask + SQLite + htmx/Alpine/Tailwind, PyInstaller + Inno Setup | **Proposed** |
-| [0002](adr/0002-initial-data-model.md) | Initial data model — eleven tables, integer paisa, append-only movement/ledger | **Proposed** |
-| [0003](adr/0003-module-boundaries.md) | Module boundaries — layered tree, `services/` never imports Flask | **Proposed** |
+| [0001](adr/0001-technology-stack.md) | Technology stack — Flask + SQLite + htmx/Alpine/Tailwind, PyInstaller + Inno Setup | **Proposed** — unchallenged; see STOP AND ASK below |
+| [0002](adr/0002-initial-data-model.md) | Initial data model (original draft) | **Superseded by 0016** |
+| [0003](adr/0003-module-boundaries.md) | Module boundaries — layered tree, `services/` never imports Flask | **Proposed** — unchallenged, and used correctly by 0005/0013; see STOP AND ASK below |
+| [0016](adr/0016-consolidated-data-model.md) | **Consolidated schema** — every table as it now stands, all nine amendments merged, three prose-only gaps closed | **Proposed** — the Phase 0 sign-off deliverable |
 | [0004](adr/0004-quantity-representation.md) | Quantity stored as integer thousandths of a unit; `allows_fractional` is presentation-only | **Accepted** |
 | [0005](adr/0005-weighed-item-entry.md) | Weighed items entered manually by weight or by amount; scan becomes a resolver chain; scale hardware deferred behind a seam | **Accepted** |
 | [0006](adr/0006-document-authority.md) | Development Specification outranks the Design System on all technical matters; prototype is a style reference | **Accepted** |
@@ -86,8 +87,9 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   loose goods (weighed on a scale) and sealed packs. All quantities are stored as
   integer thousandths of a unit with a per-product `allows_fractional` presentation
   flag. See [ADR-0004](adr/0004-quantity-representation.md), Accepted.
-- **O-3 — Tax.** The Till mock says "Tax included" but no tax module is in scope. Is
-  there a real GST line to compute and print, or are prices simply tax-inclusive?
+- ~~**O-3 — Tax.**~~ **RESOLVED 2026-09-10.** Prices already include tax; the system
+  computes nothing. `sale.tax_paisa` retained fixed at zero, same treatment as
+  `discount_paisa`. See ADR-0008 addendum, Accepted.
 - ~~**O-4 — Duplicate customers.**~~ **RESOLVED 2026-09-09.** Flagged, not
   constrained; different customers may share a number. Numbers are normalised before
   matching. New client requirement added: a number must be confirmed as the
@@ -195,6 +197,32 @@ be recorded here.
   tracked as O-11.
 - **Till summary — the "Discounts" line is removed.** No discount mechanism exists in
   v1. See ADR-0008.
+
+## 4c. STOP AND ASK — Phase 0 closing gate
+
+Per Development Specification Phase 0: *"Confirm the draft database schema before it
+becomes the basis for Phase 1 migrations"* and *"Confirm the final module list (no
+additions/removals) before coding begins."* Presented explicitly here rather than
+self-reported, per Operating Rule 2.
+
+**1. The schema — [ADR-0016](adr/0016-consolidated-data-model.md).** Fifteen tables,
+consolidating nine amendments made during this session's grill, plus three fields
+that prior ADRs described in prose but never formalised as columns (flagged
+explicitly in ADR-0016 itself, not hidden). This is what a Phase 1 migration would
+be built against.
+
+**2. The module list — [ADR-0003](adr/0003-module-boundaries.md).** Unchanged since
+first written. Nothing decided this session contradicted it; two decisions
+(ADR-0005, ADR-0013) actively used its `services/` boundary correctly. It was not
+independently stress-tested the way the schema was — stated plainly rather than
+implied.
+
+**3. The stack — [ADR-0001](adr/0001-technology-stack.md).** Unchanged since first
+written. Nothing decided this session gave a reason to revisit any stack choice.
+Also not independently stress-tested this session.
+
+**Awaiting explicit human confirmation on all three before Phase 0 can close and
+Phase 1 (which writes the actual migration) can begin.**
 
 ## 5. Edge case and test matrix
 
@@ -354,6 +382,38 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-10 — Session 3: closing the grill, consolidating the schema
+
+**Done**
+- Resolved O-3 (tax): prices already include tax, system computes nothing.
+  `sale.tax_paisa` retained fixed at zero, same treatment as discount. Addendum to
+  ADR-0008.
+- Resolved O-19 in the prior session's thread properly: consolidated all schema
+  amendments (ADR-0004, 0007, 0008, 0009, 0011, 0012, 0013, 0014, 0015) into
+  [ADR-0016](adr/0016-consolidated-data-model.md), a single current-state schema.
+  ADR-0002 marked Superseded, body left untouched as history.
+- Found and closed three fields referenced only in prior ADRs' prose, never
+  formalised as columns: `product.created_by_user_id` (ADR-0011),
+  `credit_ledger_entry.override_authorised_by_user_id` (ADR-0014), and
+  `notification_queue.notification_type` missing its third value (ADR-0015). Named
+  explicitly as gaps found during consolidation, not silently patched in.
+- Added an explicit §4c STOP AND ASK section presenting the schema (0016), module
+  list (0003), and stack (0001) for sign-off, per Phase 0's own closing gate —
+  rather than self-reporting these as done.
+
+**Found and reported**
+- ADR-0001 and ADR-0003 were never independently stress-tested this session — every
+  question raised was about the data model, not the stack or module boundaries.
+  Stated plainly in §4c rather than silently marking them Accepted by default.
+
+**Open / next**
+- Awaiting human confirmation on ADR-0016, 0001, 0003.
+- Non-blocking items carried forward: O-7 (refund screen undesigned), O-8
+  (second-terminal mock), O-9 (auto-advance), O-10 (Insights date range), O-11
+  (fractional cart component undesigned), O-12 (scale hardware, deferred),
+  O-17 (SKU format, deferred), O-18 (OTP, deferred), O-20 (reminder/statement
+  scheduling collision). None block Phase 1.
 
 ### 2026-09-09 — Session 2 (continued): grill-with-docs, part 1
 

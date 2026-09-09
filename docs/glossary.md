@@ -162,6 +162,11 @@ authorising a credit sale that would take a customer's balance above their
 `credit_limit_paisa`. Recorded on the ledger entry with the authorising Admin's
 identity, distinct from the cashier who rang the sale. See ADR-0014.
 
+**Consolidated schema** *(Settled)* — The single current-state data model document
+(ADR-0016) that merges every amendment made to the original draft (ADR-0002) during
+the grill session, so Phase 1 builds against one document instead of reading twelve.
+ADR-0002 itself is kept, unedited, as the historical starting point.
+
 **Statement** *(Settled)* — A per-customer summary of Khata activity over a period
 (purchases, payments, closing balance), viewable, exportable, and sent monthly.
 

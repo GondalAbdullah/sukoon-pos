@@ -115,6 +115,11 @@ A reduced price is instead handled by relabelling the goods with a new barcode a
 lower price. The data model for that is a separate decision, taken next in this
 session.
 
+**Addendum, 2026-09-10 — tax.** The identical reasoning was applied to
+`sale.tax_paisa`. Confirmed with the client: prices already include any applicable
+tax; the system computes nothing. The column is retained, fixed at zero, on the same
+cost/benefit basis as `discount_paisa` above. Resolves O-3.
+
 ## Alternatives Considered
 
 - **PIN as specified by the Design System** — rejected by the client. It is faster and
