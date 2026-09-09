@@ -9,6 +9,7 @@ __pycache__/
 .venv/
 venv/
 .pytest_cache/
+.ruff_cache/
 .coverage
 htmlcov/
 
@@ -20,6 +21,9 @@ htmlcov/
 *.db-shm
 instance/
 backups/
+
+# Logs — created automatically by logging_config.py at first run
+logs/
 
 # Build output
 build/

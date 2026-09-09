@@ -10,10 +10,10 @@ work session, not just every phase.
 
 | | |
 |---|---|
-| **Phase** | Phase 0 — Project Setup & Grill Session |
-| **Status** | **Phase 0 grill session and STOP AND ASK gate closed.** ADR-0001, 0003, 0004–0016 all Accepted. Remaining: the mechanical scaffolding steps (repo skeleton, venv, Flask app, config, logging, pytest) have not started. |
+| **Phase** | Phase 0 — Project Setup & Grill Session — **COMPLETE** |
+| **Status** | **Phase 0 fully complete.** Grill session closed, all ADRs Accepted, repo skeleton built and verified from a genuine clean-room checkout. Ready for Phase 1. |
 | **Last session** | 2026-09-06 |
-| **Next action** | Begin Phase 0's remaining mechanical steps: repo skeleton, virtualenv, base Flask app, environment-based config, logging, pytest scaffold, smoke test confirming `flask run` serves a placeholder page. |
+| **Next action** | Begin **Phase 1 — Core Data Model & Auth**: SQLAlchemy models per ADR-0016, the initial Alembic migration, and password-based auth per ADR-0008. |
 
 Nothing has been implemented. There is no application code in this repository yet,
 and that is correct: Development Specification 13, step 3 says the agent must tell
@@ -198,6 +198,40 @@ be recorded here.
 - **Till summary — the "Discounts" line is removed.** No discount mechanism exists in
   v1. See ADR-0008.
 
+## 4d. Phase 0 Definition of Done — verified 2026-09-10
+
+Per Development Specification, Phase 0. Every box below was independently checked,
+not just written — see "how verified" for what was actually run.
+
+- [x] Repository boots locally from a clean checkout with documented setup steps.
+      **How verified:** copied the working tree to a scratch directory, deleted
+      `.venv`, `.git`, `.env`, logs, and all caches, then followed `README.md`
+      verbatim (venv, `pip install -r requirements-dev.txt`, `.env` from the
+      example, generate a key). `./scripts/run_tests.sh` and a real
+      `flask --app sukoon.app run` both passed from that clean copy, not the
+      working copy already known to work.
+- [x] `context.md`, `docs/adr/`, and `glossary.md` exist and are populated.
+- [x] grill-with-docs session completed; the schema (ADR-0016, which supersedes
+      ADR-0002) and stack (ADR-0001) are Accepted.
+- [x] Module list and top-level data model confirmed by the human (4c).
+- [x] Empty test suite runs green — now two real smoke tests, both passing.
+- [x] A smoke test confirms `flask run` serves a placeholder page. **How verified:**
+      not just the pytest-flask test client — a literal `flask run` process was
+      started, `curl`'d for a real HTTP 200, and its log output inspected, in both
+      the working copy and the independent clean-room copy.
+
+**Skeleton built, following ADR-0003's module boundaries exactly:**
+`sukoon/{models,services,routes,templates,static,jobs}/`, each services subpackage
+(`notifications/providers`, `receipts`) present as an importable package.
+`config.py` (environment-driven, no hardcoded secrets — Operating Rule 6),
+`logging_config.py` (rotating file handler), `extensions.py` (stub, populated
+Phase 1), `app.py` (factory, currently one placeholder route). `tests/{pure,integration}/`
+per the same ADR. `ruff` clean, `pytest` green, coverage wired up.
+
+**A gap found and closed while verifying, not left for Phase 1 to discover:**
+`.gitignore` did not actually cover `logs/` or `.ruff_cache/` — both would have been
+committable. Added both before anything was staged.
+
 ## 4c. STOP AND ASK — Phase 0 closing gate — CLOSED 2026-09-10
 
 Per Development Specification Phase 0: *"Confirm the draft database schema before it
@@ -375,6 +409,37 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-10 — Session 4: Phase 0 scaffolding, and Phase 0 complete
+
+**Done**
+- Built the repo skeleton exactly per ADR-0003: `sukoon/{models,services,routes,
+  templates,static,jobs}/`, `config.py`, `logging_config.py`, `extensions.py`
+  (stub), `app.py` (factory + one placeholder route), `tests/{pure,integration}/`.
+- `requirements.txt` / `requirements-dev.txt` (intentionally scoped to what Phase 0
+  needs, not the full ADR-0001 stack — later phases add their own packages as they
+  start, rather than pinning versions months before they're used).
+- `.env.example`, `pyproject.toml` (tool config only, no `[project]` table),
+  `scripts/run_tests.sh`, `README.md` with real setup steps.
+- Created the venv, installed dependencies, ran `ruff check` (clean) and `pytest`
+  (2 passed) in the working copy.
+- **Independently re-verified the "clean checkout" claim**, rather than trust the
+  working copy: copied the tree to a scratch directory, deleted `.venv`, `.git`,
+  `.env`, logs, and every cache, followed `README.md` verbatim, and confirmed both
+  the test suite and a real `flask run` (curled for an actual HTTP 200, not just
+  the test client) passed from that independent copy.
+- Found and fixed a real gap during that verification: `.gitignore` did not cover
+  `logs/` or `.ruff_cache/`. Both would have been committable had this not been
+  caught before staging.
+- Phase 0's full Definition of Done recorded as verified in 4d, with what was
+  actually run against each item, not just a checkmark.
+
+**Open / next**
+- Phase 0 is complete. Phase 1 (Core Data Model & Auth) begins next session:
+  SQLAlchemy models per ADR-0016, the first Alembic migration, password-based auth
+  per ADR-0008.
+- Non-blocking items carried forward unchanged: O-7, O-8, O-9, O-10, O-11, O-12,
+  O-17, O-18, O-20.
 
 ### 2026-09-10 — Session 3 (continued): Phase 0 STOP AND ASK gate closed
 

@@ -1,0 +1,7 @@
+# Runtime dependencies actually needed by the current phase.
+# The full stack is locked in ADR-0001; each phase adds its own packages here
+# as it starts, rather than installing months-early against versions that will
+# have drifted by the time they're actually used.
+
+Flask==3.0.3
+python-dotenv==1.0.1
