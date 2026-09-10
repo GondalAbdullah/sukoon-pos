@@ -61,15 +61,37 @@ def create_app(config_name: str | None = None) -> Flask:
     from sukoon.routes.admin import bp as admin_bp
     from sukoon.routes.auth import bp as auth_bp
     from sukoon.routes.main import bp as main_bp
+    from sukoon.routes.stock import bp as stock_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(stock_bp)
 
+    _register_template_helpers(app)
     _register_cli(app)
 
     app.logger.info("Sukoon application created (config=%s)", config_name or "default")
     return app
+
+
+def _register_template_helpers(app: Flask) -> None:
+    """Display filters. Money is whole rupees (ADR-0007); quantity is milli-units
+    (ADR-0004). Formatting only — no rounding decisions live here."""
+
+    @app.template_filter("rupees")
+    def rupees(paisa: int | None) -> str:
+        if paisa is None:
+            return "—"
+        return f"Rs {paisa // 100:,}"
+
+    @app.template_filter("qty")
+    def qty(milli: int | None, unit_label: str = "unit") -> str:
+        if milli is None:
+            return "—"
+        whole = milli / 1000
+        text = f"{int(whole)}" if milli % 1000 == 0 else f"{whole:g}"
+        return f"{text} {unit_label}"
 
 
 def _register_cli(app: Flask) -> None:

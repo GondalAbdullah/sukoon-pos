@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Categories — Sukoon{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('stock.index') }}">&larr; Stock</a></p>
+<h1>Categories</h1>
+
+<table>
+  <thead><tr><th>Name</th><th>Order</th><th>Active</th><th></th></tr></thead>
+  <tbody>
+  {% for c in categories %}
+    <tr>
+      <form method="post" action="{{ url_for('stock.update_category', category_id=c.id) }}">
+        <td><input type="text" name="name" value="{{ c.name }}"></td>
+        <td><input type="number" name="display_order" value="{{ c.display_order }}" style="width:4em"></td>
+        <td><input type="hidden" name="active_field_present" value="1">
+            <input type="checkbox" name="is_active" {{ 'checked' if c.is_active }}></td>
+        <td><button type="submit">Save</button></td>
+      </form>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<h2>Add a category</h2>
+<form method="post" action="{{ url_for('stock.categories') }}">
+  <label>Name<br><input type="text" name="name" required></label>
+  <label>Order<br><input type="number" name="display_order" value="0" style="width:4em"></label>
+  <button type="submit">Add</button>
+</form>
+{% endblock %}

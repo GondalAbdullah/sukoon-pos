@@ -13,13 +13,13 @@ weight/amount for loose goods; the shop's owner tracks stock, credit customers
 
 ## Project status
 
-**Phase 1 (Core Data Model & Auth) is in progress.** The full schema (ADR-0016)
-is implemented as SQLAlchemy models with an initial Alembic migration, and
-password-based Admin/Cashier authentication with a permission table (ADR-0008)
-is in place. The project follows a phased build plan with an explicit Definition
-of Done and a human sign-off gate at the end of each phase — see
-[`docs/context.md`](docs/context.md) for exactly where things stand right now,
-what's been decided, and what's still open.
+**Phase 2 (Inventory & Product Management) is built, awaiting sign-off.** On top of
+the Phase 1 data model + auth: category/product CRUD, auto-generated SKUs, stock
+movements with a full audit trail, barcode assignment + internal Code 128
+generation, an A4 label-sheet PDF, and low-stock alerting. The project follows a
+phased build plan with an explicit Definition of Done and a human sign-off gate at
+the end of each phase — see [`docs/context.md`](docs/context.md) for exactly where
+things stand right now, what's been decided, and what's still open.
 
 ## If you're reviewing this
 

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if product else 'New' }} product — Sukoon{% endblock %}
+{% block content %}
+<h1>{{ 'Edit ' + product.name if product else 'New product' }}</h1>
+
+<form method="post"
+      action="{{ url_for('stock.update_product', product_id=product.id) if product else url_for('stock.create_product') }}">
+
+  <p><label>Name (required)<br>
+    <input type="text" name="name" required
+           value="{{ product.name if product else (form.name if form) }}"></label></p>
+
+  <p><label>Selling price, Rs (required)<br>
+    <input type="number" name="sell_price" min="0" step="1" required
+           value="{{ (product.sell_price_paisa // 100) if product else (form.sell_price if form) }}"></label>
+    {% if product %}<br><small>Changing this needs your password (step-up).</small>
+      <br><input type="password" name="step_up_password" placeholder="Password (only if changing price)">
+    {% endif %}
+  </p>
+
+  <p><label>Cost price, Rs (optional)<br>
+    <input type="number" name="cost_price" min="0" step="1"
+           value="{{ (product.cost_price_paisa // 100) if product and product.cost_price_paisa is not none else '' }}"></label></p>
+
+  <p><label>Category<br>
+    <select name="category_id">
+      <option value="">— none —</option>
+      {% for c in categories %}
+        <option value="{{ c.id }}" {{ 'selected' if product and product.category_id == c.id }}>{{ c.name }}</option>
+      {% endfor %}
+    </select></label></p>
+
+  <p><label>Unit label<br>
+    <input type="text" name="unit_label" value="{{ product.unit_label if product else 'unit' }}"></label></p>
+
+  <p><label><input type="checkbox" name="allows_fractional"
+      {{ 'checked' if product and product.allows_fractional }}> Sold loose / by weight (allows fractional quantity)</label></p>
+
+  <p><label>Low-stock threshold (optional, in units)<br>
+    <input type="number" name="low_stock_threshold" min="0" step="0.001"
+           value="{{ (product.low_stock_threshold_milli / 1000) if product and product.low_stock_threshold_milli is not none else '' }}"></label></p>
+
+  {% if product %}
+  <p><label>SKU<br>
+    <input type="text" name="sku" value="{{ product.sku or '' }}"></label></p>
+  {% endif %}
+
+  <p><button type="submit">{{ 'Save' if product else 'Create' }}</button>
+     <a href="{{ url_for('stock.product_detail', product_id=product.id) if product else url_for('stock.index') }}">Cancel</a></p>
+</form>
+{% endblock %}

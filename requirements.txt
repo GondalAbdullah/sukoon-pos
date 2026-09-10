@@ -12,3 +12,8 @@ Flask-Migrate==4.0.7
 Flask-Login==0.6.3
 SQLAlchemy==2.0.35
 alembic==1.19.2
+
+# Phase 2 — Inventory & Product Management (ADR-0010 labels, ADR-0018 codes)
+python-barcode==0.15.1
+Pillow==10.4.0
+reportlab==4.2.2

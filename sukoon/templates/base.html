@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Sukoon{% endblock %}</title>
+</head>
+<body>
+  {#
+    Phase 2 templates are functional HTML only. The Tailwind build and the
+    Design System's visual language (Stock list, the Add Stock modal in
+    Figure 7) arrive with the styling pass in a later phase. Structure here
+    honours the interaction rules that matter now: one entry point for stock
+    changes, a mandatory reason on every adjustment.
+  #}
+  <header>
+    <a href="{{ url_for('main.placeholder') }}">Sukoon</a>
+    {% if current_user.is_authenticated %}
+      &nbsp;|&nbsp; <a href="{{ url_for('stock.index') }}">Stock</a>
+      &nbsp;|&nbsp; <span>{{ current_user.name }} ({{ current_user.role }})</span>
+      <form method="post" action="{{ url_for('auth.logout') }}" style="display:inline">
+        <button type="submit">Sign out</button>
+      </form>
+    {% endif %}
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <ul class="flashes">
+        {% for category, message in messages %}
+          <li class="flash flash-{{ category }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

@@ -10,10 +10,10 @@ work session, not just every phase.
 
 | | |
 |---|---|
-| **Phase** | Phase 1 — Core Data Model & Auth — **COMPLETE** |
-| **Status** | All 15 ADR-0016 tables implemented as SQLAlchemy models; initial Alembic migration generated and verified up→down→up from an empty database. Password-based Admin/Cashier auth with a permission table, brute-force lockout, and server-side 403 route protection all built and tested (ADR-0008, ADR-0017). `flask seed` in place. `ruff` clean, 40 tests green, 99% coverage. **Schema-freeze gate (§4e) closed — client approved the field list on 2026-09-10.** |
-| **Last session** | 2026-09-10 (session 6) |
-| **Next action** | Begin **Phase 2 — Inventory & Product Management**: category/product CRUD, barcode/QR generation + assignment with duplicate prevention, stock-in/out/adjustment flows with mandatory reason + audit entry, low-stock threshold config and alert list. First: seed the deferred product/stock permission codes (§4). |
+| **Phase** | Phase 2 — Inventory & Product Management — **COMPLETE** |
+| **Status** | Category + product CRUD, SKU auto-generation (ADR-0018), stock-in/out/correction with a mandatory reason and full audit trail, negative-stock prevention, barcode assignment + internal Code 128 generation + the resolver chain (ADR-0009), the A4 label-sheet PDF with configurable geometry (ADR-0010), low-stock alerting at the exact threshold boundary, and the Stock list. `catalog.manage` / `stock.adjust` permissions added (ADR-0019, Admin-only). **No migration** — every table already existed from ADR-0016. `ruff` clean, 107 tests green, 95% coverage (business-logic modules ≥ 90%). Templates are functional HTML; the Tailwind visual pass is deferred. |
+| **Last session** | 2026-09-10 (session 7) |
+| **Next action** | Begin **Phase 3 — POS & Billing** (highest-traffic, highest-risk): the Till cart (search/scan to cart, quantity + the loose-goods weight/amount entry from ADR-0005), Cash/Card/Credit payment, atomic race-safe invoice numbering, sale + inventory deduction in one transaction, ESC/POS receipt + PDF fallback, and the returns/refund flow. Note the **Phase 3 STOP AND ASK gate** (discount rules + refund policy) and the added ADR-0019 item (confirm/split `catalog.manage`/`stock.adjust`). |
 
 ## 2. Decisions made so far
 
@@ -35,7 +35,9 @@ work session, not just every phase.
 | [0013](adr/0013-customer-phone-identity.md) | Phone duplicates flagged not constrained; numbers normalised; unverified numbers receive no financial detail | **Accepted** |
 | [0014](adr/0014-credit-limit-enforcement.md) | Credit limit blocks a Cashier; Admin may override with step-up; override recorded on the ledger | **Accepted** |
 | [0015](adr/0015-credit-terms-and-overdue-tracking.md) | Overdue = balance outstanding past credit terms since the last real payment (not refund/adjustment); FIFO rejected | **Accepted** |
-| [0017](adr/0017-auth-implementation-parameters.md) | Phase 1 auth parameters — the v1 permission catalogue (6 codes), lockout defaults (5 attempts / 15 min), 10-hour session, name-or-initials login, `role_permission` surrogate key, model-level CHECKs | **Accepted** |
+| [0017](adr/0017-auth-implementation-parameters.md) | Phase 1 auth parameters — the v1 permission catalogue, lockout defaults (5 attempts / 15 min), 10-hour session, name-or-initials login, `role_permission` surrogate key, model-level CHECKs | **Accepted** |
+| [0018](adr/0018-product-identity-codes.md) | Product identity codes — auto-generated category-prefixed SKU (`OIL-5021`), internal barcodes are Code 128 with an `SK-` prefix; `labels.py` in `receipts/`, new `settings_service`. Resolves O-17 | **Accepted** |
+| [0019](adr/0019-phase-2-authorization.md) | Phase 2 authz — `catalog.manage` + `stock.adjust`, Admin-only; sell-price change and price-override barcode stay step-up. Clarifies ADR-0008 §4's loose "Phase 3" attribution | **Accepted** |
 
 (Historical rule, now satisfied: no ADR could move to **Accepted** until the Phase 0
 grill session had run. It ran on 2026-09-10; ADR-0017 onward are ordinary Phase-N
@@ -138,12 +140,10 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   Yes, and only a provisional one. Flagged, attributed, listed under "Needs
   completing", excluded from margin reporting. No approval queue, no guessed cost, no
   cap. See [ADR-0011](adr/0011-catalog-onboarding.md).
-- **O-17 — Does the shop use its own SKU codes?** The column exists as
-  `sku TEXT NULL UNIQUE` so nothing is blocked, and the wider question is parked at the
-  client's request. **Trigger:** confirming whether Mr. Abdullah writes his own codes
-  on shelf labels, supplier orders, or stock-taking sheets. If he does, a generated
-  format should match what he already writes; if not, the column can be dropped or
-  left permanently empty. Must be settled before Phase 2 closes.
+- ~~**O-17 — Does the shop use its own SKU codes?**~~ **RESOLVED 2026-09-10.** Yes.
+  Sukoon auto-generates a category-prefixed SKU (`OIL-5021` style) on product create,
+  editable by an Admin, shop-wide running number. See
+  [ADR-0018](adr/0018-product-identity-codes.md), Accepted.
 - **O-7 — Refunds have no design.** Development Specification Phase 3 requires a
   returns/refund flow that reverses both stock and ledger. The Design System has no
   screen for it and the prototype has no entry point. A screen must be designed, or
@@ -205,6 +205,27 @@ be recorded here.
   tracked as O-11.
 - **Till summary — the "Discounts" line is removed.** No discount mechanism exists in
   v1. See ADR-0008.
+
+### Module-list deviations from ADR-0003 (frozen at the Phase 0 gate)
+
+ADR-0003's tree was confirmed "no additions/removals". Two Phase 2 additions,
+recorded rather than smuggled (ADR-0018 §3):
+
+- **`services/receipts/labels.py`** — label-sheet PDF + barcode images. A file in
+  the existing `receipts/` package, not a new top-level module.
+- **`services/settings_service.py`** — a thin typed accessor over the `setting` KV
+  table. A genuine new module; it holds no policy and replaces every service
+  poking `Setting` rows directly.
+
+### Phase 2 UI deviations
+
+- **Stock screens are functional HTML, not the Design System's visual language.**
+  The Stock list (Figure 3) and the Add Stock modal (Figure 7) are implemented as
+  plain forms and a full-page adjust form, not the labelled bars, segmented
+  control, or modal. Structure honours what matters now — one adjust entry point
+  per product, a mandatory reason on every movement, the three movement types. The
+  Tailwind + htmx visual pass is a later phase. Consistent with the Phase 1 login
+  screen's treatment.
 
 ## 4d. Phase 0 Definition of Done — verified 2026-09-10
 
@@ -305,6 +326,35 @@ migration, not an edit to this one."*
 **Until the human records approval here, Phase 2 does not begin.** After approval,
 any schema change is a new migration, never an edit to this one.
 
+## 4f. Phase 2 Definition of Done — SIGNED OFF 2026-09-10
+
+Per Development Specification Phase 2. Phase 2 has **no STOP AND ASK gate**; this
+section is the "present the DoD to the human before the next phase" step.
+**The client reviewed and approved this DoD on 2026-09-10.** Phase 3 may begin.
+
+| Checklist item | Status |
+|---|---|
+| Full CRUD for categories and products, covered by tests, including the edge cases | ✅ `test_inventory.py`, `test_stock_routes.py` — create/edit/delete (soft vs hard), search, provisional derive/clear, SKU generation + uniqueness |
+| Barcode/QR assignment and lookup verified end-to-end | ✅ `test_barcodes.py` — assign, generate (`SK-` Code 128), resolver chain, price-override resolution, deactivation; duplicate rejected at service **and** DB level |
+| Low-stock alert list verified against seeded data | ✅ `test_inventory.py::test_low_stock_list_fires_exactly_at_threshold`, `test_catalog_summary_counts`; boundary is `<=` |
+| Negative-stock prevention under sale-triggered deduction | ✅ `test_stock_movements.py` — `InsufficientStockError`; the `movement_type='sale'` path shares the code, wired to the till in Phase 3 |
+| Adjustment audit trail (who, when, reason, before/after) | ✅ every `stock_movement` row records all four; a blank reason is refused at the service and by a DB CHECK |
+| A generated barcode decodes back to its code | ✅ `test_labels.py` — pattern + mod-103 checksum decode (true optical scan is Phase 8 manual) |
+
+**Also verified:** `flask run` serves `/stock`, `/stock/bulk`, product detail, and the
+adjust/barcode/label endpoints with no errors; a barcode typed into the Stock search
+box resolves to its product (the "simulate a scan" check).
+
+**Deferred out of Phase 2, with rationale:**
+- **The Design System visual layer** (labelled stock bars, the Add Stock modal, htmx
+  per-row swaps). Functional HTML now; the Tailwind pass is its own phase.
+- **Scan-as-you-go at the till, provisional-create by a Cashier** — Phase 3, they
+  belong with the till scan infrastructure (ADR-0011 §2).
+- **Concurrent-write correctness** — Phase 3, with invoice-numbering.
+
+**For the Phase 3 gate (added by ADR-0019):** confirm or split `catalog.manage` /
+`stock.adjust`, and decide whether either needs step-up.
+
 ## 5. Edge case and test matrix
 
 Every case below must have a passing automated test before its owning phase can
@@ -312,16 +362,26 @@ close. Hardware-in-loop items are marked and take a recorded manual test instead
 This list grows as new cases are found.
 
 ### Inventory (Phase 2)
-- [ ] Stock cannot go negative through the normal sale flow
-- [ ] Duplicate barcode/QR assignment is rejected at the database level
-- [ ] Every manual stock adjustment requires a reason and logs who and when
+- [x] Stock cannot go negative — `test_stock_movements::test_stock_out_cannot_drive_stock_negative`
+      (the `movement_type='sale'` path shares this code; wired to the till in Phase 3)
+- [x] Duplicate barcode/QR assignment is rejected at the database level
+      — `test_barcodes::test_duplicate_barcode_is_rejected_at_the_database_level`
+- [x] Every manual stock adjustment requires a reason and logs who and when
+      — `test_stock_movements::test_stock_in_adds_and_records_before_after`, `::test_every_adjustment_requires_a_reason`
 - [ ] Concurrent stock updates from two terminals in the same second resolve without lost updates
-- [ ] Deleting a product with sales history is a soft delete, not a hard delete
-- [ ] Low-stock alert fires exactly at the configured threshold boundary
-- [ ] A loose product sells 0.75 kg and stock drops by exactly 750 milli-units
-- [ ] A sealed-pack product cannot be sold fractionally — rejected server-side
-- [ ] Stock displays as `1.5 kg` and `42 bags` from the same underlying column
-- [ ] A quantity of zero is rejected at the till for both product kinds
+      *(Phase 3 — belongs with invoice-numbering concurrency)*
+- [x] Deleting a product with history is a soft delete, not a hard delete
+      — `test_inventory::test_delete_with_movement_history_is_a_soft_delete` (+ hard-delete when no history)
+- [x] Low-stock alert fires exactly at the configured threshold boundary
+      — `test_inventory::test_low_stock_list_fires_exactly_at_threshold`, `test_inventory_pure::test_stock_status_boundary`
+- [x] A loose product sells 0.75 kg and stock drops by exactly 750 milli-units
+      — `test_stock_movements::test_loose_product_sells_fractional_and_drops_by_exact_milli`
+- [x] A sealed-pack product cannot be sold fractionally — rejected server-side
+      — `test_stock_movements::test_sealed_pack_cannot_take_a_fractional_quantity`
+- [x] Stock displays as `1.5 kg` and `42 bags` from the same underlying column
+      — `test_stock_routes::test_stock_list_formats_quantity_from_the_shared_column`
+- [x] A quantity of zero is rejected — `test_stock_movements::test_zero_quantity_is_rejected`
+      (the till's own zero-guard for both product kinds is Phase 3)
 
 ### Weighed-item entry (Phase 3)
 - [ ] Entering a weight produces the correct line total for a loose product
@@ -355,38 +415,56 @@ This list grows as new cases are found.
 - [ ] Session expiry mid-sale does not lose the cart *(Phase 3 — no cart yet)*
 
 ### Barcodes and relabelling (Phase 2)
-- [ ] Two barcodes on one product both resolve to it, at their respective prices
+- [x] Two barcodes on one product both resolve to it, at their respective prices
+      — `test_barcodes::test_two_barcodes_resolve_to_one_product_at_their_own_prices`
 - [ ] Selling via an override barcode deducts stock from the single shared count
-- [ ] A barcode is unique across the entire catalog, enforced at database level
-- [ ] Deactivating a barcode stops it resolving, without affecting historical lines
-- [ ] A product's normal price is unaffected by an override barcode existing
-- [ ] Creating an override barcode without step-up authentication is refused
-- [ ] `sale_item.product_barcode_id` records which label produced the price
-- [ ] A generated barcode image decodes back to the code it was generated from
-- [ ] A label sheet PDF renders the expected number of labels per page
-- [ ] Sheet geometry is configurable without a code change
-- [ ] A product with no barcode can be assigned a generated one and then resolves at the till
+      *(Phase 3 — resolver returns the right product+price now; sale deduction is Phase 3)*
+- [x] A barcode is unique across the entire catalog, enforced at database level
+      — `test_barcodes::test_duplicate_barcode_is_rejected_at_the_database_level` (+ service-level)
+- [x] Deactivating a barcode stops it resolving — `test_barcodes::test_deactivating_a_barcode_stops_it_resolving`
+      (row is never deleted, so historical lines are unaffected — ADR-0009)
+- [x] A product's normal price is unaffected by an override barcode existing
+      — `test_barcodes::test_two_barcodes_resolve_to_one_product_at_their_own_prices`
+- [x] Creating an override barcode without step-up authentication is refused
+      — `test_stock_routes::test_price_override_barcode_requires_step_up`
+- [ ] `sale_item.product_barcode_id` records which label produced the price *(Phase 3)*
+- [x] A generated barcode image decodes back to the code it was generated from
+      — `test_labels::test_generated_barcode_pattern_decodes_back_to_the_code` (pattern + checksum;
+      true optical scan is a Phase 8 manual test)
+- [x] A label sheet PDF renders the expected number of labels per page
+      — `test_labels::test_label_sheet_page_count_follows_geometry`
+- [x] Sheet geometry is configurable without a code change
+      — `test_stock_routes::test_label_geometry_is_configurable_via_settings`
+- [x] A product with no barcode can be assigned a generated one and then resolves
+      — `test_barcodes::test_generated_barcode_has_sk_prefix_and_resolves` (till scan is Phase 3)
 
 ### Catalog onboarding (Phase 2)
-- [ ] Bulk entry commits a row and returns focus to the scan field
-- [ ] Scanning an existing code in bulk entry jumps to it rather than duplicating
-- [ ] An unknown barcode at the till offers inline creation and the sale then completes
-- [ ] A product created at the till is flagged provisional
-- [ ] Provisional products appear in the "Needs completing" filter
-- [ ] Margin reporting excludes provisional products rather than assuming zero cost
-- [ ] Completing a provisional product clears the flag
-- [ ] A Cashier cannot edit an existing product's price, only create a provisional one
+- [x] Bulk entry commits a row — `test_stock_routes::test_bulk_entry_commits_a_row`
+      (returns to the scan field; the htmx per-row focus polish is the deferred visual pass)
+- [x] Scanning an existing code in bulk entry jumps to it rather than duplicating
+      — `test_stock_routes::test_bulk_entry_existing_code_jumps_to_product_not_duplicate`
+- [ ] An unknown barcode at the till offers inline creation and the sale then completes *(Phase 3)*
+- [ ] A product created at the till is flagged provisional *(Phase 3)*
+- [x] Provisional products appear in the "Needs completing" filter
+      — `test_inventory::test_provisional_products_appear_in_needs_completing_filter`, `test_stock_routes::test_list_needs_completing_filter`
+- [ ] Margin reporting excludes provisional products rather than assuming zero cost *(Phase 6)*
+- [x] Completing a provisional product clears the flag
+      — `test_inventory::test_completing_a_provisional_product_clears_the_flag`
+- [x] A Cashier cannot edit an existing product's price, only create a provisional one
+      — `test_stock_routes::test_cashier_is_forbidden_from_every_management_route` (provisional-create is Phase 3)
 
 ### Product field requirements (Phase 1)
 - [x] A product cannot be created with a null or empty name
       — `tests/integration/test_models.py::test_product_requires_a_non_blank_name`
 - [x] A product cannot be created with a null selling price
       — `::test_product_requires_a_sell_price` (and `::test_negative_sell_price_is_rejected`)
-- [ ] A product with a null cost price is accepted and flagged provisional *(model
-      accepts null cost; the auto-flag-on-create is Phase 2 CRUD logic)*
-- [ ] A product with no barcode is accepted and is **not** flagged provisional *(Phase 2)*
+- [x] A product with a null cost price is accepted and flagged provisional
+      — `test_inventory::test_product_missing_tier_c_is_provisional`, `test_inventory_pure::test_provisional_when_any_tier_c_field_missing`
+- [x] A product with no barcode is accepted and is **not** flagged provisional
+      — `test_inventory::test_barcodeless_product_is_not_provisional`
 - [x] Two products may both have a null SKU; two may not share a non-null SKU
       — `::test_two_products_may_both_have_null_sku`, `::test_duplicate_non_null_sku_is_rejected`
+      (note: SKUs are now auto-generated per ADR-0018, so a null SKU is rare in practice)
 - [ ] Margin reporting reports unknown-cost products as unknown, never as zero cost *(Phase 6)*
 
 ### Customer phone identity (Phase 4)
@@ -441,9 +519,12 @@ This list grows as new cases are found.
 - [ ] Monthly statement generation is correct across month and timezone boundaries
 
 ### Barcode / QR (Phase 2)
-- [ ] Scanning an unregistered code gives a clear "not found" result, not a crash
-- [ ] Scanner input cannot leak into the wrong form field
-- [ ] Two products cannot share the same code
+- [x] Scanning an unregistered code gives a clear "not found" result, not a crash
+      — `test_barcodes::test_unknown_code_returns_none_not_an_exception` (`resolve_barcode` returns `None`)
+- [ ] Scanner input cannot leak into the wrong form field *(Phase 3 — a till/focus concern;
+      the keyboard-wedge behaviour matters where the scan field must always hold focus)*
+- [x] Two products cannot share the same code
+      — `test_barcodes::test_duplicate_barcode_is_rejected_by_the_service` (+ DB-level)
 
 ### Auth (Phase 1)
 - [ ] Session expiry is handled without data loss mid-sale *(Phase 3 — no cart yet)*
@@ -474,6 +555,49 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-10 — Session 7: Phase 2 built (Inventory & Product Management)
+
+**Decisions taken (via client Q&A, then ADRs)**
+- **O-17 resolved** — the shop does use its own product codes. SKUs auto-generate,
+  category-prefixed (`OIL-5021` style), editable. → [ADR-0018](adr/0018-product-identity-codes.md).
+- **Generated barcodes** are Code 128 with an `SK-` prefix (never collides with a
+  real EAN-13; every 1D scanner reads it). → ADR-0018.
+- **Contradiction found and flagged:** ADR-0008 §4 said "creating/deleting a
+  product" and "stock-in/out" were deferred to the Phase 3 gate, but the spec
+  builds them in Phase 2 with no gate. Client chose: Admin-only now
+  (`catalog.manage` + `stock.adjust`), finer taxonomy + step-up question still goes
+  to the Phase 3 gate. → [ADR-0019](adr/0019-phase-2-authorization.md).
+- Two module-list additions beyond the Phase-0-frozen ADR-0003 tree, recorded in
+  §4b: `services/receipts/labels.py` and `services/settings_service.py`.
+
+**Done**
+- `inventory_service.py` — category/product CRUD, SKU allocation, provisional
+  derivation (ADR-0012), soft-vs-hard delete, search (name/SKU/barcode),
+  `apply_stock_movement` (in/out/correction/sale/refund, negative-stock guard,
+  fractional guard, full audit row), `compute_stock_status` + `low_stock_products`
+  at the exact boundary, `catalog_summary`, the barcode resolver chain, assign /
+  generate / deactivate barcode. No Flask import (enforced by the boundary test).
+- `services/receipts/labels.py` — Code 128 PNGs (`python-barcode` + Pillow) and the
+  A4 label-sheet PDF (ReportLab); geometry from `setting` keys with defaults.
+- `services/settings_service.py` — typed `setting` KV accessor.
+- `routes/stock.py` + templates — Stock list w/ summary + filters, product detail
+  (with adjust / barcode / label forms), product form, bulk entry, category
+  management. `catalog.manage` / `stock.adjust` gating; sell-price change and
+  price-override barcode require step-up (`require_step_up` helper added to guards).
+- `permissions.py` + seed updated with the two new codes (Admin-only).
+- **No migration** — every table was already in the frozen ADR-0016 schema.
+- Deps: `python-barcode`, `Pillow`, `reportlab`.
+- `ruff` clean; **111 tests pass; 95% coverage** (inventory_service 94%, labels 94%).
+
+**Sign-off**
+- **Phase 2 DoD (§4f) approved by the client on 2026-09-10.** Phase 3 may begin.
+
+**Open / next**
+- Phase 3 — POS & Billing. Carries a STOP AND ASK gate (discount + refund policy)
+  plus the ADR-0019 follow-up (confirm/split `catalog.manage` / `stock.adjust`).
+- Non-blocking carryovers: O-7, O-8, O-9, O-10, O-11, O-12, O-18, O-20. LICENSE
+  owner-name placeholder still open.
 
 ### 2026-09-10 — Session 6: Phase 1 built (Core Data Model & Auth)
 

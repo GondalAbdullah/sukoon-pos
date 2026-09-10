@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Stock — Sukoon{% endblock %}
+{% block content %}
+<h1>Stock</h1>
+<p>Everything in the shop, at a glance.</p>
+
+<dl class="summary">
+  <dt>Catalog size</dt><dd>{{ summary.catalog_size }} items</dd>
+  <dt>Stock value (at cost)</dt><dd>{{ summary.stock_value_paisa | rupees }}</dd>
+  <dt>Needs attention</dt><dd>{{ summary.needs_attention }} running low</dd>
+  <dt>Out of stock</dt><dd>{{ summary.out_of_stock }}</dd>
+</dl>
+
+<form method="get" action="{{ url_for('stock.index') }}">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search by name, SKU, or scan a barcode…">
+  <select name="category">
+    <option value="">All categories</option>
+    {% for c in categories %}
+      <option value="{{ c.id }}" {{ 'selected' if category_id == c.id }}>{{ c.name }}</option>
+    {% endfor %}
+  </select>
+  <label><input type="checkbox" name="filter" value="needs_completing" {{ 'checked' if needs_completing }}> Needs completing</label>
+  <button type="submit">Search</button>
+</form>
+
+{% if can_manage %}
+  <p>
+    <a href="{{ url_for('stock.new_product') }}">Add product</a> ·
+    <a href="{{ url_for('stock.bulk_entry') }}">Bulk entry</a> ·
+    <a href="{{ url_for('stock.categories') }}">Manage categories</a>
+  </p>
+{% endif %}
+
+<table>
+  <thead><tr><th>Product</th><th>Stock level</th><th>Price</th></tr></thead>
+  <tbody>
+  {% for p in products %}
+    {% set st = status_of(p) %}
+    <tr>
+      <td>
+        <a href="{{ url_for('stock.product_detail', product_id=p.id) }}">{{ p.name }}</a>
+        {% if p.is_provisional %}<span class="badge">Needs completing</span>{% endif %}
+        <br><small>{{ p.sku or '—' }}{% if p.category %} · {{ p.category.name }}{% endif %}</small>
+      </td>
+      <td>
+        {{ p.stock_quantity_milli | qty(p.unit_label) }} ·
+        {% if st == 'out' %}<strong>Restock</strong>
+        {% elif st == 'low' %}<strong>Low</strong>
+        {% else %}healthy{% endif %}
+      </td>
+      <td>{{ p.sell_price_paisa | rupees }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="3">No products match.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<p>Showing {{ products | length }} of {{ total }} items.
+{% if page > 1 %}<a href="{{ url_for('stock.index', q=q, category=category_id, page=page-1) }}">Previous</a>{% endif %}
+{% if page * page_size < total %}<a href="{{ url_for('stock.index', q=q, category=category_id, page=page+1) }}">Next</a>{% endif %}
+</p>
+{% endblock %}

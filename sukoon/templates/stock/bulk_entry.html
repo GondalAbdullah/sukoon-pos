@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Bulk entry — Sukoon{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('stock.index') }}">&larr; Stock</a></p>
+<h1>Bulk entry</h1>
+<p>Scan a barcode, fill the row, press Enter. A code that already exists jumps to
+that product instead of adding a duplicate.</p>
+
+{#
+  Phase 2: a plain form that reloads. The Design System / ADR-0011 §1 call for an
+  htmx partial swap per committed row with the cursor returning to the scan field
+  — that arrives with the visual pass. The behaviour (no duplicates, focus starts
+  on the scan field) is honoured here.
+#}
+<form method="post" action="{{ url_for('stock.bulk_entry') }}">
+  <p><label>Barcode (optional)<br>
+    <input type="text" name="barcode" autofocus autocomplete="off"></label></p>
+  <p><label>Name (required)<br><input type="text" name="name" required></label></p>
+  <p><label>Selling price, Rs (required)<br>
+    <input type="number" name="sell_price" min="0" step="1" required></label></p>
+  <p><label>Cost price, Rs<br>
+    <input type="number" name="cost_price" min="0" step="1"></label></p>
+  <p><label>Category<br>
+    <select name="category_id">
+      <option value="">— none —</option>
+      {% for c in categories %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+    </select></label></p>
+  <p><label>Low-stock threshold (units)<br>
+    <input type="number" name="low_stock_threshold" min="0" step="0.001"></label></p>
+  <p><button type="submit">Commit &amp; next</button></p>
+</form>
+
+<h2>Just added</h2>
+<ul>
+{% for p in recent %}
+  <li><a href="{{ url_for('stock.product_detail', product_id=p.id) }}">{{ p.name }}</a>
+      — {{ p.sku }}{% if p.is_provisional %} (needs completing){% endif %}</li>
+{% else %}
+  <li>Nothing yet.</li>
+{% endfor %}
+</ul>
+{% endblock %}

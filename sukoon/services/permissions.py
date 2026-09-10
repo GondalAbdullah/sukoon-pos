@@ -1,10 +1,9 @@
-"""The permission catalogue (ADR-0008 §3, §4, ADR-0017).
+"""The permission catalogue (ADR-0008 §3/§4, ADR-0017, ADR-0019).
 
-Only the permissions ADR-0008 *confirmed* are seeded. Actions ADR-0008 explicitly
-defers to the Phase 3 STOP AND ASK gate (voiding a sale, creating/deleting a
-product, stock-in/out, adjusting a ledger entry, recording a Khata payment,
-exporting data) are deliberately absent — they get their codes when they get their
-decision, not before.
+Only permissions with an actual decision behind them are seeded. Actions ADR-0008
+still defers to the Phase 3 STOP AND ASK gate (voiding a sale, adjusting a ledger
+entry, recording a Khata payment, exporting data) are deliberately absent — they
+get their codes when they get their decision, not before.
 """
 from __future__ import annotations
 
@@ -18,10 +17,12 @@ PERMISSIONS: dict[str, str] = {
     "product.create_provisional": "Create a provisional product at the till (ADR-0011)",
     "product.edit_price": "Edit a product's selling price (ADR-0008: Admin only, step-up)",
     "sale.refund": "Process a refund or return (ADR-0008: Admin only, step-up)",
+    "catalog.manage": "Create, edit, or delete products, categories, and barcodes (ADR-0019)",
+    "stock.adjust": "Record stock-in, stock-out, and count corrections (ADR-0019)",
 }
 
 # role -> the codes it holds. Admin holds every code; Cashier holds the subset
-# that is not marked Admin-only in ADR-0008 §4.
+# that is not Admin-only in ADR-0008 §4 / ADR-0019.
 ROLE_PERMISSIONS: dict[str, set[str]] = {
     ROLE_CASHIER: {
         "sale.ring",
@@ -33,7 +34,8 @@ ROLE_PERMISSIONS: dict[str, set[str]] = {
 }
 
 # Destructive actions that require a fresh password re-entry at the moment of the
-# action, even for an Admin (ADR-0008 §5).
+# action, even for an Admin (ADR-0008 §5). Creating a price-override barcode is
+# also step-up (ADR-0009) but is gated in its route, not by a permission code.
 STEP_UP_PERMISSIONS: frozenset[str] = frozenset(
     {"product.edit_price", "sale.refund"}
 )
