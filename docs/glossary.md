@@ -52,6 +52,11 @@ product is surfaced in the "needs attention" list and badged **Low** (amber).
 default state of the Till. Only cash and card sales may be walk-in; a credit sale
 requires a named Khata customer.
 
+**Cart** *(Settled)* — The in-progress sale on the Till, before payment. Held in the
+signed session in v1 (one row per sealed product with a stepper quantity; a fresh
+row per loose weigh-out). A cart is not "ready" for checkout while any loose line
+still needs a weight. It does not survive session loss — see context.md §4b.
+
 **Loose goods** *(Settled)* — Anything weighed out on a scale at the counter rather
 than handed over as a sealed pack: atta, sugar, rice, daal, loose tea. Sold in
 fractional amounts, so a customer can ask for 1.5 kg. Compare **sealed pack goods**.

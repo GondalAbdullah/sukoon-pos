@@ -72,11 +72,56 @@ class CartLine:
     """
 
     product: Product
-    quantity_milli: int
+    quantity_milli: int | None
     unit_price_paisa: int
     quantity_source: str
     typed_amount_paisa: int | None = None
     product_barcode_id: int | None = None
+
+
+@dataclass
+class CartSummary:
+    """A cart priced for display, before payment. ``ready`` is false while any
+    loose line is still waiting for a weight (glossary: 'Needs weight')."""
+
+    line_totals_paisa: list[int | None]
+    subtotal_paisa: int
+    total_paisa: int
+    ready: bool
+    unweighed_count: int
+
+
+def summarize_cart(lines: list[CartLine]) -> CartSummary:
+    """Pure over ``CartLine`` — no I/O. Tolerates a line with no quantity yet
+    (its total is ``None`` and the cart is not ready)."""
+    totals: list[int | None] = []
+    unweighed = 0
+    for line in lines:
+        no_quantity = line.quantity_milli is None or line.quantity_milli <= 0
+        no_amount = (
+            line.quantity_source == "manual_amount"
+            and line.typed_amount_paisa is None
+        )
+        if no_quantity or no_amount:
+            totals.append(None)
+            unweighed += 1
+            continue
+        totals.append(
+            pricing.line_total_paisa_for(
+                quantity_source=line.quantity_source,
+                quantity_milli=line.quantity_milli,
+                unit_price_paisa=line.unit_price_paisa,
+                typed_amount_paisa=line.typed_amount_paisa,
+            )
+        )
+    subtotal = sum(t for t in totals if t is not None)
+    return CartSummary(
+        line_totals_paisa=totals,
+        subtotal_paisa=subtotal,
+        total_paisa=subtotal,  # no discount, no tax (ADR-0008 / ADR-0020)
+        ready=bool(lines) and unweighed == 0,
+        unweighed_count=unweighed,
+    )
 
 
 # --- invoice numbering (ADR-0016) -----------------------------------------

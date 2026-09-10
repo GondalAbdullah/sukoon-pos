@@ -8,9 +8,10 @@
   <p>Signed in as <strong>{{ current_user.name }}</strong> ({{ current_user.role }}).
      Use the links in the header, or:</p>
   <ul>
+    <li><a href="{{ url_for('till.index') }}">Till</a> — ring up a sale, take payment</li>
     <li><a href="{{ url_for('stock.index') }}">Stock</a> — catalogue, stock levels, barcodes, labels</li>
   </ul>
-  <p><small>The Till (POS) arrives in Phase 3. Sign out from the header above.</small></p>
+  <p><small>Sign out from the header above.</small></p>
 {% else %}
   <p><a href="{{ url_for('auth.login') }}">Sign in</a> to continue.</p>
 {% endif %}

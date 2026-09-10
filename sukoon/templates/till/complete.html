@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Sale complete — Sukoon{% endblock %}
+{% block content %}
+{#
+  Phase 3: functional HTML. The Design System's full-bleed calm moment (Figure 8)
+  and the ~8s auto-advance ring (O-9, context.md §4b) arrive with the visual
+  pass. The meta refresh below is the countdown's honest stand-in.
+#}
+<meta http-equiv="refresh" content="8; url={{ url_for('till.index') }}">
+
+<h1>Sale complete</h1>
+<p>Invoice <strong>{{ sale.invoice_number }}</strong> &middot;
+   {{ sale.total_paisa | rupees }} &middot; {{ sale.payment_method }}</p>
+
+{% if sale.payment_method == 'cash' %}
+  <p>Cash received {{ sale.amount_tendered_paisa | rupees }} &mdash;
+     <strong>change to return {{ sale.change_paisa | rupees }}</strong></p>
+{% elif sale.payment_method == 'credit' %}
+  <p>Added to the customer's Khata.</p>
+{% endif %}
+
+<table border="1" cellpadding="6" cellspacing="0">
+  <thead><tr><th>Item</th><th>Qty</th><th>Line total</th></tr></thead>
+  <tbody>
+  {% for item in items %}
+    <tr>
+      <td>{{ item.product_name_snapshot }}</td>
+      <td>{{ item.quantity_milli | qty }}</td>
+      <td>{{ item.line_total_paisa | rupees }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<p><a href="{{ url_for('till.index') }}">Start next sale</a>
+   &mdash; this page moves on by itself in 8 seconds.</p>
+{% endblock %}

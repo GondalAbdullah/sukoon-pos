@@ -16,6 +16,7 @@
   <header>
     <a href="{{ url_for('main.placeholder') }}">Sukoon</a>
     {% if current_user.is_authenticated %}
+      &nbsp;|&nbsp; <a href="{{ url_for('till.index') }}">Till</a>
       &nbsp;|&nbsp; <a href="{{ url_for('stock.index') }}">Stock</a>
       &nbsp;|&nbsp; <span>{{ current_user.name }} ({{ current_user.role }})</span>
       <form method="post" action="{{ url_for('auth.logout') }}" style="display:inline">

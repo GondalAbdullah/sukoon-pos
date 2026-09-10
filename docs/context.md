@@ -11,9 +11,9 @@ work session, not just every phase.
 | | |
 |---|---|
 | **Phase** | Phase 3 — POS & Billing — **STARTED**. STOP AND ASK gate CLOSED (§4g). |
-| **Status** | Phase 3 gate closed (§4g / [ADR-0020](adr/0020-phase-3-refund-and-discount-policy.md)). **Sale transaction core built (session 9):** `services/money.py` (ADR-0007 rupee boundary), `services/invoicing.py` (pure — format + yearly-reset rule), `services/pricing.py` (pure — line totals both directions, cart subtotal), `services/sales_service.py` — `claim_invoice_number` (atomic `UPDATE…RETURNING` on the counter row, race-safe, verified with a 50-thread on-disk test) and `record_sale` (sale + line items + stock deduction + credit-ledger entry in **one** transaction; empty-cart / fractional / by-amount / cash-tender guards; a mid-sale failure leaves no partial state, no consumed invoice number). `apply_stock_movement` gained `commit=False`. `busy_timeout=5000` pragma added. Invoice counter seeded as reference data. Design gaps O-11 / O-9 closed (§4b). `ruff` clean, **175 tests green, 95% coverage** (sales_service 100%). **No routes/UI yet.** No migration this session (all tables from ADR-0016). |
-| **Last session** | 2026-09-11 (session 9) |
-| **Next action** | Continue **Phase 3 build**. Next: the **Till routes + templates** — `routes/till.py`, cart state (server-side session), scan/search → cart, the loose-goods row per the §4b design, Cash/Card/Credit selection wired to `sales_service.record_sale`, then Sale Complete with the ~8s auto-advance ring. After the till: the `refund` / `refund_item` migration + refund service per ADR-0020, then ESC/POS receipt + PDF fallback (`services/receipts/`). **Note:** credit-limit enforcement (ADR-0014) is **not** in `record_sale` yet — it's Phase 4; a credit sale currently posts to the ledger with no limit check. (The `invoicing.py` purity question is settled — [ADR-0021](adr/0021-invoicing-module-purity.md).) |
+| **Status** | Phase 3 gate closed (§4g / [ADR-0020](adr/0020-phase-3-refund-and-discount-policy.md)). Sale transaction core (session 9): `money.py`, `invoicing.py` (pure), `pricing.py` (pure), `sales_service.py` — `claim_invoice_number` (atomic, race-safe) + `record_sale` (all-or-nothing) + `summarize_cart`. **Till built (session 10):** `routes/till.py` + `templates/till/` — scan/search → cart, sealed-pack stepper, loose-goods row (added with no quantity, "needs weight", blocks checkout until a weight or rupee amount is entered — ADR-0005), Cash/Card/Khata payment wired to `record_sale`, Sale Complete page (8s meta-refresh stand-in for the O-9 ring). Cart lives in the signed **session**. `ruff` clean, **199 tests green, 95% coverage**. Functional HTML — the §4b visual pass is later. No migration (all tables from ADR-0016). |
+| **Last session** | 2026-09-11 (session 10) |
+| **Next action** | Continue **Phase 3 build**. Remaining: (1) **provisional-create at the till** by a Cashier + scan-as-you-go (ADR-0011 §2, `product.create_provisional` — already seeded); (2) the **`refund` / `refund_item` migration + refund service** per ADR-0020 (first migration since the Phase 1 freeze); (3) **ESC/POS receipt + PDF fallback** (`services/receipts/`, `python-escpos`). **Notes:** credit-limit enforcement (ADR-0014) is Phase 4, not in `record_sale`. The session cart does **not** survive session loss mid-sale (§5 Auth item) — a DB-backed draft is the fix if it becomes real; deferred. `invoicing.py` purity settled by [ADR-0021](adr/0021-invoicing-module-purity.md). |
 
 ## 2. Decisions made so far
 
@@ -249,6 +249,23 @@ recorded rather than smuggled (ADR-0018 §3):
   Tailwind + htmx visual pass is a later phase. Consistent with the Phase 1 login
   screen's treatment.
 
+### Phase 3 UI deviations
+
+- **The Till (Figure 2) and Sale Complete (Figure 8) are functional HTML.** Plain
+  forms that reload, not the single-screen cart with live totals, the three payment
+  pills, or the full-bleed calm moment. What is honoured: the scan field is the
+  first control, sealed packs use a stepper, loose goods use the "needs weight" /
+  typed-weight / typed-amount row from §4b (no toggle yet — both inputs shown),
+  there is no discount line, and Sale Complete shows the invoice, change, and an
+  8-second `meta refresh` in place of the O-9 auto-advance ring. The Tailwind/htmx
+  pass and the §4b design are a later phase.
+- **The cart is stored in the signed session, not a DB draft.** Simple and
+  adequate for this shop's small carts; the cost is that a session lost mid-sale
+  loses the cart (§5 Auth item, left unchecked). A `draft_sale` table is the fix
+  if that becomes a real complaint.
+- **The Khata customer is entered as a raw ID on the Till.** The customer picker
+  (Figure 2's "Walk-in customer" chip) is Phase 4 work with the rest of Khata.
+
 ## 4d. Phase 0 Definition of Done — verified 2026-09-10
 
 Per Development Specification, Phase 0. Every box below was independently checked,
@@ -451,10 +468,10 @@ This list grows as new cases are found.
       — `test_pricing::test_the_two_modes_agree_within_the_rounding_rule`
 - [x] `quantity_source` is recorded correctly (stepper / manual_weight / manual_amount)
       — `tests/integration/test_sales.py` (`::test_by_amount_line_stores_the_typed_amount_and_the_source` + the stepper/weight paths in `::test_a_full_cash_sale...`)
-- [ ] An unrecognised scanned code returns a calm not-found result, not an exception
-      *(resolver exists — `test_barcodes::test_unknown_code_returns_none_not_an_exception`; the till-scan wiring is the next build step)*
+- [x] An unrecognised scanned code returns a calm not-found result, not an exception
+      — `test_till::test_an_unknown_code_is_reported_not_added` (the Till shows "Nothing matched …"), `test_barcodes::test_unknown_code_returns_none_not_an_exception`
 - [x] A sealed-pack product offers no amount-entry mode
-      — `test_sales::test_a_sealed_pack_cannot_be_sold_by_amount`
+      — `test_sales::test_a_sealed_pack_cannot_be_sold_by_amount` (service); the Till only renders weight/amount inputs for `allows_fractional` lines
 
 ### Money and rounding (Phase 3)
 - [x] `round_paisa_to_rupee` correct at 0, 1, 49, 50, 51, 99, 100, 149, 150
@@ -483,7 +500,9 @@ This list grows as new cases are found.
 - [ ] A step-up entry authorises exactly one action and does not persist in the session *(Phase 3)*
 - [ ] No code path anywhere can set a non-zero discount in v1 *(columns default 0, no
       setter exists; assertable once the sale flow lands in Phase 3)*
-- [ ] Session expiry mid-sale does not lose the cart *(Phase 3 — no cart yet)*
+- [ ] Session expiry mid-sale does not lose the cart *(the cart now exists but lives in the
+      signed session — it does NOT survive session loss. Deferred: a `draft_sale` table is the
+      fix if this becomes a real complaint. §4b Phase 3 UI deviations.)*
 
 ### Barcodes and relabelling (Phase 2)
 - [x] Two barcodes on one product both resolve to it, at their respective prices
@@ -571,7 +590,7 @@ This list grows as new cases are found.
 ### POS / Billing (Phase 3)
 - [n/a] Discount cannot exceed the item or cart total — no discount mechanism exists in v1 (ADR-0008 / ADR-0020); `record_sale` has no path that sets a non-zero discount
 - [x] Checkout is blocked on an empty cart
-      — `test_sales::test_checkout_is_blocked_on_an_empty_cart`
+      — `test_sales::test_checkout_is_blocked_on_an_empty_cart` (service), `test_till::test_an_empty_cart_cannot_be_checked_out` (route)
 - [x] Invoice numbering has no duplicates and no gaps under concurrent checkouts
       — `tests/integration/test_invoice_concurrency.py::test_concurrent_claims_have_no_duplicates_and_no_gaps` (50 threads, on-disk WAL)
 - [x] A sale and its inventory deduction commit atomically; a crash mid-sale leaves no partial state
@@ -629,6 +648,38 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-11 — Session 10: the Till (cart, payment, Sale Complete)
+
+**Done**
+- `routes/till.py` (`/till`, thin per ADR-0003 §2) — the cart lives in the signed
+  session; the route marshals session rows ↔ `sales_service.CartLine` and renders.
+  - `add` — resolves a scan/typed fragment via `inv.resolve_barcode` then a unique
+    name/SKU match; sealed pack → one row per product, stepper bumps on re-add;
+    loose → a fresh row with **no quantity** ("needs weight").
+  - `update_line` — stepper inc/dec (drops the row at zero), `set_weight`,
+    `set_amount` (whole rupees; weight derived via `pricing.compute_quantity_from_amount`),
+    `remove`.
+  - `checkout` — blocks an empty or unweighed cart, calls `record_sale`, clears the
+    cart, redirects to Sale Complete. `SaleError` / `InventoryError` → flash.
+  - `complete` — the invoice, change, and line items.
+- `sales_service.summarize_cart` — pure; line totals + subtotal + `ready` (false
+  while any loose line is unweighed) + `unweighed_count`. `CartLine.quantity_milli`
+  is now `int | None`.
+- `templates/till/till.html`, `till/complete.html` — functional HTML (§4b Phase 3
+  UI deviations). Sale Complete uses an 8-second `meta refresh` as the O-9 ring's
+  stand-in.
+- Till blueprint registered; "Till" added to the header and the landing page.
+- `tests/integration/test_till.py` — 23 tests (cart building, stepper, loose
+  needs-weight + blocked checkout, by-weight / by-amount entry, barcode & name
+  resolution, cash / card / credit checkout, insufficient-stock block, the
+  complete page).
+- `ruff` clean; **199 tests pass, 95% coverage** (till.py 91%).
+
+**Deferred (Phase 3, still open)**
+- Provisional-create at the till by a Cashier + scan-as-you-go (ADR-0011 §2).
+- The `refund` / `refund_item` migration + refund service (ADR-0020).
+- ESC/POS receipt + PDF fallback (`services/receipts/`).
 
 ### 2026-09-11 — Session 9: Phase 3 sale-transaction core
 

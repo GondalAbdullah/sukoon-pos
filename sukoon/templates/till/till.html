@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Till — Sukoon{% endblock %}
+{% block content %}
+{#
+  Phase 3: functional HTML. The Design System's Till (Figure 2) and the
+  loose-goods cart row (context.md §4b) arrive with the Tailwind/htmx pass.
+  What is honoured now: the scan field is the first control, sealed packs use a
+  stepper, loose items are added with NO quantity and block checkout until a
+  weight or a rupee amount is entered, and there is no discount line (ADR-0020).
+#}
+<h1>New sale</h1>
+
+<form method="post" action="{{ url_for('till.add') }}">
+  <label>Scan or type an item:
+    <input type="text" name="code" autofocus autocomplete="off" placeholder="barcode, name, or SKU">
+  </label>
+  <button type="submit">Add</button>
+</form>
+
+<h2>Cart — {{ rows|length }} item{{ '' if rows|length == 1 else 's' }}</h2>
+
+{% if not rows %}
+  <p>Nothing in the cart yet.</p>
+{% else %}
+<table border="1" cellpadding="6" cellspacing="0">
+  <thead>
+    <tr><th>Item</th><th>Unit price</th><th>Quantity</th><th>Line total</th><th></th></tr>
+  </thead>
+  <tbody>
+  {% for row in rows %}
+    {% set i = loop.index0 %}
+    {% set lt = line_totals[i] %}
+    <tr>
+      <td>{{ row.name }}</td>
+      <td>{{ row.unit_price_paisa | rupees }} / {{ row.unit_label }}</td>
+      <td>
+        {% if row.quantity_source == 'stepper' %}
+          <form method="post" action="{{ url_for('till.update_line', index=i) }}" style="display:inline">
+            <button name="op" value="dec">&minus;</button>
+          </form>
+          {{ (row.quantity_milli // 1000) }}
+          <form method="post" action="{{ url_for('till.update_line', index=i) }}" style="display:inline">
+            <button name="op" value="inc">+</button>
+          </form>
+        {% elif row.quantity_milli %}
+          {{ row.quantity_milli | qty(row.unit_label) }}
+          {% if row.quantity_source == 'manual_amount' %}<br><small>for {{ row.typed_amount_paisa | rupees }} — by amount</small>{% endif %}
+        {% else %}
+          <strong>needs weight</strong>
+        {% endif %}
+
+        {% if row.allows_fractional %}
+          <br>
+          <form method="post" action="{{ url_for('till.update_line', index=i) }}" style="display:inline">
+            <input type="hidden" name="op" value="set_weight">
+            <input type="number" name="weight" step="0.001" min="0" size="6" placeholder="kg">
+            <button type="submit">Set weight</button>
+          </form>
+          <form method="post" action="{{ url_for('till.update_line', index=i) }}" style="display:inline">
+            <input type="hidden" name="op" value="set_amount">
+            Rs <input type="number" name="amount" step="1" min="0" size="6" placeholder="amount">
+            <button type="submit">Set amount</button>
+          </form>
+        {% endif %}
+      </td>
+      <td>{% if lt is not none %}{{ lt | rupees }}{% else %}&mdash;{% endif %}</td>
+      <td>
+        <form method="post" action="{{ url_for('till.update_line', index=i) }}">
+          <button name="op" value="remove">Remove</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<form method="post" action="{{ url_for('till.clear') }}">
+  <button type="submit">Clear cart</button>
+</form>
+{% endif %}
+
+<h2>Payment</h2>
+<p>Subtotal: {{ summary.subtotal_paisa | rupees }}<br>
+   <strong>Total due: {{ summary.total_paisa | rupees }}</strong><br>
+   <small>Tax included. No discounts (v1).</small></p>
+
+{% if summary.unweighed_count %}
+  <p><strong>{{ summary.unweighed_count }} item{{ '' if summary.unweighed_count == 1 else 's' }}
+  still need{{ 's' if summary.unweighed_count == 1 else '' }} a weight.</strong>
+  Checkout is disabled until every line has a quantity.</p>
+{% endif %}
+
+<form method="post" action="{{ url_for('till.checkout') }}">
+  <p>
+    <label><input type="radio" name="payment_method" value="cash" checked> Cash</label>
+    <label><input type="radio" name="payment_method" value="card"> Card</label>
+    <label><input type="radio" name="payment_method" value="credit"> Khata (credit)</label>
+  </p>
+  <p><label>Cash received, Rs (cash only):
+    <input type="number" name="amount_tendered" step="1" min="0"></label></p>
+  <p><label>Customer ID (Khata only):
+    <input type="number" name="customer_id" step="1" min="1"></label></p>
+  <button type="submit" {{ 'disabled' if not summary.ready }}>
+    Complete sale — {{ summary.total_paisa | rupees }}
+  </button>
+</form>
+{% endblock %}
