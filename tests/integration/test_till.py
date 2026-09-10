@@ -84,11 +84,43 @@ def test_the_stepper_increments_and_decrements(till, milk):
         assert s["cart"] == []  # dropped at zero
 
 
-def test_an_unknown_code_is_reported_not_added(till):
-    resp = _add(till, code="does-not-exist")
-    assert b"Nothing matched" in resp.data
+def test_an_unknown_code_offers_provisional_creation(till):
+    # a Cashier holds product.create_provisional, so an unknown code is not a
+    # dead end — it offers inline creation (ADR-0011 §2)
+    resp = _add(till, code="8964999999999")
+    assert b"isn" in resp.data and b"catalogue yet" in resp.data
     with till.session_transaction() as s:
-        assert s.get("cart", []) == []
+        assert s.get("cart", []) == []  # nothing added until the form is submitted
+
+
+def test_cashier_creates_a_provisional_product_at_the_till(till, seeded):
+    resp = till.post(
+        "/till/new",
+        data={"code": "8964999999999", "name": "Local Biscuits", "sell_price": "80"},
+        follow_redirects=True,
+    )
+    assert b"needs completing later" in resp.data
+
+    rows, total = inv.list_products(query="Local Biscuits")
+    assert total == 1
+    product = rows[0]
+    assert product.is_provisional is True
+    assert product.created_by_user_id == seeded["cashier"].id
+    assert inv.resolve_barcode("8964999999999").product.id == product.id
+
+    needs, _ = inv.list_products(needs_completing=True)
+    assert product.id in {p.id for p in needs}
+    with till.session_transaction() as s:
+        assert s["cart"][0]["product_id"] == product.id
+
+
+def test_provisional_create_needs_a_name_and_price(till):
+    resp = till.post(
+        "/till/new", data={"code": "x", "name": "", "sell_price": "10"},
+        follow_redirects=True,
+    )
+    assert b"name is required" in resp.data
+    assert inv.list_products()[1] == 0
 
 
 def test_a_barcode_resolves_to_its_product(till, milk, seeded):

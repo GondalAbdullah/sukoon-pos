@@ -13,7 +13,7 @@ work session, not just every phase.
 | **Phase** | Phase 3 — POS & Billing — **STARTED**. STOP AND ASK gate CLOSED (§4g). |
 | **Status** | Phase 3 gate closed (§4g / [ADR-0020](adr/0020-phase-3-refund-and-discount-policy.md)). Sale transaction core (session 9): `money.py`, `invoicing.py` (pure), `pricing.py` (pure), `sales_service.py` — `claim_invoice_number` (atomic, race-safe) + `record_sale` (all-or-nothing) + `summarize_cart`. **Till built (session 10):** `routes/till.py` + `templates/till/` — scan/search → cart, sealed-pack stepper, loose-goods row (added with no quantity, "needs weight", blocks checkout until a weight or rupee amount is entered — ADR-0005), Cash/Card/Khata payment wired to `record_sale`, Sale Complete page (8s meta-refresh stand-in for the O-9 ring). Cart lives in the signed **session**. `ruff` clean, **199 tests green, 95% coverage**. Functional HTML — the §4b visual pass is later. No migration (all tables from ADR-0016). |
 | **Last session** | 2026-09-11 (session 10) |
-| **Next action** | Finish **Phase 3** (functional HTML): (1) **provisional-create at the till** by a Cashier + scan-as-you-go (ADR-0011 §2, `product.create_provisional` — already seeded); (2) the **`refund` / `refund_item` migration + refund service** per ADR-0020 (first migration since the Phase 1 freeze); (3) **ESC/POS receipt + PDF fallback** (`services/receipts/`, `python-escpos`); then the Phase 3 STOP AND ASK is already closed (§4g) so present the Phase 3 functional DoD. **Then [ADR-0022](adr/0022-dedicated-visual-pass.md): "Phase 3.5" — one dedicated visual pass** converting every template (Login, Stock, Till, Sale Complete, refund) to the Design System, compiling `static/css/tailwind.css`, before Phase 4. **Notes:** credit-limit enforcement (ADR-0014) is Phase 4. The session cart does not survive session loss (§5 Auth item, deferred). |
+| **Next action** | Finish **Phase 3** (functional HTML): (1) ~~provisional-create at the till~~ **done (session 10)**; (2) the **`refund` / `refund_item` migration + refund service + routes** per ADR-0020 (first migration since the Phase 1 freeze); (3) **ESC/POS receipt + PDF fallback** (`services/receipts/`, `python-escpos`); then present the Phase 3 functional DoD (gate §4g already closed). **Then [ADR-0022](adr/0022-dedicated-visual-pass.md): "Phase 3.5" — one dedicated visual pass** converting every template to the Design System, compiling `static/css/tailwind.css`, before Phase 4. **Notes:** credit-limit enforcement (ADR-0014) is Phase 4. The session cart does not survive session loss (§5 Auth item, deferred). |
 
 ## 2. Decisions made so far
 
@@ -538,8 +538,10 @@ This list grows as new cases are found.
       (returns to the scan field; the htmx per-row focus polish is the deferred visual pass)
 - [x] Scanning an existing code in bulk entry jumps to it rather than duplicating
       — `test_stock_routes::test_bulk_entry_existing_code_jumps_to_product_not_duplicate`
-- [ ] An unknown barcode at the till offers inline creation and the sale then completes *(Phase 3)*
-- [ ] A product created at the till is flagged provisional *(Phase 3)*
+- [x] An unknown barcode at the till offers inline creation and the sale then completes
+      — `test_till::test_an_unknown_code_offers_provisional_creation`, `::test_cashier_creates_a_provisional_product_at_the_till`
+- [x] A product created at the till is flagged provisional
+      — `test_till::test_cashier_creates_a_provisional_product_at_the_till` (name + price only → `is_provisional`, appears in "Needs completing", `created_by` = the Cashier)
 - [x] Provisional products appear in the "Needs completing" filter
       — `test_inventory::test_provisional_products_appear_in_needs_completing_filter`, `test_stock_routes::test_list_needs_completing_filter`
 - [ ] Margin reporting excludes provisional products rather than assuming zero cost *(Phase 6)*
@@ -690,8 +692,13 @@ This list grows as new cases are found.
   complete page).
 - `ruff` clean; **199 tests pass, 95% coverage** (till.py 91%).
 
+**Then (same session)**
+- **Provisional-create at the till** (ADR-0011 §2 / O-16): an unknown scanned code
+  offers inline creation for anyone with `product.create_provisional` (Cashier
+  included) — `POST /till/new`, name + price only so it is always provisional,
+  barcode assigned, dropped in the cart, listed under "Needs completing". 3 tests.
+
 **Deferred (Phase 3, still open)**
-- Provisional-create at the till by a Cashier + scan-as-you-go (ADR-0011 §2).
 - The `refund` / `refund_item` migration + refund service (ADR-0020).
 - ESC/POS receipt + PDF fallback (`services/receipts/`).
 

@@ -17,6 +17,22 @@
   <button type="submit">Add</button>
 </form>
 
+{% if new_code and can_create_provisional %}
+  {# Scan-as-you-go (ADR-0011 §2): an unknown code, created on the spot as a
+     provisional product — name and price only, finished by an Admin later. #}
+  <fieldset>
+    <legend>“{{ new_code }}” isn’t in the catalogue yet — add it?</legend>
+    <form method="post" action="{{ url_for('till.new_provisional') }}">
+      <input type="hidden" name="code" value="{{ new_code }}">
+      <label>Name <input type="text" name="name" required autofocus></label>
+      <label>Selling price, Rs <input type="number" name="sell_price" min="0" step="1" required></label>
+      <button type="submit">Add &amp; put in cart</button>
+    </form>
+    <p><small>It goes in the cart now and appears under “Needs completing” for an
+    Admin to fill in cost, category, and threshold.</small></p>
+  </fieldset>
+{% endif %}
+
 <h2>Cart — {{ rows|length }} item{{ '' if rows|length == 1 else 's' }}</h2>
 
 {% if not rows %}
