@@ -357,12 +357,17 @@ def apply_stock_movement(
     user_id: int,
     reference_type: str | None = None,
     reference_id: int | None = None,
+    commit: bool = True,
 ) -> StockMovement:
     """Record one movement and update the product's counted level atomically.
 
     For ``stock_in`` / ``stock_out`` / ``sale`` / ``refund``, ``quantity_milli`` is
     a positive magnitude. For ``correction`` it is the *new counted level*, and the
     delta is derived (glossary: 'Correct count').
+
+    ``commit=False`` adds the movement to the session but leaves the commit to the
+    caller — how ``sales_service`` folds a whole cart's deductions into the single
+    sale transaction (Development Spec Phase 3: 'all-or-nothing commit').
     """
     clean_reason = (reason or "").strip()
     if not clean_reason:
@@ -378,6 +383,7 @@ def apply_stock_movement(
         )
         after = quantity_milli
         delta = after - before
+        product.stock_quantity_milli = after
     elif movement_type in {"stock_in", "stock_out", "sale", "refund"}:
         if quantity_milli is None or quantity_milli <= 0:
             raise ValidationError("A quantity greater than zero is required.", field="quantity")
@@ -386,11 +392,28 @@ def apply_stock_movement(
         )
         sign = 1 if movement_type in {"stock_in", "refund"} else -1
         delta = sign * quantity_milli
-        after = before + delta
-        if after < 0:
-            raise InsufficientStockError(
-                f"Only {before / _MILLI:g} {product.unit_label} in stock."
+        # One atomic relative UPDATE, with the non-negative guard in the WHERE
+        # clause. Two terminals deducting the same product in the same second
+        # cannot lose an update or drive the count below zero — the read and the
+        # write are one statement, not a read in Python then a write
+        # (edge-case matrix: 'concurrent stock updates ... without lost updates').
+        new_level = db.session.execute(
+            db.update(Product)
+            .where(
+                Product.id == product.id,
+                Product.stock_quantity_milli + delta >= 0,
             )
+            .values(stock_quantity_milli=Product.stock_quantity_milli + delta)
+            .returning(Product.stock_quantity_milli)
+        ).scalar_one_or_none()
+        db.session.expire(product)  # the Core UPDATE bypassed the ORM object
+        if new_level is None:
+            raise InsufficientStockError(
+                f"Only {product.stock_quantity_milli / _MILLI:g} "
+                f"{product.unit_label} in stock."
+            )
+        after = new_level
+        before = after - delta
     else:
         raise ValidationError(f"Unknown movement type: {movement_type}")
 
@@ -405,9 +428,11 @@ def apply_stock_movement(
         reference_id=reference_id,
         created_by_user_id=user_id,
     )
-    product.stock_quantity_milli = after
     db.session.add(movement)
-    db.session.commit()
+    if commit:
+        db.session.commit()
+    else:
+        db.session.flush()
     return movement
 
 

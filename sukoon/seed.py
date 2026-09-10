@@ -16,9 +16,17 @@ from __future__ import annotations
 
 import logging
 import os
+from datetime import UTC, datetime
 
 from sukoon.extensions import db
-from sukoon.models import Category, Permission, Product, RolePermission, User
+from sukoon.models import (
+    Category,
+    InvoiceCounter,
+    Permission,
+    Product,
+    RolePermission,
+    User,
+)
 from sukoon.models.user import ROLE_ADMIN, ROLE_CASHIER
 from sukoon.services.auth_service import hash_password
 from sukoon.services.permissions import PERMISSIONS, ROLE_PERMISSIONS
@@ -53,6 +61,21 @@ def seed_permissions() -> None:
             if (role, pid) not in existing:
                 db.session.add(RolePermission(role=role, permission_id=pid))
     db.session.commit()
+
+
+def seed_invoice_counter() -> None:
+    """Reference data the sale flow needs (ADR-0016): the single counter row.
+    Idempotent; the current calendar year seeds the first sequence."""
+    if db.session.get(InvoiceCounter, 1) is None:
+        db.session.add(
+            InvoiceCounter(
+                id=1,
+                prefix="INV",
+                year=datetime.now(UTC).year,
+                next_sequence=1,
+            )
+        )
+        db.session.commit()
 
 
 def _password_from_env(var: str) -> str:
@@ -128,6 +151,7 @@ def seed_sample_catalog() -> None:
 
 def seed_all(*, with_sample_data: bool = True) -> None:
     seed_permissions()
+    seed_invoice_counter()
     if with_sample_data:
         seed_dev_users()
         seed_sample_catalog()

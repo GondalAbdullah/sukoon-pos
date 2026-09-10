@@ -112,6 +112,17 @@ has been added but no weight or amount has been entered yet (the cashier is stil
 the scale). The row commits so scanning can continue, but checkout is blocked until
 every loose line has a quantity. Amber, not coral — attention soon, not now.
 
+**Invoice claim** *(Settled)* — Taking the next invoice number is a single atomic
+`UPDATE … RETURNING` against the one `invoice_counter` row, so two terminals
+checking out in the same second serialise on that row and can produce neither a
+duplicate nor a gap. The claim is part of the sale's own transaction — if the sale
+rolls back, the number is released. See ADR-0016, `sales_service.claim_invoice_number`.
+
+**All-or-nothing sale** *(Settled)* — A sale, its line items, every line's stock
+deduction, and (for a credit sale) its ledger entry commit in one transaction. A
+failure anywhere — not enough stock, a bad line, a crash — rolls back the whole
+thing: no partial sale, no half-deducted stock, no consumed invoice number.
+
 **Auto-advance countdown** *(Settled)* — On the Sale Complete screen, a quiet
 progress ring on "Start next sale" that advances to the next sale on its own after
 ~8 seconds; any key or tap cancels it. Follows the Design System (Figure 8); the

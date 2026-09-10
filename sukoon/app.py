@@ -26,6 +26,10 @@ def _set_sqlite_pragmas(dbapi_connection, connection_record):
     """
     cursor = dbapi_connection.cursor()
     cursor.execute("PRAGMA foreign_keys=ON")
+    # Wait for a lock rather than failing instantly: two terminals checking out
+    # at once briefly contend on the invoice-counter row (Phase 3), and the
+    # loser should queue, not raise "database is locked".
+    cursor.execute("PRAGMA busy_timeout=5000")
     try:
         cursor.execute("PRAGMA journal_mode=WAL")
     except Exception:  # pragma: no cover - in-memory / unusual builds
@@ -33,9 +37,15 @@ def _set_sqlite_pragmas(dbapi_connection, connection_record):
     cursor.close()
 
 
-def create_app(config_name: str | None = None) -> Flask:
+def create_app(
+    config_name: str | None = None,
+    *,
+    config_overrides: dict | None = None,
+) -> Flask:
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object(get_config(config_name))
+    if config_overrides:
+        app.config.update(config_overrides)
 
     configure_logging(app)
 

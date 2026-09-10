@@ -11,9 +11,9 @@ work session, not just every phase.
 | | |
 |---|---|
 | **Phase** | Phase 3 — POS & Billing — **STARTED**. STOP AND ASK gate CLOSED (§4g). |
-| **Status** | Phase 3 gate closed 2026-09-11 (§4g / [ADR-0020](adr/0020-phase-3-refund-and-discount-policy.md)): no discounts in v1 (confirmed); refund = Cashier initiates / Admin approves with step-up; refund requires the original invoice, allows partial refunds, auto-restocks (with a per-line damaged flag), and reverses the ledger for credit sales; `catalog.manage` / `stock.adjust` stay coarse Admin-only, no step-up. Refund needs a **new migration** (`refund` + `refund_item` tables). Build so far: `services/money.py` — the ADR-0007 rupee-boundary helpers (`round_paisa_to_rupee`, `is_whole_rupee`, `line_total_for_quantity`), pure, exhaustively boundary-tested. `sale.refund_initiate` permission code added (Cashier + Admin). `ruff` clean, 140 tests green, 95% coverage. Till design gaps closed: **O-11** (fractional cart row) and **O-9** (Sale Complete auto-advance) designed and recorded in §4b — mockups in `docs/design/drafts/till-fractional-cart/`. |
-| **Last session** | 2026-09-11 (session 8) |
-| **Next action** | Continue **Phase 3 build**. O-11 (fractional cart row) and O-9 (auto-advance) are now **designed** (§4b, canvas at `docs/design/drafts/till-fractional-cart/`, published 2026-09-11) — the Till UI is unblocked. Build order: atomic race-safe invoice numbering against `invoice_counter` (yearly reset per ADR-0016) → sale + stock-deduction in one transaction → the Till cart routes/templates (loose-row entry per the design) → Cash/Card/Credit payment → the `refund`/`refund_item` migration + refund service per ADR-0020 → ESC/POS receipt + PDF fallback → Sale Complete with the ~8s auto-advance ring. |
+| **Status** | Phase 3 gate closed (§4g / [ADR-0020](adr/0020-phase-3-refund-and-discount-policy.md)). **Sale transaction core built (session 9):** `services/money.py` (ADR-0007 rupee boundary), `services/invoicing.py` (pure — format + yearly-reset rule), `services/pricing.py` (pure — line totals both directions, cart subtotal), `services/sales_service.py` — `claim_invoice_number` (atomic `UPDATE…RETURNING` on the counter row, race-safe, verified with a 50-thread on-disk test) and `record_sale` (sale + line items + stock deduction + credit-ledger entry in **one** transaction; empty-cart / fractional / by-amount / cash-tender guards; a mid-sale failure leaves no partial state, no consumed invoice number). `apply_stock_movement` gained `commit=False`. `busy_timeout=5000` pragma added. Invoice counter seeded as reference data. Design gaps O-11 / O-9 closed (§4b). `ruff` clean, **175 tests green, 95% coverage** (sales_service 100%). **No routes/UI yet.** No migration this session (all tables from ADR-0016). |
+| **Last session** | 2026-09-11 (session 9) |
+| **Next action** | Continue **Phase 3 build**. Next: the **Till routes + templates** — `routes/till.py`, cart state (server-side session), scan/search → cart, the loose-goods row per the §4b design, Cash/Card/Credit selection wired to `sales_service.record_sale`, then Sale Complete with the ~8s auto-advance ring. After the till: the `refund` / `refund_item` migration + refund service per ADR-0020, then ESC/POS receipt + PDF fallback (`services/receipts/`). **Flag for the human:** ADR-0003's module list calls `invoicing.py` "pure … atomic allocation", which is a contradiction (pure = no I/O). Resolved by keeping `invoicing.py` pure and putting the one atomic DB claim in `sales_service.claim_invoice_number` — confirm or correct. Also: credit-limit enforcement (ADR-0014) is **not** in `record_sale` yet — it's Phase 4; a credit sale currently posts to the ledger with no limit check. |
 
 ## 2. Decisions made so far
 
@@ -425,8 +425,9 @@ This list grows as new cases are found.
       — `test_barcodes::test_duplicate_barcode_is_rejected_at_the_database_level`
 - [x] Every manual stock adjustment requires a reason and logs who and when
       — `test_stock_movements::test_stock_in_adds_and_records_before_after`, `::test_every_adjustment_requires_a_reason`
-- [ ] Concurrent stock updates from two terminals in the same second resolve without lost updates
-      *(Phase 3 — belongs with invoice-numbering concurrency)*
+- [x] Concurrent stock updates from two terminals in the same second resolve without lost updates
+      — `tests/integration/test_invoice_concurrency.py::test_concurrent_sales_of_one_product_do_not_lose_a_stock_update`
+      (30 concurrent sales of one item, on-disk WAL). `apply_stock_movement`'s in/out/sale/refund path is now a single guarded relative `UPDATE … RETURNING`, not a read-then-write. **`correction` still writes an absolute level** — acceptable for a rare manual recount, noted for later.
 - [x] Deleting a product with history is a soft delete, not a hard delete
       — `test_inventory::test_delete_with_movement_history_is_a_soft_delete` (+ hard-delete when no history)
 - [x] Low-stock alert fires exactly at the configured threshold boundary
@@ -441,23 +442,33 @@ This list grows as new cases are found.
       (the till's own zero-guard for both product kinds is Phase 3)
 
 ### Weighed-item entry (Phase 3)
-- [ ] Entering a weight produces the correct line total for a loose product
-- [ ] Entering an amount produces the correct weight for a loose product
-- [ ] The two entry modes agree within the settled rounding rule
-- [ ] `quantity_source` is recorded correctly for all three v1 entry paths
+- [x] Entering a weight produces the correct line total for a loose product
+      — `tests/pure/test_pricing.py::test_weight_produces_the_correct_line_total`
+- [x] Entering an amount produces the correct weight for a loose product
+      — `test_pricing::test_amount_produces_the_correct_weight`
+- [x] The two entry modes agree within the settled rounding rule
+      — `test_pricing::test_the_two_modes_agree_within_the_rounding_rule`
+- [x] `quantity_source` is recorded correctly (stepper / manual_weight / manual_amount)
+      — `tests/integration/test_sales.py` (`::test_by_amount_line_stores_the_typed_amount_and_the_source` + the stepper/weight paths in `::test_a_full_cash_sale...`)
 - [ ] An unrecognised scanned code returns a calm not-found result, not an exception
-- [ ] A sealed-pack product offers no amount-entry mode
+      *(resolver exists — `test_barcodes::test_unknown_code_returns_none_not_an_exception`; the till-scan wiring is the next build step)*
+- [x] A sealed-pack product offers no amount-entry mode
+      — `test_sales::test_a_sealed_pack_cannot_be_sold_by_amount`
 
 ### Money and rounding (Phase 3)
 - [x] `round_paisa_to_rupee` correct at 0, 1, 49, 50, 51, 99, 100, 149, 150
       — `tests/pure/test_money.py::test_round_paisa_to_rupee_boundaries`
 - [x] The same function is symmetric for negative values (refunds mirror sales)
       — `test_money::test_round_is_symmetric_about_zero`, `::test_line_total_is_symmetric_for_a_refund`
-- [ ] A receipt's printed line totals sum exactly to its printed subtotal
-- [ ] Every persisted money column holds a multiple of 100 paisa
-- [ ] A typed amount that is not a whole rupee is rejected at input
-- [ ] An amount-entry line stores exactly the amount typed, not a recomputed value
-- [ ] A refund of an amount-entry line returns exactly what the customer paid
+- [~] A receipt's printed line totals sum exactly to its printed subtotal
+      *(`pricing.cart_subtotal_paisa` sums already-rounded lines — `test_pricing::test_cart_subtotal_sums_already_rounded_lines`; the printed receipt itself is a later build step)*
+- [x] Every persisted money column holds a multiple of 100 paisa
+      — `test_sales::test_persisted_money_columns_are_whole_rupees`, `test_pricing::test_every_line_total_is_a_whole_rupee`
+- [x] A typed amount that is not a whole rupee is rejected at input
+      — `test_sales::test_a_typed_amount_that_is_not_a_whole_rupee_is_refused`
+- [x] An amount-entry line stores exactly the amount typed, not a recomputed value
+      — `test_sales::test_by_amount_line_stores_the_typed_amount_and_the_source`, `test_pricing::test_manual_amount_line_stores_exactly_what_was_typed`
+- [ ] A refund of an amount-entry line returns exactly what the customer paid *(refund service — after the till)*
 
 ### Authentication and access control (Phase 1)
 - [x] A Cashier session hitting every Admin-only route receives 403, not a redirect
@@ -557,12 +568,15 @@ This list grows as new cases are found.
 - [ ] The overdue sweep completes normally when the WhatsApp provider is unreachable
 
 ### POS / Billing (Phase 3)
-- [ ] Discount cannot exceed the item or cart total
-- [ ] Checkout is blocked on an empty cart
-- [ ] Invoice numbering has no duplicates and no gaps under concurrent checkouts
-- [ ] A sale and its inventory deduction commit atomically; a crash mid-sale leaves no partial state
-- [ ] A printer being offline degrades to PDF and never blocks completing the sale
-- [ ] Refunds correctly reverse both the ledger (if credit) and the inventory count
+- [n/a] Discount cannot exceed the item or cart total — no discount mechanism exists in v1 (ADR-0008 / ADR-0020); `record_sale` has no path that sets a non-zero discount
+- [x] Checkout is blocked on an empty cart
+      — `test_sales::test_checkout_is_blocked_on_an_empty_cart`
+- [x] Invoice numbering has no duplicates and no gaps under concurrent checkouts
+      — `tests/integration/test_invoice_concurrency.py::test_concurrent_claims_have_no_duplicates_and_no_gaps` (50 threads, on-disk WAL)
+- [x] A sale and its inventory deduction commit atomically; a crash mid-sale leaves no partial state
+      — `test_sales::test_a_failure_mid_sale_leaves_no_partial_state` (also asserts the briefly-claimed invoice number is released)
+- [ ] A printer being offline degrades to PDF and never blocks completing the sale *(receipts — after the till)*
+- [ ] Refunds correctly reverse both the ledger (if credit) and the inventory count *(refund service — after the till)*
 
 ### Credit customers / Khata (Phase 4)
 - [ ] Ledger balance maths is correct across mixed sequences of sales and partial payments
@@ -614,6 +628,52 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-11 — Session 9: Phase 3 sale-transaction core
+
+**Done (build — services only, no routes/UI yet)**
+- `services/invoicing.py` — **pure** (ADR-0003 §3): `format_invoice_number`, and
+  `compute_next_counter` (the yearly-reset arithmetic — same year advances, new
+  year resets to 1; a quiet year still rolls over on its first sale).
+- `services/pricing.py` — **pure**: `compute_line_total_from_quantity` (delegates
+  to `money`), `compute_quantity_from_amount` (weight from a typed amount),
+  `line_total_paisa_for` (manual_amount → the typed rupees, authoritative),
+  `cart_subtotal_paisa`.
+- `services/sales_service.py`:
+  - `claim_invoice_number` — one atomic `UPDATE invoice_counter … RETURNING` with
+    a `CASE` for the year reset. Race-safe: verified by a 50-thread on-disk WAL
+    test, no duplicates, no gaps. Does not commit (the caller owns the txn).
+  - `record_sale` — sale + `sale_item` rows + per-line stock deduction +
+    (credit only) a `credit_sale` ledger entry and balance update, all in **one**
+    commit. Guards: empty cart, unknown payment method / quantity source, zero
+    quantity, sealed-pack fractional or by-amount, non-whole-rupee typed amount,
+    cash tendered < total, credit with a missing customer. A failure anywhere
+    rolls the whole thing back **including the claimed invoice number** (tested).
+- `inventory_service.apply_stock_movement`:
+  - new `commit=False` so `sales_service` folds deductions into the sale txn.
+  - the in/out/sale/refund path is now a single **guarded relative**
+    `UPDATE … RETURNING` (`WHERE stock + delta >= 0`) — no more read-in-Python
+    then write-absolute, so concurrent sales of one product can't lose an update
+    (tested, 30 threads). `correction` still writes an absolute level (rare manual
+    action — noted).
+- `app.py` — `PRAGMA busy_timeout=5000`; `create_app(config_overrides=...)` for
+  the on-disk concurrency fixture.
+- `seed.py` — `seed_invoice_counter()` (reference data, always run by `seed_all`).
+- `ruff` clean; **176 tests pass, 95% coverage** (sales_service 100%).
+
+**Flagged for the human**
+- ADR-0003's module list says `invoicing.py` is "pure … + atomic allocation" —
+  self-contradictory (pure = no I/O). Resolved by keeping `invoicing.py` pure and
+  putting the one atomic DB claim in `sales_service.claim_invoice_number`. Confirm
+  or correct.
+- **Credit-limit enforcement (ADR-0014) is not in `record_sale`** — it's Phase 4.
+  A credit sale currently posts to the ledger with no limit check.
+
+**Open / next**
+- The Till routes + templates (`routes/till.py`) — cart state, scan/search →
+  cart, the loose-goods row (§4b design), payment wired to `record_sale`, Sale
+  Complete with the auto-advance ring. Then the `refund` migration + service
+  (ADR-0020), then receipts.
 
 ### 2026-09-11 — Session 8: Phase 3 gate closed; money helpers; Till design (O-11, O-9)
 
