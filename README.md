@@ -13,9 +13,11 @@ weight/amount for loose goods; the shop's owner tracks stock, credit customers
 
 ## Project status
 
-**Phase 0 (Project Setup) is complete.** Phase 1 (Core Data Model & Auth) is
-next. The project follows a phased build plan with an explicit Definition of
-Done and a human sign-off gate at the end of each phase — see
+**Phase 1 (Core Data Model & Auth) is in progress.** The full schema (ADR-0016)
+is implemented as SQLAlchemy models with an initial Alembic migration, and
+password-based Admin/Cashier authentication with a permission table (ADR-0008)
+is in place. The project follows a phased build plan with an explicit Definition
+of Done and a human sign-off gate at the end of each phase — see
 [`docs/context.md`](docs/context.md) for exactly where things stand right now,
 what's been decided, and what's still open.
 
@@ -58,6 +60,18 @@ cp .env.example .env
 python -c "import secrets; print(secrets.token_hex(32))"   # paste into .env as SECRET_KEY
 ```
 
+Then create the database and (optionally) load local dev data:
+
+```bash
+export FLASK_APP=sukoon.app        # Windows: set FLASK_APP=sukoon.app
+flask db upgrade                   # apply migrations to an empty database
+flask seed                         # permissions + a dev Admin/Cashier + sample catalogue
+```
+
+`flask seed` reads `SEED_ADMIN_PASSWORD` / `SEED_CASHIER_PASSWORD` from `.env`;
+without them it uses a placeholder and logs a warning. `flask seed --no-sample`
+loads only the permission catalogue (which every environment needs).
+
 ## Running the app
 
 ```bash
@@ -65,8 +79,8 @@ source .venv/bin/activate
 flask --app sukoon.app run
 ```
 
-Serves a placeholder page at `http://127.0.0.1:5000/` — the real Login screen
-arrives in Phase 1.
+Serves a placeholder page at `http://127.0.0.1:5000/`; the sign-in form is at
+`/login`. The fully styled Login screen (Tailwind) arrives in a later phase.
 
 ## Running the tests
 

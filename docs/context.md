@@ -10,15 +10,10 @@ work session, not just every phase.
 
 | | |
 |---|---|
-| **Phase** | Phase 0 — Project Setup & Grill Session — **COMPLETE** |
-| **Status** | **Phase 0 fully complete.** Grill session closed, all ADRs Accepted, repo skeleton built and verified from a genuine clean-room checkout. Ready for Phase 1. |
-| **Last session** | 2026-09-06 |
-| **Next action** | Begin **Phase 1 — Core Data Model & Auth**: SQLAlchemy models per ADR-0016, the initial Alembic migration, and password-based auth per ADR-0008. |
-
-Nothing has been implemented. There is no application code in this repository yet,
-and that is correct: Development Specification 13, step 3 says the agent must tell
-the human it is time to run the grill session **and wait**, and Operating Rule 1
-makes skipping it a rule violation rather than a shortcut.
+| **Phase** | Phase 1 — Core Data Model & Auth — **COMPLETE** |
+| **Status** | All 15 ADR-0016 tables implemented as SQLAlchemy models; initial Alembic migration generated and verified up→down→up from an empty database. Password-based Admin/Cashier auth with a permission table, brute-force lockout, and server-side 403 route protection all built and tested (ADR-0008, ADR-0017). `flask seed` in place. `ruff` clean, 40 tests green, 99% coverage. **Schema-freeze gate (§4e) closed — client approved the field list on 2026-09-10.** |
+| **Last session** | 2026-09-10 (session 6) |
+| **Next action** | Begin **Phase 2 — Inventory & Product Management**: category/product CRUD, barcode/QR generation + assignment with duplicate prevention, stock-in/out/adjustment flows with mandatory reason + audit entry, low-stock threshold config and alert list. First: seed the deferred product/stock permission codes (§4). |
 
 ## 2. Decisions made so far
 
@@ -40,8 +35,11 @@ makes skipping it a rule violation rather than a shortcut.
 | [0013](adr/0013-customer-phone-identity.md) | Phone duplicates flagged not constrained; numbers normalised; unverified numbers receive no financial detail | **Accepted** |
 | [0014](adr/0014-credit-limit-enforcement.md) | Credit limit blocks a Cashier; Admin may override with step-up; override recorded on the ledger | **Accepted** |
 | [0015](adr/0015-credit-terms-and-overdue-tracking.md) | Overdue = balance outstanding past credit terms since the last real payment (not refund/adjustment); FIFO rejected | **Accepted** |
+| [0017](adr/0017-auth-implementation-parameters.md) | Phase 1 auth parameters — the v1 permission catalogue (6 codes), lockout defaults (5 attempts / 15 min), 10-hour session, name-or-initials login, `role_permission` surrogate key, model-level CHECKs | **Accepted** |
 
-No ADR may move to **Accepted** until the Phase 0 grill session has run.
+(Historical rule, now satisfied: no ADR could move to **Accepted** until the Phase 0
+grill session had run. It ran on 2026-09-10; ADR-0017 onward are ordinary Phase-N
+decisions.)
 
 ## 3. Open questions awaiting human decision
 
@@ -163,6 +161,16 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
 
 ## 4. Known issues and deferred work
 
+- **Deferred permission codes (from ADR-0017 / ADR-0008 §4).** Six action-groups —
+  void a sale, create/delete a product, stock-in/out, adjust a ledger entry, record
+  a Khata payment, export data — were parked for the Phase 3 STOP AND ASK gate. When
+  that gate assigns them, `sukoon/services/permissions.py` and the seed must be
+  updated, and a re-`flask seed` run. Phase 2 CRUD work will need at least the
+  product/stock ones, so this likely surfaces at the **start** of Phase 2, not Phase 3.
+- **`instance/` dev databases are gitignored.** `flask db upgrade` writes
+  `instance/sukoon.db` (+ `-wal`/`-shm`); none of it is committed. The migration
+  scripts under `migrations/` **are** committed.
+
 - **Prototype ships a dead stylesheet import.** `sukoon_prototype.html` contains
   `@import url('fonts_embed.css')` for a file that does not exist beside it; the
   five Inter weights are already inlined as base64 above it, so the prototype renders
@@ -251,6 +259,52 @@ Recorded as an addendum to ADR-0016.
 
 **This gate is now closed.** Phase 1 may build its migration against ADR-0016.
 
+## 4e. STOP AND ASK — Phase 1 closing gate — CLOSED 2026-09-10
+
+**Confirmed by the client on 2026-09-10, without amendment:** the 15 models in
+`sukoon/models/`, the initial migration generated from them, and the deliberate
+implementation-level additions listed below (all recorded in ADR-0017 §5–6). The
+schema is now frozen — any change is a new migration, never an edit to
+`…_phase_1_initial_schema_per_adr_0016.py`.
+
+---
+
+*Original gate text, for the record:*
+
+Per Development Specification Phase 1: *"Confirm the final field list per table
+before this migration is treated as frozen — later changes must go through a new
+migration, not an edit to this one."*
+
+**What is being presented for sign-off:**
+
+1. **The 15 models in `sukoon/models/`**, built field-for-field from
+   [ADR-0016](adr/0016-consolidated-data-model.md). The initial migration
+   (`migrations/versions/…_phase_1_initial_schema_per_adr_0016.py`) was
+   autogenerated from them and verified to apply, roll back, and re-apply cleanly
+   from an empty database.
+
+2. **Deliberate additions beyond ADR-0016's literal schema block**, each an
+   implementation detail rather than a design change, recorded in
+   [ADR-0017](adr/0017-auth-implementation-parameters.md) §5–6:
+   - `role_permission` gets a surrogate `id` PK; the real guarantee is a
+     `UNIQUE(role, permission_id)`.
+   - Named CHECK constraints implied by ADR-0016 prose but not written as blocks:
+     `product.sell_price_paisa >= 0`, `product.cost_price_paisa IS NULL OR >= 0`,
+     `length(trim(product.name)) > 0`, `length(trim(stock_movement.reason)) > 0`.
+   - A constraint/index naming convention on `db.metadata` so Alembic can name and
+     later alter constraints deterministically (SQLite needs this for batch ops).
+   - `String` length caps on text columns (e.g. `product.name` 255). SQLite does
+     not enforce them; they are documentation and carry forward to any future
+     non-SQLite target.
+   - Timestamp columns are timezone-aware UTC in Python; SQLite stores them naive
+     and the auth code treats a naive value read back as UTC.
+
+3. **No column in ADR-0016 was dropped, renamed, or retyped.** `invoice_counter`
+   and `setting` are modelled but not yet used (Phase 3 / later).
+
+**Until the human records approval here, Phase 2 does not begin.** After approval,
+any schema change is a new migration, never an edit to this one.
+
 ## 5. Edge case and test matrix
 
 Every case below must have a passing automated test before its owning phase can
@@ -287,13 +341,18 @@ This list grows as new cases are found.
 - [ ] A refund of an amount-entry line returns exactly what the customer paid
 
 ### Authentication and access control (Phase 1)
-- [ ] A Cashier session hitting every Admin-only route receives 403, not a redirect
-- [ ] Authorisation is denied when a permission code is absent, even for role `admin`
-- [ ] Repeated failed logins lock the account, and the lock expires correctly
-- [ ] A destructive action without a fresh step-up re-entry is refused
-- [ ] A step-up entry authorises exactly one action and does not persist in the session
-- [ ] No code path anywhere can set a non-zero discount in v1
-- [ ] Session expiry mid-sale does not lose the cart
+- [x] A Cashier session hitting every Admin-only route receives 403, not a redirect
+      — `tests/integration/test_auth.py::test_cashier_hitting_admin_route_gets_403_not_a_redirect`
+- [x] Authorisation is denied when a permission code is absent, even for role `admin`
+      — `::test_permission_check_is_by_code_not_role_name`
+- [x] Repeated failed logins lock the account, and the lock expires correctly
+      — `::test_lockout_after_five_failures_then_rejects_correct_password`, `::test_lockout_expires`
+- [ ] A destructive action without a fresh step-up re-entry is refused *(Phase 3 — no
+      destructive flow exists yet; `auth_service.verify_step_up` is built and unit-tested)*
+- [ ] A step-up entry authorises exactly one action and does not persist in the session *(Phase 3)*
+- [ ] No code path anywhere can set a non-zero discount in v1 *(columns default 0, no
+      setter exists; assertable once the sale flow lands in Phase 3)*
+- [ ] Session expiry mid-sale does not lose the cart *(Phase 3 — no cart yet)*
 
 ### Barcodes and relabelling (Phase 2)
 - [ ] Two barcodes on one product both resolve to it, at their respective prices
@@ -319,12 +378,16 @@ This list grows as new cases are found.
 - [ ] A Cashier cannot edit an existing product's price, only create a provisional one
 
 ### Product field requirements (Phase 1)
-- [ ] A product cannot be created with a null or empty name
-- [ ] A product cannot be created with a null selling price
-- [ ] A product with a null cost price is accepted and flagged provisional
-- [ ] A product with no barcode is accepted and is **not** flagged provisional
-- [ ] Two products may both have a null SKU; two may not share a non-null SKU
-- [ ] Margin reporting reports unknown-cost products as unknown, never as zero cost
+- [x] A product cannot be created with a null or empty name
+      — `tests/integration/test_models.py::test_product_requires_a_non_blank_name`
+- [x] A product cannot be created with a null selling price
+      — `::test_product_requires_a_sell_price` (and `::test_negative_sell_price_is_rejected`)
+- [ ] A product with a null cost price is accepted and flagged provisional *(model
+      accepts null cost; the auto-flag-on-create is Phase 2 CRUD logic)*
+- [ ] A product with no barcode is accepted and is **not** flagged provisional *(Phase 2)*
+- [x] Two products may both have a null SKU; two may not share a non-null SKU
+      — `::test_two_products_may_both_have_null_sku`, `::test_duplicate_non_null_sku_is_rejected`
+- [ ] Margin reporting reports unknown-cost products as unknown, never as zero cost *(Phase 6)*
 
 ### Customer phone identity (Phase 4)
 - [ ] All four spellings of one number normalise to the same canonical form
@@ -383,8 +446,10 @@ This list grows as new cases are found.
 - [ ] Two products cannot share the same code
 
 ### Auth (Phase 1)
-- [ ] Session expiry is handled without data loss mid-sale
-- [ ] A cashier hitting an admin-only route gets a server-side 403, not just a hidden button
+- [ ] Session expiry is handled without data loss mid-sale *(Phase 3 — no cart yet)*
+- [x] A cashier hitting an admin-only route gets a server-side 403, not just a hidden button
+      — `tests/integration/test_auth.py`, plus `tests/pure/test_module_boundaries.py`
+      mechanically enforces ADR-0003 §1 (`services/` never imports Flask)
 
 ### Reports (Phase 6)
 - [ ] A date range with no data renders an empty state, not an error
@@ -409,6 +474,46 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-10 — Session 6: Phase 1 built (Core Data Model & Auth)
+
+**Done**
+- **Models.** All 15 ADR-0016 tables as SQLAlchemy 2.0 typed models under
+  `sukoon/models/`, split by area (`user`, `catalog`, `inventory`, `customer`,
+  `sales`, `khata`, `notifications`, `system`), shape-and-constraints only per
+  ADR-0003. Flask-Login's interface is implemented directly on `User` so
+  `models/` needs no `flask_login` import.
+- **Migration.** Flask-Migrate/Alembic set up; `migrations/` committed. Initial
+  migration autogenerated from the models and verified **up → down → up from an
+  empty database** — driven through the real `flask db` CLI in a subprocess
+  (`tests/integration/test_migration.py`), which also proves the "no manual
+  steps" DoD claim.
+- **Auth (ADR-0008).** Password login/logout, Flask-Login sessions, Werkzeug
+  hashing. `services/auth_service.py` holds every decision and imports no Flask
+  (mechanically enforced by `tests/pure/test_module_boundaries.py`). Brute-force
+  lockout with a pure, boundary-tested `compute_lockout`. `routes/guards.py`
+  `permission_required` decorator → real server-side 403; `routes/admin.py`
+  ships one permission-guarded probe route as the enforcement seam.
+- **Permissions.** `services/permissions.py` — the six confirmed v1 codes and the
+  role split. `sukoon/seed.py` + `flask seed` write them (idempotent) plus
+  optional dev users and a sample catalogue; passwords come from the environment.
+- **ADR-0017** written and Accepted: records the parameters ADR-0008 left open
+  (permission catalogue, lockout defaults, session lifetime, name-or-initials
+  login) and the two schema-level implementation choices flagged for the freeze
+  gate (`role_permission` surrogate PK, model-level CHECKs).
+- `ruff` clean; **40 tests pass; 99% coverage** (business-logic modules 100%).
+- README, `.env.example` updated (migration + seed steps, auth env vars).
+
+**Sign-off**
+- **Phase 1 STOP AND ASK gate (§4e) closed** — client approved the frozen schema
+  (the 15 models + the ADR-0017 §5–6 implementation additions) on 2026-09-10,
+  without amendment. Phase 2 may begin.
+
+**Open / next**
+- Phase 2 (Inventory & Product Management) is next. Seed the deferred
+  product/stock permission codes (§4) as its first step.
+- Non-blocking Phase-0 carryovers unchanged: O-7, O-8, O-9, O-10, O-11, O-12,
+  O-17, O-18, O-20. The LICENSE owner-name placeholder (session 5) is still open.
 
 ### 2026-09-10 — Session 5: pre-GitHub-push audit
 

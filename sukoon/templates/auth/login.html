@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in — Sukoon</title>
+</head>
+<body>
+  <main>
+    <h1>Sukoon</h1>
+    <p>Al-Rehman General Store</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul class="flashes">
+          {% for category, message in messages %}
+            <li class="flash flash-{{ category }}">{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    {#
+      Design deviation (recorded in context.md §4b, ADR-0008 §2): the reference
+      login screen's numeric PIN pad is replaced by a password field. The avatar
+      row, greeting, and calm visual language return with the Tailwind build in a
+      later phase — this Phase 1 form is functional only.
+    #}
+    <form method="post" action="{{ url_for('auth.login') }}">
+      <label>
+        Name or initials
+        <input type="text" name="identifier" autocomplete="username" autofocus required>
+      </label>
+      <label>
+        Password
+        <input type="password" name="password" autocomplete="current-password" required>
+      </label>
+      <button type="submit">Sign in</button>
+    </form>
+  </main>
+</body>
+</html>

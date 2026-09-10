@@ -4,10 +4,16 @@
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+markers = [
+    "slow: spawns a subprocess or is otherwise slower than a unit test",
+]
 
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+# Alembic writes migrations/versions/*.py; their long op.f(...) constraint-name
+# lines are machine-generated and not ours to reformat.
+extend-exclude = ["migrations/versions"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]

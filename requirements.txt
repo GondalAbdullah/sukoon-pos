@@ -5,3 +5,10 @@
 
 Flask==3.0.3
 python-dotenv==1.0.1
+
+# Phase 1 — Core Data Model & Auth (ADR-0001 stack, ADR-0016 schema, ADR-0008 auth)
+Flask-SQLAlchemy==3.1.1
+Flask-Migrate==4.0.7
+Flask-Login==0.6.3
+SQLAlchemy==2.0.35
+alembic==1.19.2
