@@ -1,10 +1,10 @@
 """Invoice number formatting and the yearly-reset rule (ADR-0016).
 
-Pure by ADR-0003 §3 — deterministic functions over plain values, no I/O. The
-*atomic* claim against the ``invoice_counter`` row lives in ``sales_service`` (the
-one place that also opens the sale transaction it must be part of); this module
-owns the format and the rollover arithmetic, which is the part most worth testing
-exhaustively.
+Pure by ADR-0003 §3 / ADR-0021 — deterministic functions over plain values, no
+I/O. The *atomic* claim against the ``invoice_counter`` row lives in
+``sales_service`` (the one place that also opens the sale transaction it must be
+part of); this module owns the format and the rollover arithmetic, which is the
+part most worth testing exhaustively.
 
 Format: ``INV-2025-0001`` — prefix, calendar year, then a gap-free sequence that
 **resets to 1 on the first sale of each calendar year** (ADR-0016 addendum).

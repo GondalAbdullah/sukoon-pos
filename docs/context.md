@@ -13,7 +13,7 @@ work session, not just every phase.
 | **Phase** | Phase 3 — POS & Billing — **STARTED**. STOP AND ASK gate CLOSED (§4g). |
 | **Status** | Phase 3 gate closed (§4g / [ADR-0020](adr/0020-phase-3-refund-and-discount-policy.md)). **Sale transaction core built (session 9):** `services/money.py` (ADR-0007 rupee boundary), `services/invoicing.py` (pure — format + yearly-reset rule), `services/pricing.py` (pure — line totals both directions, cart subtotal), `services/sales_service.py` — `claim_invoice_number` (atomic `UPDATE…RETURNING` on the counter row, race-safe, verified with a 50-thread on-disk test) and `record_sale` (sale + line items + stock deduction + credit-ledger entry in **one** transaction; empty-cart / fractional / by-amount / cash-tender guards; a mid-sale failure leaves no partial state, no consumed invoice number). `apply_stock_movement` gained `commit=False`. `busy_timeout=5000` pragma added. Invoice counter seeded as reference data. Design gaps O-11 / O-9 closed (§4b). `ruff` clean, **175 tests green, 95% coverage** (sales_service 100%). **No routes/UI yet.** No migration this session (all tables from ADR-0016). |
 | **Last session** | 2026-09-11 (session 9) |
-| **Next action** | Continue **Phase 3 build**. Next: the **Till routes + templates** — `routes/till.py`, cart state (server-side session), scan/search → cart, the loose-goods row per the §4b design, Cash/Card/Credit selection wired to `sales_service.record_sale`, then Sale Complete with the ~8s auto-advance ring. After the till: the `refund` / `refund_item` migration + refund service per ADR-0020, then ESC/POS receipt + PDF fallback (`services/receipts/`). **Flag for the human:** ADR-0003's module list calls `invoicing.py` "pure … atomic allocation", which is a contradiction (pure = no I/O). Resolved by keeping `invoicing.py` pure and putting the one atomic DB claim in `sales_service.claim_invoice_number` — confirm or correct. Also: credit-limit enforcement (ADR-0014) is **not** in `record_sale` yet — it's Phase 4; a credit sale currently posts to the ledger with no limit check. |
+| **Next action** | Continue **Phase 3 build**. Next: the **Till routes + templates** — `routes/till.py`, cart state (server-side session), scan/search → cart, the loose-goods row per the §4b design, Cash/Card/Credit selection wired to `sales_service.record_sale`, then Sale Complete with the ~8s auto-advance ring. After the till: the `refund` / `refund_item` migration + refund service per ADR-0020, then ESC/POS receipt + PDF fallback (`services/receipts/`). **Note:** credit-limit enforcement (ADR-0014) is **not** in `record_sale` yet — it's Phase 4; a credit sale currently posts to the ledger with no limit check. (The `invoicing.py` purity question is settled — [ADR-0021](adr/0021-invoicing-module-purity.md).) |
 
 ## 2. Decisions made so far
 
@@ -39,6 +39,7 @@ work session, not just every phase.
 | [0018](adr/0018-product-identity-codes.md) | Product identity codes — auto-generated category-prefixed SKU (`OIL-5021`), internal barcodes are Code 128 with an `SK-` prefix; `labels.py` in `receipts/`, new `settings_service`. Resolves O-17 | **Accepted** |
 | [0019](adr/0019-phase-2-authorization.md) | Phase 2 authz — `catalog.manage` + `stock.adjust`, Admin-only; sell-price change and price-override barcode stay step-up. Clarifies ADR-0008 §4's loose "Phase 3" attribution | **Accepted** |
 | [0020](adr/0020-phase-3-refund-and-discount-policy.md) | Phase 3 gate — no discounts (confirmed); refund = Cashier initiates / Admin approves + step-up; original invoice required, partial refunds, auto-restock (+ damaged flag), ledger reversal for credit sales; new `refund`/`refund_item` tables; `catalog.manage`/`stock.adjust` stay coarse. Refines ADR-0008 §4, resolves O-7 | **Accepted** |
+| [0021](adr/0021-invoicing-module-purity.md) | `invoicing.py` stays pure (rule 3 wins over ADR-0003's contradictory module-list gloss); the atomic invoice claim lives in `sales_service` | **Accepted** |
 
 (Historical rule, now satisfied: no ADR could move to **Accepted** until the Phase 0
 grill session had run. It ran on 2026-09-10; ADR-0017 onward are ordinary Phase-N
@@ -661,11 +662,11 @@ This list grows as new cases are found.
 - `seed.py` — `seed_invoice_counter()` (reference data, always run by `seed_all`).
 - `ruff` clean; **176 tests pass, 95% coverage** (sales_service 100%).
 
-**Flagged for the human**
-- ADR-0003's module list says `invoicing.py` is "pure … + atomic allocation" —
-  self-contradictory (pure = no I/O). Resolved by keeping `invoicing.py` pure and
-  putting the one atomic DB claim in `sales_service.claim_invoice_number`. Confirm
-  or correct.
+**Decisions**
+- [ADR-0021](adr/0021-invoicing-module-purity.md) (Accepted) — ADR-0003's module
+  list said `invoicing.py` is "pure … + atomic allocation", self-contradictory
+  (pure = no I/O). Rule 3 wins: `invoicing.py` stays pure, the atomic DB claim
+  lives in `sales_service.claim_invoice_number`.
 - **Credit-limit enforcement (ADR-0014) is not in `record_sale`** — it's Phase 4.
   A credit sale currently posts to the ledger with no limit check.
 
