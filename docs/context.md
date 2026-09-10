@@ -10,10 +10,10 @@ work session, not just every phase.
 
 | | |
 |---|---|
-| **Phase** | Phase 2 — Inventory & Product Management — **COMPLETE** |
-| **Status** | Category + product CRUD, SKU auto-generation (ADR-0018), stock-in/out/correction with a mandatory reason and full audit trail, negative-stock prevention, barcode assignment + internal Code 128 generation + the resolver chain (ADR-0009), the A4 label-sheet PDF with configurable geometry (ADR-0010), low-stock alerting at the exact threshold boundary, and the Stock list. `catalog.manage` / `stock.adjust` permissions added (ADR-0019, Admin-only). **No migration** — every table already existed from ADR-0016. `ruff` clean, 107 tests green, 95% coverage (business-logic modules ≥ 90%). Templates are functional HTML; the Tailwind visual pass is deferred. |
-| **Last session** | 2026-09-10 (session 7) |
-| **Next action** | Begin **Phase 3 — POS & Billing** (highest-traffic, highest-risk): the Till cart (search/scan to cart, quantity + the loose-goods weight/amount entry from ADR-0005), Cash/Card/Credit payment, atomic race-safe invoice numbering, sale + inventory deduction in one transaction, ESC/POS receipt + PDF fallback, and the returns/refund flow. Note the **Phase 3 STOP AND ASK gate** (discount rules + refund policy) and the added ADR-0019 item (confirm/split `catalog.manage`/`stock.adjust`). |
+| **Phase** | Phase 3 — POS & Billing — **STARTED**. STOP AND ASK gate CLOSED (§4g). |
+| **Status** | Phase 3 gate closed 2026-09-11 (§4g / [ADR-0020](adr/0020-phase-3-refund-and-discount-policy.md)): no discounts in v1 (confirmed); refund = Cashier initiates / Admin approves with step-up; refund requires the original invoice, allows partial refunds, auto-restocks (with a per-line damaged flag), and reverses the ledger for credit sales; `catalog.manage` / `stock.adjust` stay coarse Admin-only, no step-up. Refund needs a **new migration** (`refund` + `refund_item` tables). Build so far: `services/money.py` — the ADR-0007 rupee-boundary helpers (`round_paisa_to_rupee`, `is_whole_rupee`, `line_total_for_quantity`), pure, exhaustively boundary-tested. `sale.refund_initiate` permission code added (Cashier + Admin). `ruff` clean, 140 tests green, 95% coverage. |
+| **Last session** | 2026-09-11 (session 8) |
+| **Next action** | Continue **Phase 3 build**. Blocked on **O-11** (the fractional cart-row component is undesigned — ADR-0005 requires typed-weight / typed-amount entry for loose goods; needs a design before the Till UI is built) and worth deciding **O-9** (Sale Complete auto-advance countdown) at the same time. Design-independent pieces to build next: atomic race-safe invoice numbering against `invoice_counter` (yearly reset per ADR-0016), the sale + stock-deduction single transaction, then the `refund`/`refund_item` migration and refund service per ADR-0020. ESC/POS receipt + PDF fallback after that. |
 
 ## 2. Decisions made so far
 
@@ -38,6 +38,7 @@ work session, not just every phase.
 | [0017](adr/0017-auth-implementation-parameters.md) | Phase 1 auth parameters — the v1 permission catalogue, lockout defaults (5 attempts / 15 min), 10-hour session, name-or-initials login, `role_permission` surrogate key, model-level CHECKs | **Accepted** |
 | [0018](adr/0018-product-identity-codes.md) | Product identity codes — auto-generated category-prefixed SKU (`OIL-5021`), internal barcodes are Code 128 with an `SK-` prefix; `labels.py` in `receipts/`, new `settings_service`. Resolves O-17 | **Accepted** |
 | [0019](adr/0019-phase-2-authorization.md) | Phase 2 authz — `catalog.manage` + `stock.adjust`, Admin-only; sell-price change and price-override barcode stay step-up. Clarifies ADR-0008 §4's loose "Phase 3" attribution | **Accepted** |
+| [0020](adr/0020-phase-3-refund-and-discount-policy.md) | Phase 3 gate — no discounts (confirmed); refund = Cashier initiates / Admin approves + step-up; original invoice required, partial refunds, auto-restock (+ damaged flag), ledger reversal for credit sales; new `refund`/`refund_item` tables; `catalog.manage`/`stock.adjust` stay coarse. Refines ADR-0008 §4, resolves O-7 | **Accepted** |
 
 (Historical rule, now satisfied: no ADR could move to **Accepted** until the Phase 0
 grill session had run. It ran on 2026-09-10; ADR-0017 onward are ordinary Phase-N
@@ -144,10 +145,14 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   Sukoon auto-generates a category-prefixed SKU (`OIL-5021` style) on product create,
   editable by an Admin, shop-wide running number. See
   [ADR-0018](adr/0018-product-identity-codes.md), Accepted.
-- **O-7 — Refunds have no design.** Development Specification Phase 3 requires a
-  returns/refund flow that reverses both stock and ledger. The Design System has no
-  screen for it and the prototype has no entry point. A screen must be designed, or
-  the flow deliberately scoped to a later phase.
+- ~~**O-7 — Refunds have no design.**~~ **RESOLVED 2026-09-11 (policy + data model).**
+  The Phase 3 gate settled the refund flow: Cashier initiates, Admin approves with
+  step-up; original invoice required; partial refunds allowed; refunded goods
+  auto-restock (per-line damaged flag); credit-sale refunds reverse the ledger. New
+  `refund` / `refund_item` tables (new migration). See
+  [ADR-0020](adr/0020-phase-3-refund-and-discount-policy.md), Accepted. The screen's
+  **visual** design is deferred with the rest of the UI (Tailwind pass), consistent
+  with every other screen so far.
 - **O-8 — Second terminal registration.** The Settings mock lists
   "Second Till (Terminal 2) — Checking…", implying terminals register and report
   health. No such feature exists in the specification. Real feature or mock dressing?
@@ -161,12 +166,13 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
 
 ## 4. Known issues and deferred work
 
-- **Deferred permission codes (from ADR-0017 / ADR-0008 §4).** Six action-groups —
-  void a sale, create/delete a product, stock-in/out, adjust a ledger entry, record
-  a Khata payment, export data — were parked for the Phase 3 STOP AND ASK gate. When
-  that gate assigns them, `sukoon/services/permissions.py` and the seed must be
-  updated, and a re-`flask seed` run. Phase 2 CRUD work will need at least the
-  product/stock ones, so this likely surfaces at the **start** of Phase 2, not Phase 3.
+- **Deferred permission codes (from ADR-0017 / ADR-0008 §4).** Product/stock codes
+  were assigned in Phase 2 (ADR-0019). The Phase 3 gate assigned **refund**
+  (ADR-0020): `sale.refund_initiate` for a Cashier, `sale.refund` + step-up for an
+  Admin approval. Still unissued, awaiting their own decisions: **voiding a completed
+  sale, adjusting a ledger entry, recording a Khata payment, exporting data.** When
+  a decision lands, update `sukoon/services/permissions.py` (the seed is
+  dict-driven — no code change there) and re-run `flask seed`.
 - **`instance/` dev databases are gitignored.** `flask db upgrade` writes
   `instance/sukoon.db` (+ `-wal`/`-shm`); none of it is committed. The migration
   scripts under `migrations/` **are** committed.
@@ -355,6 +361,42 @@ box resolves to its product (the "simulate a scan" check).
 **For the Phase 3 gate (added by ADR-0019):** confirm or split `catalog.manage` /
 `stock.adjust`, and decide whether either needs step-up.
 
+## 4g. STOP AND ASK — Phase 3 gate (discount + refund policy) — CLOSED 2026-09-11
+
+Per Development Specification Phase 3: *"Confirm discount rules (max discount %, who
+can apply it) and refund policy before this logic is locked in — both directly
+affect the ledger and stock correctness."* Plus the ADR-0019 carry-over.
+
+**Asked of the client and answered on 2026-09-11.** Full reasoning and the data
+model are in [ADR-0020](adr/0020-phase-3-refund-and-discount-policy.md), Accepted.
+
+1. **Discounts — none, confirmed.** v1 builds no discount mechanism (reaffirms
+   ADR-0008 §6). `discount_paisa` / `line_discount_paisa` stay fixed at zero; a test
+   asserts no code path can set them. Nothing new is built.
+2. **Refund authority — Cashier initiates, Admin approves.** Refines ADR-0008 §4
+   ("Admin only"). A Cashier may *start* a refund (`sale.refund_initiate`), creating
+   a `pending_approval` row that moves no stock and no money. An Admin *approves* it
+   with step-up (`sale.refund`). No unattended-Cashier path, no value cap. Both user
+   ids are recorded on the refund.
+3. **Refund mechanics — all four rules.** (a) The original invoice is required; a
+   line can't be over-refunded. (b) Partial refunds allowed per line / per quantity;
+   `manual_amount` loose lines are whole-line only and return exactly what was paid.
+   (c) Refunded goods auto-restock via a `refund` stock movement on approval — with
+   a per-line `restock` flag an Admin can untick for damaged returns (a flagged
+   addition beyond the literal answer; default restocks). (d) Credit-sale refunds
+   post a negative `credit_ledger_entry` and move no cash; cash/card sales refund
+   from the drawer.
+4. **`catalog.manage` / `stock.adjust` — stay coarse, Admin-only, no step-up.**
+   Closes the ADR-0019 open item. A finer split / manager-role subset is declined
+   for v1 (revisit when a third role exists).
+
+**Consequences recorded:** Phase 3 carries a **new migration** (`refund` +
+`refund_item` — first since the Phase 1 freeze) and a two-step refund workflow.
+`sale.refund_initiate` added to the permission catalogue (Cashier + Admin).
+
+**This gate is now closed.** Phase 3 build may proceed. (The Till *UI* still waits on
+O-11, a design question, not a gate.)
+
 ## 5. Edge case and test matrix
 
 Every case below must have a passing automated test before its owning phase can
@@ -392,8 +434,10 @@ This list grows as new cases are found.
 - [ ] A sealed-pack product offers no amount-entry mode
 
 ### Money and rounding (Phase 3)
-- [ ] `round_paisa_to_rupee` correct at 0, 1, 49, 50, 51, 99, 100, 149, 150
-- [ ] The same function is symmetric for negative values (refunds mirror sales)
+- [x] `round_paisa_to_rupee` correct at 0, 1, 49, 50, 51, 99, 100, 149, 150
+      — `tests/pure/test_money.py::test_round_paisa_to_rupee_boundaries`
+- [x] The same function is symmetric for negative values (refunds mirror sales)
+      — `test_money::test_round_is_symmetric_about_zero`, `::test_line_total_is_symmetric_for_a_refund`
 - [ ] A receipt's printed line totals sum exactly to its printed subtotal
 - [ ] Every persisted money column holds a multiple of 100 paisa
 - [ ] A typed amount that is not a whole rupee is rejected at input
@@ -555,6 +599,48 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-11 — Session 8: Phase 3 STOP AND ASK gate closed; money helpers
+
+**The gate (§4g)**
+- Put the four Phase 3 gate questions to the client (discounts, refund authority,
+  refund mechanics, `catalog.manage`/`stock.adjust`). Answers recorded in §4g and
+  in [ADR-0020](adr/0020-phase-3-refund-and-discount-policy.md), written and Accepted.
+- **Discounts:** confirmed none in v1 — no build.
+- **Refunds:** Cashier initiates → Admin approves with step-up. Original invoice
+  required, partial refunds allowed, auto-restock (+ per-line damaged flag),
+  credit-sale refunds reverse the ledger. This **refines ADR-0008 §4** (was
+  "Admin only") — recorded, not silently overridden. Resolves **O-7** (policy +
+  data model; the screen's pixels stay deferred with the rest of the UI).
+- **New schema:** `refund` + `refund_item` tables → a **new migration** in Phase 3,
+  the first since the Phase 1 freeze. Shape proposed in ADR-0020 for the client's
+  review; Phase 3's DoD is the checkpoint, not a further gate.
+- **`catalog.manage` / `stock.adjust`:** stay coarse, Admin-only, no step-up.
+  Closes the ADR-0019 open item.
+
+**Done (build)**
+- `services/money.py` — the ADR-0007 rupee-boundary rule in one pure place:
+  `round_paisa_to_rupee` (half-up, symmetric about zero so a refund mirrors its
+  sale), `is_whole_rupee`, `line_total_for_quantity` (single half-up step, no
+  intermediate paisa rounding). No Flask, no DB.
+- `tests/pure/test_money.py` — the ADR-0007 boundary matrix (0/1/49/50/51/99/100/
+  149/150), negative symmetry, "output is always a whole rupee" over a range, and
+  line-total rounding. 29 new tests.
+- `services/permissions.py` — `sale.refund_initiate` added (Cashier + Admin);
+  `sale.refund` description clarified to "approve or reject". Seed is dict-driven,
+  no seed code change; `flask seed` picks it up.
+- `ruff` clean; **140 tests pass; 95% coverage** (money.py 100%).
+
+**Open / next**
+- Phase 3 build continues. **Blocked on O-11** (fractional cart-row component
+  undesigned) before the Till UI; worth settling **O-9** (Sale Complete
+  auto-advance) at the same time.
+- Design-independent next steps: atomic race-safe invoice numbering
+  (`invoice_counter`, yearly reset per ADR-0016), sale + stock-deduction in one
+  transaction, then the `refund`/`refund_item` migration + refund service (ADR-0020),
+  then ESC/POS receipt + PDF fallback.
+- Non-blocking carryovers: O-8, O-9, O-10, O-11, O-12, O-18, O-20. LICENSE
+  owner-name placeholder still open.
 
 ### 2026-09-10 — Session 7: Phase 2 built (Inventory & Product Management)
 

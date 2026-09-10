@@ -114,6 +114,25 @@ adding a role later is a data change rather than a code change.
 to it: a refund, a price edit, voiding a sale, adjusting a ledger entry. Admin-only
 and step-up protected.
 
+**Refund** *(Settled)* — Returning money (or credit) to a customer against an earlier
+sale, reversing its stock and, for a credit sale, its ledger entry. Always tied to
+the original invoice; may cover part of it. A **Cashier initiates** a refund and an
+**Admin approves** it with step-up — nothing moves (no stock, no cash, no ledger
+entry) until approval. See ADR-0020.
+
+**Pending approval** *(Settled)* — The state a refund sits in after a Cashier
+initiates it and before an Admin approves or rejects it. A `refund` row exists but
+has had no effect on stock, the drawer, or the ledger.
+
+**Restock flag** *(Settled)* — A per-line choice on a refund: ticked (the default),
+the returned quantity goes back into sellable stock on approval; unticked, the goods
+came back damaged and no stock movement is posted. See ADR-0020.
+
+**Ledger reversal** *(Settled)* — How a refund against a credit (Khata) sale is paid:
+a negative `credit_ledger_entry` of type `refund` that reduces the customer's
+balance, instead of cash leaving the drawer. Does not reset the overdue clock
+(ADR-0015).
+
 **Bulk entry** *(Settled)* — A screen built for one repeated motion: scan, type,
 Enter, next. Used to populate the catalog quickly. The scanner drives navigation; the
 cursor returns to the scan field after every committed row.
