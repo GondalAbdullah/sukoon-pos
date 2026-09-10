@@ -18,6 +18,7 @@
     {% if current_user.is_authenticated %}
       &nbsp;|&nbsp; <a href="{{ url_for('till.index') }}">Till</a>
       &nbsp;|&nbsp; <a href="{{ url_for('stock.index') }}">Stock</a>
+      &nbsp;|&nbsp; <a href="{{ url_for('refunds.find') }}">Refunds</a>
       &nbsp;|&nbsp; <span>{{ current_user.name }} ({{ current_user.role }})</span>
       <form method="post" action="{{ url_for('auth.logout') }}" style="display:inline">
         <button type="submit">Sign out</button>

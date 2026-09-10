@@ -20,6 +20,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 EXPECTED_TABLES = {
     "category", "credit_ledger_entry", "customer", "invoice_counter",
     "notification_queue", "payment", "permission", "product", "product_barcode",
+    "refund", "refund_item",
     "role_permission", "sale", "sale_item", "setting", "stock_movement", "user",
 }
 

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Refunds — Sukoon{% endblock %}
+{% block content %}
+{# Phase 3: functional HTML. The Design System's refund screen (O-7 pixels) is
+   drawn in the visual pass (ADR-0022). #}
+<h1>Refund a sale</h1>
+<form method="get" action="{{ url_for('refunds.find') }}">
+  <label>Invoice number
+    <input type="text" name="invoice" value="{{ invoice }}" autofocus autocomplete="off"
+           placeholder="INV-2026-0001">
+  </label>
+  <button type="submit">Find</button>
+</form>
+
+{% if sale %}
+  <p>Found <strong>{{ sale.invoice_number }}</strong> —
+     {{ sale.total_paisa | rupees }}, {{ sale.payment_method }}, {{ sale.status }}.
+     <a href="{{ url_for('refunds.for_sale', sale_id=sale.id) }}">Start a refund &rarr;</a></p>
+{% endif %}
+{% endblock %}

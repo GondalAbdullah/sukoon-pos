@@ -11,9 +11,9 @@ work session, not just every phase.
 | | |
 |---|---|
 | **Phase** | Phase 3 — POS & Billing — **STARTED**. STOP AND ASK gate CLOSED (§4g). |
-| **Status** | Phase 3 gate closed (§4g / [ADR-0020](adr/0020-phase-3-refund-and-discount-policy.md)). Sale transaction core (session 9): `money.py`, `invoicing.py` (pure), `pricing.py` (pure), `sales_service.py` — `claim_invoice_number` (atomic, race-safe) + `record_sale` (all-or-nothing) + `summarize_cart`. **Till built (session 10):** `routes/till.py` + `templates/till/` — scan/search → cart, sealed-pack stepper, loose-goods row (added with no quantity, "needs weight", blocks checkout until a weight or rupee amount is entered — ADR-0005), Cash/Card/Khata payment wired to `record_sale`, Sale Complete page (8s meta-refresh stand-in for the O-9 ring). Cart lives in the signed **session**. `ruff` clean, **199 tests green, 95% coverage**. Functional HTML — the §4b visual pass is later. No migration (all tables from ADR-0016). |
-| **Last session** | 2026-09-11 (session 10) |
-| **Next action** | Finish **Phase 3** (functional HTML): (1) ~~provisional-create at the till~~ **done (session 10)**; (2) the **`refund` / `refund_item` migration + refund service + routes** per ADR-0020 (first migration since the Phase 1 freeze); (3) **ESC/POS receipt + PDF fallback** (`services/receipts/`, `python-escpos`); then present the Phase 3 functional DoD (gate §4g already closed). **Then [ADR-0022](adr/0022-dedicated-visual-pass.md): "Phase 3.5" — one dedicated visual pass** converting every template to the Design System, compiling `static/css/tailwind.css`, before Phase 4. **Notes:** credit-limit enforcement (ADR-0014) is Phase 4. The session cart does not survive session loss (§5 Auth item, deferred). |
+| **Status** | Phase 3 gate closed (§4g / [ADR-0020](adr/0020-phase-3-refund-and-discount-policy.md)). Sale transaction core (session 9). Till + provisional-create (session 10). **Refund flow built (session 11):** `models/refund.py` (`refund` + `refund_item`), migration `58f3a01f76d8` (first since the Phase 1 freeze; up→down→up verified), `services/refund_service.py` (`initiate_refund` → `pending_approval`, moves nothing; `approve_refund` → restock per-line + credit-ledger reversal + `sale.status` transition, one transaction; `reject_refund`), `routes/refunds.py` + `templates/refunds/` (Cashier initiates `sale.refund_initiate`; Admin approves `sale.refund` + step-up). `ruff` clean, **219 tests green, 95% coverage**. Functional HTML — the §4b visual pass ([ADR-0022](adr/0022-dedicated-visual-pass.md)) is later. |
+| **Last session** | 2026-09-11 (session 11) |
+| **Next action** | Finish **Phase 3** (functional HTML): (1) ~~provisional-create at the till~~ done; (2) ~~refund migration + service + routes~~ **done (session 11)**; (3) **ESC/POS receipt + PDF fallback** (`services/receipts/`, `python-escpos`) — the last Phase 3 piece — then present the Phase 3 functional DoD (gate §4g already closed). **Then [ADR-0022](adr/0022-dedicated-visual-pass.md): "Phase 3.5" — one dedicated visual pass** converting every template to the Design System, compiling `static/css/tailwind.css`, before Phase 4. **Notes:** credit-limit enforcement (ADR-0014) is Phase 4. The session cart does not survive session loss (§5 Auth item, deferred). |
 
 ## 2. Decisions made so far
 
@@ -491,7 +491,8 @@ This list grows as new cases are found.
       — `test_sales::test_a_typed_amount_that_is_not_a_whole_rupee_is_refused`
 - [x] An amount-entry line stores exactly the amount typed, not a recomputed value
       — `test_sales::test_by_amount_line_stores_the_typed_amount_and_the_source`, `test_pricing::test_manual_amount_line_stores_exactly_what_was_typed`
-- [ ] A refund of an amount-entry line returns exactly what the customer paid *(refund service — after the till)*
+- [x] A refund of an amount-entry line returns exactly what the customer paid
+      — `test_refunds::test_a_by_amount_line_is_whole_or_nothing` (refunds `line_total_paisa`, the typed Rs 200 — not a recomputed figure), `::test_line_totals_mirror_the_sale`
 
 ### Authentication and access control (Phase 1)
 - [x] A Cashier session hitting every Admin-only route receives 403, not a redirect
@@ -500,11 +501,15 @@ This list grows as new cases are found.
       — `::test_permission_check_is_by_code_not_role_name`
 - [x] Repeated failed logins lock the account, and the lock expires correctly
       — `::test_lockout_after_five_failures_then_rejects_correct_password`, `::test_lockout_expires`
-- [ ] A destructive action without a fresh step-up re-entry is refused *(Phase 3 — no
-      destructive flow exists yet; `auth_service.verify_step_up` is built and unit-tested)*
-- [ ] A step-up entry authorises exactly one action and does not persist in the session *(Phase 3)*
-- [ ] No code path anywhere can set a non-zero discount in v1 *(columns default 0, no
-      setter exists; assertable once the sale flow lands in Phase 3)*
+- [x] A destructive action without a fresh step-up re-entry is refused
+      — `test_refunds::test_admin_approve_needs_a_valid_step_up_password` (wrong / missing password → 403),
+      `test_stock_routes::test_sell_price_change_requires_step_up`
+- [x] A step-up entry authorises exactly one action and does not persist in the session
+      — `require_step_up` reads `request.form` and holds no session state (guards.py); each refund
+      approval re-prompts (`test_refunds`, `templates/refunds/pending.html`)
+- [x] No code path anywhere can set a non-zero discount in v1
+      — `record_sale` writes `discount_paisa=0` / `line_discount_paisa=0` unconditionally; the Till
+      and refund forms have no discount field; `test_pricing`/`test_sales` assert whole-rupee totals
 - [ ] Session expiry mid-sale does not lose the cart *(the cart now exists but lives in the
       signed session — it does NOT survive session loss. Deferred: a `draft_sale` table is the
       fix if this becomes a real complaint. §4b Phase 3 UI deviations.)*
@@ -512,8 +517,10 @@ This list grows as new cases are found.
 ### Barcodes and relabelling (Phase 2)
 - [x] Two barcodes on one product both resolve to it, at their respective prices
       — `test_barcodes::test_two_barcodes_resolve_to_one_product_at_their_own_prices`
-- [ ] Selling via an override barcode deducts stock from the single shared count
-      *(Phase 3 — resolver returns the right product+price now; sale deduction is Phase 3)*
+- [x] Selling via an override barcode deducts stock from the single shared count
+      — the Till carries `product_barcode_id` + the effective price onto the `CartLine`;
+      `record_sale` snapshots both and deducts the one `product.stock_quantity_milli`
+      (`test_till::test_a_barcode_resolves_to_its_product` + `test_sales`)
 - [x] A barcode is unique across the entire catalog, enforced at database level
       — `test_barcodes::test_duplicate_barcode_is_rejected_at_the_database_level` (+ service-level)
 - [x] Deactivating a barcode stops it resolving — `test_barcodes::test_deactivating_a_barcode_stops_it_resolving`
@@ -522,7 +529,9 @@ This list grows as new cases are found.
       — `test_barcodes::test_two_barcodes_resolve_to_one_product_at_their_own_prices`
 - [x] Creating an override barcode without step-up authentication is refused
       — `test_stock_routes::test_price_override_barcode_requires_step_up`
-- [ ] `sale_item.product_barcode_id` records which label produced the price *(Phase 3)*
+- [x] `sale_item.product_barcode_id` records which label produced the price
+      — `record_sale` copies `CartLine.product_barcode_id` onto the `sale_item`; the Till sets it
+      from the barcode resolver (`test_till::test_a_barcode_resolves_to_its_product`)
 - [x] A generated barcode image decodes back to the code it was generated from
       — `test_labels::test_generated_barcode_pattern_decodes_back_to_the_code` (pattern + checksum;
       true optical scan is a Phase 8 manual test)
@@ -603,7 +612,10 @@ This list grows as new cases are found.
 - [x] A sale and its inventory deduction commit atomically; a crash mid-sale leaves no partial state
       — `test_sales::test_a_failure_mid_sale_leaves_no_partial_state` (also asserts the briefly-claimed invoice number is released)
 - [ ] A printer being offline degrades to PDF and never blocks completing the sale *(receipts — after the till)*
-- [ ] Refunds correctly reverse both the ledger (if credit) and the inventory count *(refund service — after the till)*
+- [x] Refunds correctly reverse both the ledger (if credit) and the inventory count
+      — `test_refunds::test_a_credit_sale_refund_reverses_the_ledger_and_moves_no_cash`,
+      `::test_approving_restocks_and_completes_the_status_transition`,
+      `::test_a_damaged_line_is_not_restocked`, `::test_a_failure_during_approval_leaves_the_refund_pending`
 
 ### Credit customers / Khata (Phase 4)
 - [ ] Ledger balance maths is correct across mixed sequences of sales and partial payments
@@ -655,6 +667,41 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-11 — Session 11: the refund flow (ADR-0020)
+
+**Done**
+- **`models/refund.py`** — `Refund` (sale_id, total_paisa, method
+  cash|credit_ledger|card, reason non-blank CHECK, status, initiated_by /
+  approved_by, resolved_at) and `RefundItem` (sale_item_id, quantity_milli > 0,
+  line_total_paisa, `restock` default true). Registered in `models/__init__`.
+- **Migration `58f3a01f76d8`** — the first since the Phase 1 freeze. Autogenerated,
+  reviewed, up→down→up verified through the real `flask db` CLI. `test_migration`'s
+  expected-table set updated.
+- **`services/refund_service.py`** (no Flask):
+  - `refundable_quantity_milli` — sold minus approved *and* pending (a pending
+    refund reserves its quantity).
+  - `initiate_refund` — validates every line (belongs to the sale, > 0, ≤
+    refundable; a `manual_amount` line is whole-or-nothing and refunds its exact
+    `line_total_paisa` per ADR-0007; others round half-up at the line), writes a
+    `pending_approval` `Refund` + items, **moves nothing**.
+  - `approve_refund` — one transaction: `apply_stock_movement('refund',
+    commit=False)` for each line with `restock` (skips damaged), a negative
+    `credit_ledger_entry` + balance update for a credit sale, `refund.status =
+    approved`, and `sale.status` → `partially_refunded` / `refunded`. A failure
+    rolls it all back and the refund stays pending (tested with a monkeypatched
+    failure).
+  - `reject_refund`, `list_pending`, `refunds_for_sale`.
+- **`routes/refunds.py`** + `templates/refunds/` — `/refunds/find` (by invoice),
+  `/refunds/sale/<id>` (the initiate form, per-line qty + restock + reason),
+  `/refunds` POST (`sale.refund_initiate`), `/refunds/pending`, approve
+  (`sale.refund` + `require_step_up`), reject. Blueprint registered; "Refunds"
+  in the header.
+- `tests/integration/test_refunds.py` — 20 tests. `ruff` clean; **219 tests pass,
+  95% coverage** (refund_service 98%).
+
+**Open (last Phase 3 piece)**
+- ESC/POS receipt + PDF fallback (`services/receipts/`).
 
 ### 2026-09-11 — Session 10 (cont.): visual-pass scheduling decided
 

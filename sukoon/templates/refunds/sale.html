@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Refund {{ sale.invoice_number }} — Sukoon{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('refunds.find') }}">&larr; Refunds</a></p>
+<h1>Refund — {{ sale.invoice_number }}</h1>
+<p>{{ sale.total_paisa | rupees }} &middot; {{ sale.payment_method }} &middot;
+   status: <strong>{{ sale.status }}</strong></p>
+
+{% set open_lines = lines | selectattr('refundable_milli', 'gt', 0) | list %}
+{% if not open_lines %}
+  <p>Every line on this sale has already been refunded.</p>
+{% else %}
+<form method="post" action="{{ url_for('refunds.initiate') }}">
+  <input type="hidden" name="sale_id" value="{{ sale.id }}">
+  <table border="1" cellpadding="6" cellspacing="0">
+    <thead><tr>
+      <th>Item</th><th>Sold</th><th>Refundable</th><th>Refund quantity</th><th>Put back in stock?</th>
+    </tr></thead>
+    <tbody>
+    {% for row in lines %}
+      {% set it = row.item %}
+      <tr>
+        <td>{{ it.product_name_snapshot }}
+            {% if row.whole_line_only %}<br><small>by amount — whole line only</small>{% endif %}</td>
+        <td>{{ it.quantity_milli | qty }}</td>
+        <td>{{ row.refundable_milli | qty }}</td>
+        <td>
+          {% if row.refundable_milli <= 0 %}
+            &mdash;
+          {% elif row.whole_line_only %}
+            <label><input type="checkbox" name="qty_{{ it.id }}"
+                   value="{{ (it.quantity_milli / 1000) }}"> refund this line</label>
+          {% else %}
+            <input type="number" name="qty_{{ it.id }}" min="0" step="0.001"
+                   max="{{ (row.refundable_milli / 1000) }}" placeholder="0">
+          {% endif %}
+        </td>
+        <td>
+          {% if row.refundable_milli > 0 %}
+            <label><input type="checkbox" name="restock_{{ it.id }}" checked> restock</label>
+            <br><small>untick if it came back damaged</small>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p><label>Reason (required)<br>
+    <input type="text" name="reason" required size="50"
+           placeholder="e.g. wrong item, customer changed their mind"></label></p>
+  <button type="submit">Record refund (needs Admin approval)</button>
+</form>
+{% endif %}
+
+<h2>Refunds on this sale</h2>
+{% if not existing %}
+  <p>None yet.</p>
+{% else %}
+<ul>
+{% for r in existing %}
+  <li>#{{ r.id }} — {{ r.total_paisa | rupees }} — <strong>{{ r.status }}</strong>
+      ({{ r.method }}){% if r.reason %} — {{ r.reason }}{% endif %}</li>
+{% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

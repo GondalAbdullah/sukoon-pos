@@ -71,6 +71,7 @@ def create_app(
     from sukoon.routes.admin import bp as admin_bp
     from sukoon.routes.auth import bp as auth_bp
     from sukoon.routes.main import bp as main_bp
+    from sukoon.routes.refunds import bp as refunds_bp
     from sukoon.routes.stock import bp as stock_bp
     from sukoon.routes.till import bp as till_bp
 
@@ -79,6 +80,7 @@ def create_app(
     app.register_blueprint(admin_bp)
     app.register_blueprint(stock_bp)
     app.register_blueprint(till_bp)
+    app.register_blueprint(refunds_bp)
 
     _register_template_helpers(app)
     _register_cli(app)
