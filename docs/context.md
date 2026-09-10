@@ -13,7 +13,7 @@ work session, not just every phase.
 | **Phase** | Phase 3 — POS & Billing — **STARTED**. STOP AND ASK gate CLOSED (§4g). |
 | **Status** | Phase 3 gate closed (§4g / [ADR-0020](adr/0020-phase-3-refund-and-discount-policy.md)). Sale transaction core (session 9): `money.py`, `invoicing.py` (pure), `pricing.py` (pure), `sales_service.py` — `claim_invoice_number` (atomic, race-safe) + `record_sale` (all-or-nothing) + `summarize_cart`. **Till built (session 10):** `routes/till.py` + `templates/till/` — scan/search → cart, sealed-pack stepper, loose-goods row (added with no quantity, "needs weight", blocks checkout until a weight or rupee amount is entered — ADR-0005), Cash/Card/Khata payment wired to `record_sale`, Sale Complete page (8s meta-refresh stand-in for the O-9 ring). Cart lives in the signed **session**. `ruff` clean, **199 tests green, 95% coverage**. Functional HTML — the §4b visual pass is later. No migration (all tables from ADR-0016). |
 | **Last session** | 2026-09-11 (session 10) |
-| **Next action** | Continue **Phase 3 build**. Remaining: (1) **provisional-create at the till** by a Cashier + scan-as-you-go (ADR-0011 §2, `product.create_provisional` — already seeded); (2) the **`refund` / `refund_item` migration + refund service** per ADR-0020 (first migration since the Phase 1 freeze); (3) **ESC/POS receipt + PDF fallback** (`services/receipts/`, `python-escpos`). **Notes:** credit-limit enforcement (ADR-0014) is Phase 4, not in `record_sale`. The session cart does **not** survive session loss mid-sale (§5 Auth item) — a DB-backed draft is the fix if it becomes real; deferred. `invoicing.py` purity settled by [ADR-0021](adr/0021-invoicing-module-purity.md). |
+| **Next action** | Finish **Phase 3** (functional HTML): (1) **provisional-create at the till** by a Cashier + scan-as-you-go (ADR-0011 §2, `product.create_provisional` — already seeded); (2) the **`refund` / `refund_item` migration + refund service** per ADR-0020 (first migration since the Phase 1 freeze); (3) **ESC/POS receipt + PDF fallback** (`services/receipts/`, `python-escpos`); then the Phase 3 STOP AND ASK is already closed (§4g) so present the Phase 3 functional DoD. **Then [ADR-0022](adr/0022-dedicated-visual-pass.md): "Phase 3.5" — one dedicated visual pass** converting every template (Login, Stock, Till, Sale Complete, refund) to the Design System, compiling `static/css/tailwind.css`, before Phase 4. **Notes:** credit-limit enforcement (ADR-0014) is Phase 4. The session cart does not survive session loss (§5 Auth item, deferred). |
 
 ## 2. Decisions made so far
 
@@ -40,6 +40,7 @@ work session, not just every phase.
 | [0019](adr/0019-phase-2-authorization.md) | Phase 2 authz — `catalog.manage` + `stock.adjust`, Admin-only; sell-price change and price-override barcode stay step-up. Clarifies ADR-0008 §4's loose "Phase 3" attribution | **Accepted** |
 | [0020](adr/0020-phase-3-refund-and-discount-policy.md) | Phase 3 gate — no discounts (confirmed); refund = Cashier initiates / Admin approves + step-up; original invoice required, partial refunds, auto-restock (+ damaged flag), ledger reversal for credit sales; new `refund`/`refund_item` tables; `catalog.manage`/`stock.adjust` stay coarse. Refines ADR-0008 §4, resolves O-7 | **Accepted** |
 | [0021](adr/0021-invoicing-module-purity.md) | `invoicing.py` stays pure (rule 3 wins over ADR-0003's contradictory module-list gloss); the atomic invoice claim lives in `sales_service` | **Accepted** |
+| [0022](adr/0022-dedicated-visual-pass.md) | Phases 1–3 stay functional HTML; **one dedicated visual pass ("Phase 3.5") after Phase 3, before Phase 4** converts every template to the Design System; Phases 4–6 built styled from the start. Deviates from Dev Spec §5.1's style-as-you-go | **Accepted** |
 
 (Historical rule, now satisfied: no ADR could move to **Accepted** until the Phase 0
 grill session had run. It ran on 2026-09-10; ADR-0017 onward are ordinary Phase-N
@@ -250,6 +251,10 @@ recorded rather than smuggled (ADR-0018 §3):
   screen's treatment.
 
 ### Phase 3 UI deviations
+
+**The design DoD for Phases 1–3 is deferred to a single visual pass ("Phase 3.5")
+after Phase 3 and before Phase 4 — [ADR-0022](adr/0022-dedicated-visual-pass.md),
+Accepted.** Everything below is intentionally-unstyled and gets converted there.
 
 - **The Till (Figure 2) and Sale Complete (Figure 8) are functional HTML.** Plain
   forms that reload, not the single-screen cart with live totals, the three payment
@@ -648,6 +653,15 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-11 — Session 10 (cont.): visual-pass scheduling decided
+
+- **[ADR-0022](adr/0022-dedicated-visual-pass.md) Accepted.** Dev Spec §5.1 says
+  style-as-you-go with no separate phase; Phases 1–3 deviated (functional HTML).
+  Client decided: finish Phase 3 functional, then **one dedicated visual pass
+  ("Phase 3.5")** converts every template to the Design System and compiles
+  `tailwind.css`, before Phase 4. The design DoD for Phases 1–3 is met at the
+  close of that pass. Recorded in §4b.
 
 ### 2026-09-11 — Session 10: the Till (cart, payment, Sale Complete)
 
