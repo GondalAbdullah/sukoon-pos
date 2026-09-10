@@ -1,0 +1,13 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1180, "h": 600, "title": "Till — cart with loose goods" },
+    { "file": "LooseRow.dc.html", "x": 1320, "y": 0, "w": 760, "h": 1020, "title": "Loose row — state by state" },
+    { "file": "SaleComplete.dc.html", "x": 0, "y": 780, "w": 1180, "h": 660, "title": "Sale Complete — auto-advance (O-9)" }
+  ],
+  "annotations": [
+    { "id": "o11", "x": 0, "y": -168, "w": 620, "text": "O-11 — the loose-goods cart row. ADR-0005: for any product with allows_fractional = 1 the whole-number stepper is replaced by typed weight OR typed amount entry. Sealed packs are unchanged. The Till summary has no \"Discounts\" line (ADR-0008 / ADR-0020)." },
+    { "id": "money", "x": 1320, "y": -168, "w": 620, "text": "Money (ADR-0007): the line total is rounded half-up to the whole rupee once, at the line. On a \"by amount\" line the rupees typed are authoritative and are stored as-is — the weight is derived and shown with a ≈." },
+    { "id": "o9", "x": 0, "y": 690, "w": 620, "text": "O-9 — Sale Complete auto-advance. The Design System says the screen \"offers an auto-advance countdown\". This is it: a quiet progress ring on Start next sale, ~8s, any key or tap cancels and keeps the calm screen." }
+  ],
+  "launch": { "view": "canvas" }
+}

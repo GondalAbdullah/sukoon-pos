@@ -1,0 +1,157 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&display=swap">
+  <style>
+    body { margin: 0; font-family: "Inter", system-ui, -apple-system, sans-serif; background: #FAF9F6; color: #1C1C1E; -webkit-font-smoothing: antialiased; }
+    a { color: #0E6B57; } a:hover { color: #0A4F41; }
+    .row { display: flex; align-items: center; gap: 16px; padding: 16px 6px; border-bottom: 1px solid #F0EFE9; }
+    .row:last-child { border-bottom: none; }
+    .thumb { width: 44px; height: 44px; border-radius: 13px; flex-shrink: 0; }
+    .pname { font-size: 14.5px; font-weight: 650; color: #1C1C1E; }
+    .pmeta { font-size: 11.5px; color: #86868B; margin-top: 2px; }
+    .stepper { display: flex; align-items: center; gap: 12px; background: #F7F6F1; border-radius: 12px; padding: 6px 8px; }
+    .sbtn { width: 26px; height: 26px; border-radius: 8px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.06); font-size: 15px; font-weight: 700; color: #48484D; display: flex; align-items: center; justify-content: center; }
+    .qty { font-size: 14px; font-weight: 700; min-width: 14px; text-align: center; }
+    .lt { width: 104px; text-align: right; }
+    .lt-amt { font-size: 14.5px; font-weight: 750; color: #1C1C1E; }
+  </style>
+</helmet>
+
+<div style="width: 1180px; display: flex; align-items: stretch;">
+
+  <!-- LEFT: scan + cart -->
+  <div style="flex: 1; padding: 26px 28px; box-sizing: border-box;">
+
+    <div style="display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 18px; padding: 16px 20px; box-shadow: 0 1px 1px rgba(0,0,0,0.02), 0 8px 22px rgba(0,0,0,0.045); border: 1.5px solid #CFE7DD;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#0E6B57" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
+      <div style="flex: 1; font-size: 15px; color: #B9B9BE; font-weight: 500;">Scan an item, or type a name…</div>
+      <div style="font-size: 11px; color: #B9B9BE; font-weight: 650; background: #F7F6F1; padding: 5px 9px; border-radius: 8px;">F4</div>
+    </div>
+
+    <div style="display: flex; align-items: center; justify-content: space-between; margin: 26px 2px 10px;">
+      <div style="font-size: 13.5px; font-weight: 700; color: #1C1C1E;">Cart · 4 items</div>
+      <div style="font-size: 13px; color: #86868B; font-weight: 600;">Clear</div>
+    </div>
+
+    <div style="background: #fff; border-radius: 20px; padding: 6px 18px; box-shadow: 0 1px 1px rgba(0,0,0,0.02), 0 8px 22px rgba(0,0,0,0.04);">
+
+      <!-- sealed pack — the prototype stepper, unchanged -->
+      <div class="row">
+        <div class="thumb" style="background: #E7F3EF;"></div>
+        <div style="flex: 1;">
+          <div class="pname">Olpers Milk 1L Tetra Pak</div>
+          <div class="pmeta">Dairy · Rs 280 / unit</div>
+        </div>
+        <div class="stepper">
+          <div class="sbtn">–</div><div class="qty">4</div><div class="sbtn">+</div>
+        </div>
+        <div class="lt"><div class="lt-amt">Rs 1,120</div></div>
+      </div>
+
+      <!-- loose — entered by weight, collapsed -->
+      <div class="row">
+        <div class="thumb" style="background: #FBF3E4;"></div>
+        <div style="flex: 1;">
+          <div class="pname">Kabuli Chana — loose</div>
+          <div class="pmeta">Pulses · Rs 480 / kg</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; background: #F7F6F1; border-radius: 12px; padding: 7px 10px;">
+          <span style="font-size: 13px; font-weight: 700; color: #1C1C1E;">0.750 kg</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#86868B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        </div>
+        <div class="lt">
+          <div class="lt-amt">Rs 360</div>
+          <div style="font-size: 11px; color: #B9B9BE; margin-top: 2px;">by weight</div>
+        </div>
+      </div>
+
+      <!-- loose — needs weight -->
+      <div class="row" style="background: #FDF8EF; margin: 0 -18px; padding-left: 24px; padding-right: 24px;">
+        <div class="thumb" style="background: #FBF3E4;"></div>
+        <div style="flex: 1;">
+          <div class="pname">Basmati Rice — loose</div>
+          <div class="pmeta">Rice · Rs 320 / kg</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 7px; background: #FBF3E4; border-radius: 12px; padding: 7px 11px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B8873B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3"/><path d="m6.6 18.4 1.4-8h8l1.4 8Z"/><path d="M4 18.4h16"/></svg>
+          <span style="font-size: 12px; font-weight: 700; color: #B8873B;">Add weight</span>
+        </div>
+        <div class="lt"><div style="font-size: 14.5px; font-weight: 700; color: #B9B9BE;">—</div></div>
+      </div>
+
+      <!-- sealed pack -->
+      <div class="row">
+        <div class="thumb" style="background: #FBEEEA;"></div>
+        <div style="flex: 1;">
+          <div class="pname">National Himalayan Pink Salt 800g</div>
+          <div class="pmeta">Spices · Rs 120 / unit</div>
+        </div>
+        <div class="stepper">
+          <div class="sbtn">–</div><div class="qty">1</div><div class="sbtn">+</div>
+        </div>
+        <div class="lt"><div class="lt-amt">Rs 120</div></div>
+      </div>
+
+    </div>
+
+    <div style="font-size: 12px; color: #B9B9BE; font-weight: 500; margin: 14px 2px 0;">Loose goods are weighed on the shop scale, then the weight is typed in. Or the customer names an amount — "Rs 200 of rice" — and the weight follows.</div>
+
+  </div>
+
+  <!-- RIGHT: summary + payment -->
+  <div style="width: 400px; background: #fff; border-left: 1px solid #EFEEE9; padding: 28px 26px; box-sizing: border-box; display: flex; flex-direction: column;">
+
+    <div style="display: flex; align-items: center; gap: 12px; background: #F7F6F1; border-radius: 16px; padding: 14px 16px; margin-bottom: 22px;">
+      <div style="width: 38px; height: 38px; border-radius: 50%; background: #D6ECE4; color: #0A4F41; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center;">WI</div>
+      <div style="flex: 1;">
+        <div style="font-size: 13.5px; font-weight: 700;">Walk-in customer</div>
+        <div style="font-size: 11.5px; color: #86868B;">No account needed for cash sales</div>
+      </div>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B9B9BE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; font-size: 14px; color: #48484D; font-weight: 600; margin-bottom: 14px;"><span>Subtotal · 3 of 4 lines</span><span>Rs 1,600</span></div>
+    <div style="height: 1px; background: #EFEEE9; margin-bottom: 20px;"></div>
+
+    <div style="text-align: center; margin-bottom: 22px;">
+      <div style="font-size: 13px; color: #86868B; font-weight: 600; margin-bottom: 6px;">Total due</div>
+      <div style="font-size: 44px; font-weight: 800; letter-spacing: -0.02em; color: #1C1C1E;">Rs 1,600</div>
+      <div style="font-size: 11.5px; color: #B8873B; margin-top: 6px; font-weight: 600;">Waiting on 1 weight · tax included</div>
+    </div>
+
+    <div style="font-size: 12px; font-weight: 700; color: #86868B; margin-bottom: 10px; letter-spacing: 0.02em;">HOW ARE THEY PAYING?</div>
+    <div style="display: flex; gap: 10px; margin-bottom: 22px;">
+      <div style="flex: 1; background: #0E6B57; color: #fff; box-shadow: 0 8px 20px rgba(14,107,87,0.25); border-radius: 16px; padding: 15px 0; text-align: center;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+        <div style="font-size: 13px; font-weight: 700; margin-top: 6px;">Cash</div>
+      </div>
+      <div style="flex: 1; background: #F7F6F1; color: #48484D; border-radius: 16px; padding: 15px 0; text-align: center;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#48484D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+        <div style="font-size: 13px; font-weight: 700; margin-top: 6px;">Card</div>
+      </div>
+      <div style="flex: 1; background: #F7F6F1; color: #48484D; border-radius: 16px; padding: 15px 0; text-align: center;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#48484D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 13a3 3 0 1 0-6 0"/><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/><circle cx="12" cy="8" r="2"/></svg>
+        <div style="font-size: 13px; font-weight: 700; margin-top: 6px;">Khata</div>
+      </div>
+    </div>
+
+    <div style="flex: 1;"></div>
+
+    <div style="display: flex; align-items: center; justify-content: space-between; background: #F2F1EC; border-radius: 16px; padding: 19px 24px;">
+      <span style="font-size: 15px; font-weight: 700; color: #B9B9BE;">Complete sale</span>
+      <span style="font-size: 13px; font-weight: 600; color: #B9B9BE;">1 item needs a weight</span>
+    </div>
+
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

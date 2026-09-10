@@ -1,0 +1,128 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&display=swap">
+  <style>
+    body { margin: 0; font-family: "Inter", system-ui, -apple-system, sans-serif; background: #FAF9F6; color: #1C1C1E; -webkit-font-smoothing: antialiased; }
+    a { color: #0E6B57; } a:hover { color: #0A4F41; }
+    .caption { font-size: 12px; font-weight: 700; color: #86868B; letter-spacing: 0.02em; text-transform: uppercase; margin-bottom: 8px; }
+    .note { font-size: 12px; color: #86868B; margin-top: 8px; line-height: 1.45; }
+    .card { background: #fff; border-radius: 18px; box-shadow: 0 1px 1px rgba(0,0,0,0.02), 0 8px 22px rgba(0,0,0,0.04); padding: 8px 18px; }
+    .row { display: flex; align-items: center; gap: 16px; padding: 16px 6px; }
+    .thumb { width: 44px; height: 44px; border-radius: 13px; background: #FBF3E4; flex-shrink: 0; }
+    .pname { font-size: 14.5px; font-weight: 650; color: #1C1C1E; }
+    .pmeta { font-size: 11.5px; color: #86868B; margin-top: 2px; }
+    .lt { width: 104px; text-align: right; }
+    .lt-amt { font-size: 14.5px; font-weight: 750; color: #1C1C1E; }
+    .lt-sub { font-size: 11px; color: #B9B9BE; margin-top: 2px; }
+    .seg { display: flex; gap: 6px; background: #EFEEE9; border-radius: 11px; padding: 3px; }
+    .seg > div { padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 650; color: #86868B; }
+    .seg > .on { background: #0E6B57; color: #fff; }
+    .field { display: flex; align-items: baseline; gap: 6px; background: #fff; border: 1.5px solid #CFE7DD; border-radius: 11px; padding: 9px 12px; }
+    .field input, .field .val { font-size: 17px; font-weight: 750; color: #1C1C1E; border: none; outline: none; width: 62px; background: transparent; }
+    .prev { font-size: 13px; font-weight: 700; color: #0A4F41; background: #E7F3EF; border-radius: 9px; padding: 7px 11px; }
+  </style>
+</helmet>
+
+<div style="width: 760px; padding: 30px 32px; box-sizing: border-box;">
+
+  <div style="font-size: 19px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 4px;">The loose-goods cart row — every state</div>
+  <div style="font-size: 13px; color: #86868B; margin-bottom: 26px;">A product with <span style="font-family: ui-monospace, monospace; font-size: 12px;">allows_fractional = 1</span>. Sealed packs are untouched — they keep the prototype's plus/minus stepper.</div>
+
+  <!-- A -->
+  <div style="margin-bottom: 24px;">
+    <div class="caption">A · Collapsed — entered by weight</div>
+    <div class="card">
+      <div class="row">
+        <div class="thumb"></div>
+        <div style="flex: 1;"><div class="pname">Kabuli Chana — loose</div><div class="pmeta">Pulses · Rs 480 / kg</div></div>
+        <div style="display: flex; align-items: center; gap: 8px; background: #F7F6F1; border-radius: 12px; padding: 7px 10px;">
+          <span style="font-size: 13px; font-weight: 700; color: #1C1C1E;">0.750 kg</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#86868B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        </div>
+        <div class="lt"><div class="lt-amt">Rs 360</div><div class="lt-sub">by weight</div></div>
+      </div>
+    </div>
+    <div class="note">Resting state once a weight is in. Tap the grey pill to reopen the control. Line total = 0.750 × Rs 480 = Rs 360, rounded half-up to the whole rupee once, at the line (ADR-0007).</div>
+  </div>
+
+  <!-- B -->
+  <div style="margin-bottom: 24px;">
+    <div class="caption">B · Collapsed — entered by amount</div>
+    <div class="card">
+      <div class="row">
+        <div class="thumb"></div>
+        <div style="flex: 1;"><div class="pname">Basmati Rice — loose</div><div class="pmeta">Rice · Rs 320 / kg</div></div>
+        <div style="display: flex; align-items: center; gap: 8px; background: #F7F6F1; border-radius: 12px; padding: 7px 10px;">
+          <span style="font-size: 13px; font-weight: 700; color: #1C1C1E;">≈ 0.625 kg</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#86868B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        </div>
+        <div class="lt"><div class="lt-amt">Rs 200</div><div class="lt-sub">by amount</div></div>
+      </div>
+    </div>
+    <div class="note">The customer asked for "Rs 200 of rice". The typed Rs 200 is authoritative and is what is charged; the weight (≈, because the division is not exact) is derived and marked approximate. <span style="font-family: ui-monospace, monospace; font-size: 11px;">quantity_source = manual_amount</span> (ADR-0005 / ADR-0007).</div>
+  </div>
+
+  <!-- C -->
+  <div style="margin-bottom: 24px;">
+    <div class="caption">C · Expanded — Weight mode</div>
+    <div class="card">
+      <div class="row" style="flex-wrap: wrap; row-gap: 12px;">
+        <div class="thumb"></div>
+        <div style="flex: 1; min-width: 150px;"><div class="pname">Kabuli Chana — loose</div><div class="pmeta">Pulses · Rs 480 / kg</div></div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="seg"><div class="on">Weight (kg)</div><div>Amount (Rs)</div></div>
+          <div class="field"><span class="val">0.750</span><span style="font-size: 12px; font-weight: 600; color: #86868B;">kg</span></div>
+          <div class="prev">≈ Rs 360</div>
+        </div>
+        <div class="lt"><div class="lt-amt" style="color: #B9B9BE;">Rs 360</div></div>
+      </div>
+    </div>
+    <div class="note">Opens automatically the moment a loose item is added (cursor in the field), and reopens on tap. The segmented control is the same component as the Add Stock modal. The other direction shows live as a <span style="color: #0A4F41; font-weight: 700;">≈</span> preview. Enter or blur commits and collapses to state A.</div>
+  </div>
+
+  <!-- D -->
+  <div style="margin-bottom: 24px;">
+    <div class="caption">D · Expanded — Amount mode</div>
+    <div class="card">
+      <div class="row" style="flex-wrap: wrap; row-gap: 12px;">
+        <div class="thumb"></div>
+        <div style="flex: 1; min-width: 150px;"><div class="pname">Basmati Rice — loose</div><div class="pmeta">Rice · Rs 320 / kg</div></div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="seg"><div>Weight (kg)</div><div class="on">Amount (Rs)</div></div>
+          <div class="field"><span style="font-size: 12px; font-weight: 600; color: #86868B;">Rs</span><span class="val">200</span></div>
+          <div class="prev">≈ 0.625 kg</div>
+        </div>
+        <div class="lt"><div class="lt-amt" style="color: #B9B9BE;">Rs 200</div></div>
+      </div>
+    </div>
+    <div class="note">Amount must be a whole rupee (ADR-0007) — a fractional amount is refused at the field. Stock still deducts the derived weight, not the money.</div>
+  </div>
+
+  <!-- E -->
+  <div>
+    <div class="caption">E · Needs weight</div>
+    <div class="card" style="background: #FDF8EF;">
+      <div class="row">
+        <div class="thumb"></div>
+        <div style="flex: 1;"><div class="pname">Basmati Rice — loose</div><div class="pmeta">Rice · Rs 320 / kg</div></div>
+        <div style="display: flex; align-items: center; gap: 7px; background: #FBF3E4; border-radius: 12px; padding: 7px 11px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B8873B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3"/><path d="m6.6 18.4 1.4-8h8l1.4 8Z"/><path d="M4 18.4h16"/></svg>
+          <span style="font-size: 12px; font-weight: 700; color: #B8873B;">Add weight</span>
+        </div>
+        <div class="lt"><div style="font-size: 14.5px; font-weight: 700; color: #B9B9BE;">—</div></div>
+      </div>
+    </div>
+    <div class="note">If the cashier adds the item and walks to the scale without typing anything, the row still commits — they can keep scanning. Amber, not coral: it needs attention soon, not now. Checkout stays blocked until every loose line has a quantity.</div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

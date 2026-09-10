@@ -100,6 +100,23 @@ the cashier typed is what is charged; the weight is derived from it and rounded.
 such lines, and only such lines, `line_total` deliberately does not equal
 `quantity x unit_price`. Not a bug — see ADR-0007.
 
+**Loose-goods cart row** *(Settled)* — The Till cart row for a product with
+`allows_fractional = 1`. In place of the whole-number stepper it carries an
+inline-expanding control: a two-segment *Weight (kg) / Amount (Rs)* toggle, one
+input, and a live `≈` preview of whichever direction is not being typed. Collapses
+to a compact value pill once entered. Designed 2026-09-11 (resolves O-11); see
+context.md §4b, ADR-0004, ADR-0005.
+
+**Needs weight** *(Settled)* — The amber state a loose-goods cart row sits in when it
+has been added but no weight or amount has been entered yet (the cashier is still at
+the scale). The row commits so scanning can continue, but checkout is blocked until
+every loose line has a quantity. Amber, not coral — attention soon, not now.
+
+**Auto-advance countdown** *(Settled)* — On the Sale Complete screen, a quiet
+progress ring on "Start next sale" that advances to the next sale on its own after
+~8 seconds; any key or tap cancels it. Follows the Design System (Figure 8); the
+prototype's omission of it is not a decision (ADR-0006). Resolves O-9.
+
 **Step-up authentication** *(Settled)* — Re-entering your password at the moment you
 perform a destructive action, even though you are already logged in. Guards against
 an unattended terminal left signed in as Admin. Authorises exactly one action. See

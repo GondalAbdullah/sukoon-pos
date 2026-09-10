@@ -11,9 +11,9 @@ work session, not just every phase.
 | | |
 |---|---|
 | **Phase** | Phase 3 — POS & Billing — **STARTED**. STOP AND ASK gate CLOSED (§4g). |
-| **Status** | Phase 3 gate closed 2026-09-11 (§4g / [ADR-0020](adr/0020-phase-3-refund-and-discount-policy.md)): no discounts in v1 (confirmed); refund = Cashier initiates / Admin approves with step-up; refund requires the original invoice, allows partial refunds, auto-restocks (with a per-line damaged flag), and reverses the ledger for credit sales; `catalog.manage` / `stock.adjust` stay coarse Admin-only, no step-up. Refund needs a **new migration** (`refund` + `refund_item` tables). Build so far: `services/money.py` — the ADR-0007 rupee-boundary helpers (`round_paisa_to_rupee`, `is_whole_rupee`, `line_total_for_quantity`), pure, exhaustively boundary-tested. `sale.refund_initiate` permission code added (Cashier + Admin). `ruff` clean, 140 tests green, 95% coverage. |
+| **Status** | Phase 3 gate closed 2026-09-11 (§4g / [ADR-0020](adr/0020-phase-3-refund-and-discount-policy.md)): no discounts in v1 (confirmed); refund = Cashier initiates / Admin approves with step-up; refund requires the original invoice, allows partial refunds, auto-restocks (with a per-line damaged flag), and reverses the ledger for credit sales; `catalog.manage` / `stock.adjust` stay coarse Admin-only, no step-up. Refund needs a **new migration** (`refund` + `refund_item` tables). Build so far: `services/money.py` — the ADR-0007 rupee-boundary helpers (`round_paisa_to_rupee`, `is_whole_rupee`, `line_total_for_quantity`), pure, exhaustively boundary-tested. `sale.refund_initiate` permission code added (Cashier + Admin). `ruff` clean, 140 tests green, 95% coverage. Till design gaps closed: **O-11** (fractional cart row) and **O-9** (Sale Complete auto-advance) designed and recorded in §4b — mockups in `docs/design/drafts/till-fractional-cart/`. |
 | **Last session** | 2026-09-11 (session 8) |
-| **Next action** | Continue **Phase 3 build**. Blocked on **O-11** (the fractional cart-row component is undesigned — ADR-0005 requires typed-weight / typed-amount entry for loose goods; needs a design before the Till UI is built) and worth deciding **O-9** (Sale Complete auto-advance countdown) at the same time. Design-independent pieces to build next: atomic race-safe invoice numbering against `invoice_counter` (yearly reset per ADR-0016), the sale + stock-deduction single transaction, then the `refund`/`refund_item` migration and refund service per ADR-0020. ESC/POS receipt + PDF fallback after that. |
+| **Next action** | Continue **Phase 3 build**. O-11 (fractional cart row) and O-9 (auto-advance) are now **designed** (§4b, canvas at `docs/design/drafts/till-fractional-cart/`, published 2026-09-11) — the Till UI is unblocked. Build order: atomic race-safe invoice numbering against `invoice_counter` (yearly reset per ADR-0016) → sale + stock-deduction in one transaction → the Till cart routes/templates (loose-row entry per the design) → Cash/Card/Credit payment → the `refund`/`refund_item` migration + refund service per ADR-0020 → ESC/POS receipt + PDF fallback → Sale Complete with the ~8s auto-advance ring. |
 
 ## 2. Decisions made so far
 
@@ -117,11 +117,14 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   separate APScheduler jobs against the same customer. A customer overdue and due a
   statement in the same week should not receive two uncoordinated WhatsApp messages.
   Not yet resolved; noted while writing ADR-0015 rather than discovered at Phase 5.
-- **O-11 — The fractional cart row is undesigned.** ADR-0005 requires a cart row that
-  accepts a typed weight or a typed amount for loose goods. The Design System has no
-  such component and the prototype shows only the whole-number stepper. Needs a
-  design before Phase 3 builds the Till. Per ADR-0006, absence from the prototype
-  means undesigned, not disallowed.
+- ~~**O-11 — The fractional cart row is undesigned.**~~ **RESOLVED 2026-09-11.**
+  Designed: a loose product (`allows_fractional = 1`) row replaces the stepper with
+  an inline-expanding control — a two-segment **Weight (kg) / Amount (Rs)** toggle
+  (same component as the Add Stock modal), one input, the other direction shown as a
+  live `≈` preview. Added-but-not-yet-weighed rows commit in an amber **"needs
+  weight"** state; checkout is blocked until every loose line has a quantity.
+  Collapses to a compact `0.750 kg` / `Rs 200 · by amount` pill once filled. Mockups:
+  `docs/design/drafts/till-fractional-cart/`. Recorded in §4b.
 - **O-12 — Scale hardware integration is deferred.** Trigger: the shop acquires a
   scale and states the model, since both the label barcode format and the serial
   protocol are manufacturer-specific. Seams are in place (ADR-0005); nothing is built.
@@ -156,10 +159,11 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
 - **O-8 — Second terminal registration.** The Settings mock lists
   "Second Till (Terminal 2) — Checking…", implying terminals register and report
   health. No such feature exists in the specification. Real feature or mock dressing?
-- **O-9 — Sale Complete auto-advance.** The Design System (6, Figure 8) says the
-  screen "offers an auto-advance countdown"; the prototype does not implement one.
-  The Design System also names the prototype as the reference for interaction (10.5).
-  Which is truth, and if the countdown is real, how many seconds?
+- ~~**O-9 — Sale Complete auto-advance.**~~ **RESOLVED 2026-09-11.** The countdown is
+  real (follows the Design System text; the prototype's silence is not a decision per
+  ADR-0006). A quiet progress ring on "Start next sale" advances after **~8 seconds**;
+  any key or tap cancels it and keeps the calm screen. Recorded in §4b. Mockup in
+  `docs/design/drafts/till-fractional-cart/SaleComplete.dc.html`.
 - **O-10 — Insights date range.** The Insights screenshot shows
   Today / This week / This month controls; the prototype omits them. In scope for
   Phase 6 or not?
@@ -206,11 +210,22 @@ be recorded here.
   users over PIN quick-switch. See ADR-0008.
 - **Till cart row — a fractional quantity control is added.** The prototype's
   whole-number stepper cannot express 1.5 kg. Sealed-pack products keep the stepper
-  exactly as designed; loose products gain typed weight and typed amount entry. Cause:
-  the shop sells loose goods. See ADR-0004 and ADR-0005. Component still undesigned,
-  tracked as O-11.
+  exactly as designed; loose products (`allows_fractional = 1`) gain typed weight
+  and typed amount entry. Cause: the shop sells loose goods. See ADR-0004 and
+  ADR-0005. **Designed 2026-09-11 (O-11 resolved):** the stepper's slot holds an
+  inline-expanding control — a two-segment *Weight (kg) / Amount (Rs)* toggle (the
+  Add Stock modal's segmented-control component), one input, a live `≈` preview of
+  the other direction; collapses to a compact value pill once entered. A loose line
+  with no quantity yet sits in an amber *"needs weight"* state and blocks checkout.
+  Mockups: `docs/design/drafts/till-fractional-cart/` (published as an Artifact).
 - **Till summary — the "Discounts" line is removed.** No discount mechanism exists in
-  v1. See ADR-0008.
+  v1. See ADR-0008 and ADR-0020.
+- **Sale Complete — an auto-advance countdown is added (O-9 resolved 2026-09-11).**
+  The Design System (6, Figure 8) says the screen "offers an auto-advance countdown";
+  the prototype omits it. Per ADR-0006 the prototype's omission is not a decision, so
+  the Design System text governs: a quiet progress ring on "Start next sale" advances
+  after ~8 seconds; any key or tap cancels it. Mockup:
+  `docs/design/drafts/till-fractional-cart/SaleComplete.dc.html`.
 
 ### Module-list deviations from ADR-0003 (frozen at the Phase 0 gate)
 
@@ -600,7 +615,7 @@ This list grows as new cases are found.
 
 *Reverse-chronological. Newest first.*
 
-### 2026-09-11 — Session 8: Phase 3 STOP AND ASK gate closed; money helpers
+### 2026-09-11 — Session 8: Phase 3 gate closed; money helpers; Till design (O-11, O-9)
 
 **The gate (§4g)**
 - Put the four Phase 3 gate questions to the client (discounts, refund authority,
@@ -631,16 +646,22 @@ This list grows as new cases are found.
   no seed code change; `flask seed` picks it up.
 - `ruff` clean; **140 tests pass; 95% coverage** (money.py 100%).
 
+**Done (design)**
+- Resolved **O-11** and **O-9** with the client (four interaction questions), then
+  mocked them up matching the prototype's exact CSS values. Working files in
+  `docs/design/drafts/till-fractional-cart/` (`Main` / `LooseRow` / `SaleComplete`
+  `.dc.html` + `canvas.json`), published as an Artifact.
+- **O-11:** inline-expanding loose-goods row — two-segment Weight/Amount toggle, one
+  input, live `≈` preview, amber "needs weight" state that blocks checkout. §4b.
+- **O-9:** ~8s cancellable auto-advance ring on "Start next sale". §4b.
+
 **Open / next**
-- Phase 3 build continues. **Blocked on O-11** (fractional cart-row component
-  undesigned) before the Till UI; worth settling **O-9** (Sale Complete
-  auto-advance) at the same time.
-- Design-independent next steps: atomic race-safe invoice numbering
+- Phase 3 build. Till UI now unblocked. Build order in §1 Next action.
+- Design-independent first steps: atomic race-safe invoice numbering
   (`invoice_counter`, yearly reset per ADR-0016), sale + stock-deduction in one
-  transaction, then the `refund`/`refund_item` migration + refund service (ADR-0020),
-  then ESC/POS receipt + PDF fallback.
-- Non-blocking carryovers: O-8, O-9, O-10, O-11, O-12, O-18, O-20. LICENSE
-  owner-name placeholder still open.
+  transaction, then the `refund`/`refund_item` migration + refund service (ADR-0020).
+- Non-blocking carryovers: O-8, O-10, O-12, O-18, O-20. LICENSE owner-name
+  placeholder still open.
 
 ### 2026-09-10 — Session 7: Phase 2 built (Inventory & Product Management)
 

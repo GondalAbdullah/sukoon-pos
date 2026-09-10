@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&display=swap">
+  <style>
+    body { margin: 0; font-family: "Inter", system-ui, -apple-system, sans-serif; color: #1C1C1E; -webkit-font-smoothing: antialiased; }
+    a { color: #0E6B57; } a:hover { color: #0A4F41; }
+  </style>
+</helmet>
+
+<div style="width: 1180px; height: 640px; box-sizing: border-box; background: radial-gradient(circle at 50% 34%, #E7F3EF 0%, #FAF9F6 58%); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
+
+  <div style="width: 66px; height: 66px; border-radius: 50%; background: #0E6B57; box-shadow: 0 12px 30px rgba(14,107,87,0.28); display: flex; align-items: center; justify-content: center; margin-bottom: 26px;">
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+  </div>
+
+  <div style="font-size: 24px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 10px;">Sale complete</div>
+  <div style="font-size: 13.5px; color: #86868B; font-weight: 500; margin-bottom: 26px;">Invoice INV-2026-0417 · Rs 1,960 · Cash</div>
+
+  <div style="font-size: 13px; color: #86868B; font-weight: 600; margin-bottom: 4px;">Change to return</div>
+  <div style="font-size: 52px; font-weight: 800; letter-spacing: -0.02em; color: #3E6FBF; margin-bottom: 40px;">Rs 40</div>
+
+  <!-- primary action with the auto-advance ring -->
+  <div style="position: relative; display: inline-flex;">
+    <svg width="248" height="60" viewBox="0 0 248 60" style="position: absolute; inset: 0; pointer-events: none;">
+      <rect x="1.5" y="1.5" width="245" height="57" rx="16" fill="none" stroke="#0A4F41" stroke-width="3" stroke-opacity="0.35" stroke-linecap="round" stroke-dasharray="604" stroke-dashoffset="215"/>
+    </svg>
+    <div style="width: 248px; box-sizing: border-box; background: #0E6B57; color: #fff; border-radius: 16px; padding: 18px 0; font-size: 14.5px; font-weight: 700; box-shadow: 0 10px 26px rgba(14,107,87,0.26);">Start next sale</div>
+  </div>
+  <div style="font-size: 12px; color: #86868B; font-weight: 500; margin-top: 12px;">Starts on its own in <span style="color: #48484D; font-weight: 700;">8s</span> · press any key or tap to stay</div>
+
+  <div style="display: flex; gap: 12px; margin-top: 34px;">
+    <div style="display: flex; align-items: center; gap: 8px; border: 1.5px solid #E8E7E3; border-radius: 13px; padding: 11px 18px; font-size: 13px; font-weight: 650; color: #48484D;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#48484D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>
+      Print receipt
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px; border: 1.5px solid #E8E7E3; border-radius: 13px; padding: 11px 18px; font-size: 13px; font-weight: 650; color: #48484D;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#48484D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.38 8.38 0 0 1-4-1L3 20l1-5.5a8.38 8.38 0 0 1-1-4A8.5 8.5 0 0 1 11.5 2 8.5 8.5 0 0 1 21 11.5Z"/></svg>
+      Send on WhatsApp
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>
