@@ -17,3 +17,6 @@ alembic==1.19.2
 python-barcode==0.15.1
 Pillow==10.4.0
 reportlab==4.2.2
+
+# Phase 3 — POS & Billing (ESC/POS receipt printing; Dev Spec §11 Phase 3 step 5)
+python-escpos==3.1

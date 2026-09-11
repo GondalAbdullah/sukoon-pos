@@ -11,9 +11,9 @@ work session, not just every phase.
 | | |
 |---|---|
 | **Phase** | Phase 3 — POS & Billing — **STARTED**. STOP AND ASK gate CLOSED (§4g). |
-| **Status** | Phase 3 gate closed (§4g / [ADR-0020](adr/0020-phase-3-refund-and-discount-policy.md)). Sale transaction core (session 9). Till + provisional-create (session 10). **Refund flow built (session 11):** `models/refund.py` (`refund` + `refund_item`), migration `58f3a01f76d8` (first since the Phase 1 freeze; up→down→up verified), `services/refund_service.py` (`initiate_refund` → `pending_approval`, moves nothing; `approve_refund` → restock per-line + credit-ledger reversal + `sale.status` transition, one transaction; `reject_refund`), `routes/refunds.py` + `templates/refunds/` (Cashier initiates `sale.refund_initiate`; Admin approves `sale.refund` + step-up). `ruff` clean, **219 tests green, 95% coverage**. Functional HTML — the §4b visual pass ([ADR-0022](adr/0022-dedicated-visual-pass.md)) is later. |
-| **Last session** | 2026-09-11 (session 11) |
-| **Next action** | Finish **Phase 3** (functional HTML): (1) ~~provisional-create at the till~~ done; (2) ~~refund migration + service + routes~~ **done (session 11)**; (3) **ESC/POS receipt + PDF fallback** (`services/receipts/`, `python-escpos`) — the last Phase 3 piece — then present the Phase 3 functional DoD (gate §4g already closed). **Then [ADR-0022](adr/0022-dedicated-visual-pass.md): "Phase 3.5" — one dedicated visual pass** converting every template to the Design System, compiling `static/css/tailwind.css`, before Phase 4. **Notes:** credit-limit enforcement (ADR-0014) is Phase 4. The session cart does not survive session loss (§5 Auth item, deferred). |
+| **Status** | **Phase 3 — POS & Billing — functionally COMPLETE (functional HTML).** Gate closed (§4g / [ADR-0020](adr/0020-phase-3-refund-and-discount-policy.md)). Built: sale transaction core (money/invoicing/pricing/sales_service, atomic race-safe invoice numbering, all-or-nothing `record_sale`), the Till (cart in session, sealed stepper + loose "needs weight" row, Cash/Card/Khata, provisional-create), the refund flow (`refund`/`refund_item` + migration `58f3a01f76d8`, Cashier initiates / Admin approves + step-up, restock + ledger reversal), and ESC/POS receipts + 80 mm PDF fallback (`services/receipts/`, `python-escpos`; a dead printer degrades to PDF, never blocks the sale). `ruff` clean, **235 tests green, 95% coverage**. **Phase 3 functional DoD presented in §4h — awaiting client sign-off.** |
+| **Last session** | 2026-09-11 (session 12) |
+| **Next action** | **Get the client's sign-off on the Phase 3 functional DoD (§4h).** Then [ADR-0022](adr/0022-dedicated-visual-pass.md): **"Phase 3.5" — one dedicated visual pass** converting every template (Login, Stock, Till, Sale Complete, Refunds) to the Design System, compiling `static/css/tailwind.css`, before Phase 4. **Notes:** credit-limit enforcement (ADR-0014) is Phase 4. The session cart does not survive session loss (§5 Auth item, deferred). |
 
 ## 2. Decisions made so far
 
@@ -435,6 +435,34 @@ model are in [ADR-0020](adr/0020-phase-3-refund-and-discount-policy.md), Accepte
 **This gate is now closed.** Phase 3 build may proceed. (The Till *UI* still waits on
 O-11, a design question, not a gate.)
 
+## 4h. Phase 3 Definition of Done — AWAITING CLIENT SIGN-OFF (presented 2026-09-11)
+
+Per Development Specification Phase 3. The STOP AND ASK gate (§4g) is already
+closed; this is the "present the DoD before the next phase" step. **Functional
+HTML only** — the Design System visual layer for these screens is
+[ADR-0022](adr/0022-dedicated-visual-pass.md)'s Phase 3.5, which starts once this
+is signed off.
+
+| Checklist item | Status |
+|---|---|
+| A full sale journey (search/scan → cart → payment → invoice → receipt → stock update → saved transaction) | ✅ `test_till.py` drives scan → cart → checkout → Sale Complete; `test_sales.py::test_a_full_cash_sale_persists_one_consistent_transaction` asserts the invoice, subtotal/total, `sale_item` snapshots, stock deduction and movement rows in one go; `test_receipts.py` covers the receipt leg |
+| Receipt output verified against a real or simulated ESC/POS printer | ✅ `test_receipts.py` — a `file` printer receives the exact ESC/POS bytes (`::test_a_working_printer_prints`), the byte stream carries the invoice + a paper-cut command, the 80 mm PDF renders. Real thermal hardware is the Phase 8 manual test |
+| Refund flow independently tested end-to-end | ✅ `test_refunds.py` — 20 tests: initiate (Cashier) → pending, approve (Admin + step-up) → restock + ledger reversal + `sale.status` transition, reject, damaged-no-restock, over-refund block, mid-approval failure rolls back |
+
+**Also verified (Required Tests, Development Spec Phase 3):**
+- Concurrent-checkout race on invoice numbering — `test_invoice_concurrency.py`, 50 threads, no dupes/gaps.
+- Cart edge cases — empty-cart checkout blocked (`test_till`, `test_sales`); discount-exceeding-total is **n/a**, no discount mechanism exists (ADR-0020).
+- Transaction atomicity — `test_sales.py::test_a_failure_mid_sale_leaves_no_partial_state` (also asserts the invoice number is released).
+- Printer-offline fallback — `test_receipts.py` (unreachable printer → sale completes, PDF offered).
+- Refund reverses stock and ledger — `test_refunds.py`.
+
+**Deferred out of Phase 3, with rationale:**
+- **The Design System visual layer** for every Phase 1–3 screen → ADR-0022 Phase 3.5, next.
+- **Session-loss-mid-sale cart survival** → a `draft_sale` table if it becomes real (§4b).
+- **Credit-limit enforcement on a credit sale** → Phase 4 with the rest of Khata (ADR-0014).
+- **The Khata customer picker** on the Till (raw ID for now) → Phase 4.
+- **`quantity_source` values `usb_scale` / `scale_label`** → deferred behind the ADR-0005 seam until a scale exists (O-12).
+
 ## 5. Edge case and test matrix
 
 Every case below must have a passing automated test before its owning phase can
@@ -483,8 +511,10 @@ This list grows as new cases are found.
       — `tests/pure/test_money.py::test_round_paisa_to_rupee_boundaries`
 - [x] The same function is symmetric for negative values (refunds mirror sales)
       — `test_money::test_round_is_symmetric_about_zero`, `::test_line_total_is_symmetric_for_a_refund`
-- [~] A receipt's printed line totals sum exactly to its printed subtotal
-      *(`pricing.cart_subtotal_paisa` sums already-rounded lines — `test_pricing::test_cart_subtotal_sums_already_rounded_lines`; the printed receipt itself is a later build step)*
+- [x] A receipt's printed line totals sum exactly to its printed subtotal
+      — `receipt_body` prints each `sale_item.line_total_paisa` and the `sale.subtotal_paisa`,
+      both already whole-rupee, and the subtotal is the sum of the lines by construction
+      (`test_pricing::test_cart_subtotal_sums_already_rounded_lines`, `test_receipts`)
 - [x] Every persisted money column holds a multiple of 100 paisa
       — `test_sales::test_persisted_money_columns_are_whole_rupees`, `test_pricing::test_every_line_total_is_a_whole_rupee`
 - [x] A typed amount that is not a whole rupee is rejected at input
@@ -611,7 +641,10 @@ This list grows as new cases are found.
       — `tests/integration/test_invoice_concurrency.py::test_concurrent_claims_have_no_duplicates_and_no_gaps` (50 threads, on-disk WAL)
 - [x] A sale and its inventory deduction commit atomically; a crash mid-sale leaves no partial state
       — `test_sales::test_a_failure_mid_sale_leaves_no_partial_state` (also asserts the briefly-claimed invoice number is released)
-- [ ] A printer being offline degrades to PDF and never blocks completing the sale *(receipts — after the till)*
+- [x] A printer being offline degrades to PDF and never blocks completing the sale
+      — `test_receipts::test_an_unreachable_network_printer_falls_back_to_pdf`,
+      `::test_checkout_completes_and_offers_a_pdf_when_no_printer`,
+      `::test_issue_receipt_never_raises` (`issue_receipt` runs *after* the sale commits and cannot raise)
 - [x] Refunds correctly reverse both the ledger (if credit) and the inventory count
       — `test_refunds::test_a_credit_sale_refund_reverses_the_ledger_and_moves_no_cash`,
       `::test_approving_restocks_and_completes_the_status_transition`,
@@ -667,6 +700,34 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-11 — Session 12: ESC/POS receipts + PDF fallback — Phase 3 functionally complete
+
+**Done**
+- `services/receipts/receipt.py` (no Flask) — `ReceiptData` + `build_receipt(sale)`
+  (shop name/contact from `setting`, defaults to "Al-Rehman General Store"),
+  `receipt_body` (one aligned-text layout both renderers share, so the printed and
+  PDF receipts say the same thing), `render_escpos` (ESC/POS bytes via a Dummy
+  device — pure), `render_pdf` (80 mm ReportLab roll).
+- `services/receipts/printer.py` — printer config from `setting`
+  (`receipt.printer.kind` none|network|usb|serial|file, host/port/timeout/…);
+  `send(bytes)` raises `PrinterUnavailable` for every failure mode (no printer,
+  bad address, refused, missing backend, timeout).
+- `services/receipts/service.py` — `issue_receipt(sale) -> ReceiptOutcome`: tries
+  the printer, falls back to "offer the PDF" on any problem, **never raises**
+  (it runs after the sale commits — ADR-0003 §6). `receipt_pdf(sale)` serves the
+  PDF on demand, nothing stored.
+- `routes/till.py` — `checkout` calls `issue_receipt` post-commit; `complete`
+  shows the outcome + a PDF link + "Print again"; `GET /till/receipt/<id>.pdf`,
+  `POST /till/receipt/<id>/reprint`.
+- Dep: `python-escpos==3.1` (requirements.txt, Phase 3 section).
+- `tests/integration/test_receipts.py` — 15 tests (content, ESC/POS bytes, PDF,
+  the printer decision incl. an unreachable network printer and a working `file`
+  printer, never-raises, and the till route). `ruff` clean; **235 tests pass,
+  95% coverage**.
+
+**Phase 3 is functionally complete.** DoD presented in §4h, awaiting client
+sign-off. Next: ADR-0022 Phase 3.5 visual pass.
 
 ### 2026-09-11 — Session 11: the refund flow (ADR-0020)
 

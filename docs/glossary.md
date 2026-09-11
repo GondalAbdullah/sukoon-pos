@@ -128,6 +128,12 @@ deduction, and (for a credit sale) its ledger entry commit in one transaction. A
 failure anywhere — not enough stock, a bad line, a crash — rolls back the whole
 thing: no partial sale, no half-deducted stock, no consumed invoice number.
 
+**PDF fallback** *(Settled)* — When the thermal printer is missing, unconfigured, or
+unreachable, the receipt is produced as an 80 mm PDF the cashier can download and
+print from the browser instead. The sale is already committed by the time the
+receipt is issued, so a dead printer never blocks a sale — it only changes the
+medium. See `services/receipts/`, Development Spec §11 Phase 3.
+
 **Auto-advance countdown** *(Settled)* — On the Sale Complete screen, a quiet
 progress ring on "Start next sale" that advances to the next sale on its own after
 ~8 seconds; any key or tap cancels it. Follows the Design System (Figure 8); the

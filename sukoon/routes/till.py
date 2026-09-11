@@ -14,6 +14,8 @@ unweighed.
 """
 from __future__ import annotations
 
+import io
+
 from flask import (
     Blueprint,
     abort,
@@ -21,6 +23,7 @@ from flask import (
     redirect,
     render_template,
     request,
+    send_file,
     session,
     url_for,
 )
@@ -32,6 +35,7 @@ from sukoon.routes.guards import permission_required
 from sukoon.services import inventory_service as inv
 from sukoon.services import pricing, sales_service
 from sukoon.services.auth_service import role_has_permission
+from sukoon.services.receipts import service as receipts
 from sukoon.services.sales_service import CartLine
 
 bp = Blueprint("till", __name__, url_prefix="/till")
@@ -316,7 +320,12 @@ def checkout():
         return redirect(url_for("till.index"))
 
     session.pop(_CART_KEY, None)
-    return redirect(url_for("till.complete", sale_id=sale.id))
+    # The sale is committed; the receipt is a secondary action that must not
+    # raise into this request (ADR-0003 §6). A dead printer -> PDF offered.
+    outcome = receipts.issue_receipt(sale)
+    return redirect(
+        url_for("till.complete", sale_id=sale.id, receipt=outcome.medium)
+    )
 
 
 @bp.route("/complete/<int:sale_id>")
@@ -325,4 +334,36 @@ def checkout():
 def complete(sale_id: int):
     sale = db.session.get(Sale, sale_id) or abort(404)
     items = list(sale.items)
-    return render_template("till/complete.html", sale=sale, items=items)
+    return render_template(
+        "till/complete.html",
+        sale=sale,
+        items=items,
+        receipt_medium=request.args.get("receipt"),
+    )
+
+
+@bp.route("/receipt/<int:sale_id>.pdf")
+@login_required
+@permission_required("sale.ring")
+def receipt_pdf(sale_id: int):
+    sale = db.session.get(Sale, sale_id) or abort(404)
+    return send_file(
+        io.BytesIO(receipts.receipt_pdf(sale)),
+        mimetype="application/pdf",
+        download_name=f"{sale.invoice_number}.pdf",
+    )
+
+
+@bp.route("/receipt/<int:sale_id>/reprint", methods=["POST"])
+@login_required
+@permission_required("sale.ring")
+def reprint_receipt(sale_id: int):
+    sale = db.session.get(Sale, sale_id) or abort(404)
+    outcome = receipts.issue_receipt(sale)
+    if outcome.printed:
+        flash("Receipt sent to the printer.", "info")
+    else:
+        flash("Printer unavailable — use the PDF.", "error")
+    return redirect(
+        url_for("till.complete", sale_id=sale.id, receipt=outcome.medium)
+    )
