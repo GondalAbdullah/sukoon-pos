@@ -1,123 +1,253 @@
 {% extends "base.html" %}
 {% block title %}Till — Sukoon{% endblock %}
+{% block heading %}New sale{% endblock %}
+{% block subheading %}{{ rows|length }} item{{ '' if rows|length == 1 else 's' }} in the cart{% endblock %}
 {% block content %}
 {#
-  Phase 3: functional HTML. The Design System's Till (Figure 2) and the
-  loose-goods cart row (context.md §4b) arrive with the Tailwind/htmx pass.
-  What is honoured now: the scan field is the first control, sealed packs use a
-  stepper, loose items are added with NO quantity and block checkout until a
-  weight or a rupee amount is entered, and there is no discount line (ADR-0020).
+  Phase 3.5 (ADR-0022): Till (Figure 2) restyled against the prototype's literal
+  values, with the loose-goods row from the §4b mockups (docs/design/drafts/
+  till-fractional-cart/). Alpine handles pure client-side niceties — the
+  payment-pill toggle, cash quick-amounts, a live change preview, and the
+  weight/amount segmented control. Every action still round-trips to the server
+  (classic POST + redirect); htmx fragment-swapping (Design System §10.3) is a
+  separate follow-up, noted in context.md §4i, not silently skipped.
 #}
-<h1>New sale</h1>
+<div class="flex flex-col lg:flex-row gap-6 items-start">
 
-<form method="post" action="{{ url_for('till.add') }}">
-  <label>Scan or type an item:
-    <input type="text" name="code" autofocus autocomplete="off" placeholder="barcode, name, or SKU">
-  </label>
-  <button type="submit">Add</button>
-</form>
+  <!-- LEFT: scan + cart -->
+  <div class="flex-1 w-full min-w-0">
 
-{% if new_code and can_create_provisional %}
-  {# Scan-as-you-go (ADR-0011 §2): an unknown code, created on the spot as a
-     provisional product — name and price only, finished by an Admin later. #}
-  <fieldset>
-    <legend>“{{ new_code }}” isn’t in the catalogue yet — add it?</legend>
-    <form method="post" action="{{ url_for('till.new_provisional') }}">
-      <input type="hidden" name="code" value="{{ new_code }}">
-      <label>Name <input type="text" name="name" required autofocus></label>
-      <label>Selling price, Rs <input type="number" name="sell_price" min="0" step="1" required></label>
-      <button type="submit">Add &amp; put in cart</button>
+    <form method="post" action="{{ url_for('till.add') }}"
+          class="flex items-center gap-3 card px-5 py-4 border-[1.5px] border-teal-tint2">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#0E6B57" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
+      <input type="text" name="code" autofocus autocomplete="off"
+             placeholder="Scan an item, or type a name…"
+             class="flex-1 bg-transparent text-[15px] placeholder:text-faint focus:outline-none">
+      <button type="submit" class="pill bg-sunk text-muted">Add</button>
     </form>
-    <p><small>It goes in the cart now and appears under “Needs completing” for an
-    Admin to fill in cost, category, and threshold.</small></p>
-  </fieldset>
-{% endif %}
 
-<h2>Cart — {{ rows|length }} item{{ '' if rows|length == 1 else 's' }}</h2>
+    {% if new_code and can_create_provisional %}
+    {# Scan-as-you-go (ADR-0011 §2): an unknown code, created on the spot. #}
+    <div class="card mt-4 p-5 border border-amber/30">
+      <div class="text-sm font-bold mb-3">&ldquo;{{ new_code }}&rdquo; isn&rsquo;t in the catalogue yet — add it?</div>
+      <form method="post" action="{{ url_for('till.new_provisional') }}" class="flex flex-wrap gap-3 items-end">
+        <input type="hidden" name="code" value="{{ new_code }}">
+        <label class="flex-1 min-w-[160px]"><span class="label">Name</span>
+          <input type="text" name="name" required autofocus class="field"></label>
+        <label class="w-32"><span class="label">Price, Rs</span>
+          <input type="number" name="sell_price" min="0" step="1" required class="field"></label>
+        <button type="submit" class="btn-primary">Add &amp; put in cart</button>
+      </form>
+      <p class="text-xs text-muted mt-3">Goes in the cart now; appears under &ldquo;Needs completing&rdquo; for an Admin to finish (cost, category, threshold).</p>
+    </div>
+    {% endif %}
 
-{% if not rows %}
-  <p>Nothing in the cart yet.</p>
-{% else %}
-<table border="1" cellpadding="6" cellspacing="0">
-  <thead>
-    <tr><th>Item</th><th>Unit price</th><th>Quantity</th><th>Line total</th><th></th></tr>
-  </thead>
-  <tbody>
-  {% for row in rows %}
-    {% set i = loop.index0 %}
-    {% set lt = line_totals[i] %}
-    <tr>
-      <td>{{ row.name }}</td>
-      <td>{{ row.unit_price_paisa | rupees }} / {{ row.unit_label }}</td>
-      <td>
+    <div class="mt-6 mb-2 flex items-center justify-between">
+      <div class="text-sm font-bold">Cart · {{ rows|length }} item{{ '' if rows|length == 1 else 's' }}</div>
+      {% if rows %}
+      <form method="post" action="{{ url_for('till.clear') }}">
+        <button type="submit" class="text-sm font-semibold text-muted hover:text-coral">Clear</button>
+      </form>
+      {% endif %}
+    </div>
+
+    {% if not rows %}
+      <div class="card p-8 text-center text-sm text-muted">
+        Nothing in the cart yet — scan or search to add an item.
+      </div>
+    {% else %}
+    <div class="panel divide-y divide-hairline">
+      {% for row in rows %}
+        {% set i = loop.index0 %}
+        {% set lt = line_totals[i] %}
         {% if row.quantity_source == 'stepper' %}
-          <form method="post" action="{{ url_for('till.update_line', index=i) }}" style="display:inline">
-            <button name="op" value="dec">&minus;</button>
+        <!-- sealed pack: the prototype stepper, unchanged -->
+        <div class="flex items-center gap-4 px-5 py-4">
+          <div class="w-11 h-11 rounded-[13px] bg-teal-tint shrink-0"></div>
+          <div class="flex-1 min-w-0">
+            <div class="text-[14.5px] font-semibold truncate">{{ row.name }}</div>
+            <div class="text-[11.5px] text-muted mt-0.5">{{ row.unit_price_paisa | rupees }} / {{ row.unit_label }}</div>
+          </div>
+          <div class="stepper">
+            <form method="post" action="{{ url_for('till.update_line', index=i) }}"><button name="op" value="dec" class="stepper-key">&minus;</button></form>
+            <span class="text-sm font-bold min-w-[14px] text-center">{{ (row.quantity_milli // 1000) }}</span>
+            <form method="post" action="{{ url_for('till.update_line', index=i) }}"><button name="op" value="inc" class="stepper-key">+</button></form>
+          </div>
+          <div class="w-24 text-right text-[14.5px] font-bold">{{ lt | rupees if lt is not none else '—' }}</div>
+          <form method="post" action="{{ url_for('till.update_line', index=i) }}">
+            <button name="op" value="remove" class="text-faint hover:text-coral px-1" title="Remove">&times;</button>
           </form>
-          {{ (row.quantity_milli // 1000) }}
-          <form method="post" action="{{ url_for('till.update_line', index=i) }}" style="display:inline">
-            <button name="op" value="inc">+</button>
-          </form>
-        {% elif row.quantity_milli %}
-          {{ row.quantity_milli | qty(row.unit_label) }}
-          {% if row.quantity_source == 'manual_amount' %}<br><small>for {{ row.typed_amount_paisa | rupees }} — by amount</small>{% endif %}
+        </div>
         {% else %}
-          <strong>needs weight</strong>
+        <!-- loose goods (ADR-0005, §4b): needs-weight / collapsed / expanded -->
+        <div class="px-5 py-4 {{ 'bg-amber-tint/40' if not row.quantity_milli }}"
+             x-data="{
+               open: {{ 'true' if not row.quantity_milli else 'false' }},
+               mode: '{{ 'manual_amount' if row.quantity_source == 'manual_amount' else 'manual_weight' }}',
+               weight: null, amount: null, unitPrice: {{ row.unit_price_paisa }},
+               get approxRs() { return this.weight ? Math.round(this.weight * this.unitPrice / 100) : null },
+               get approxKg() { return this.amount ? (this.amount * 1000 / this.unitPrice).toFixed(3) : null }
+             }">
+          <div class="flex items-center gap-4">
+            <div class="w-11 h-11 rounded-[13px] bg-amber-tint shrink-0"></div>
+            <div class="flex-1 min-w-0">
+              <div class="text-[14.5px] font-semibold truncate">{{ row.name }}</div>
+              <div class="text-[11.5px] text-muted mt-0.5">{{ row.unit_price_paisa | rupees }} / {{ row.unit_label }}</div>
+            </div>
+
+            <template x-if="!open">
+              <div class="flex items-center gap-3">
+                {% if row.quantity_milli %}
+                  <button type="button" @click="open = true"
+                          class="flex items-center gap-1.5 bg-sunk rounded-[12px] px-3 py-1.5 text-[13px] font-bold">
+                    {{ row.quantity_milli | qty(row.unit_label) }}
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#86868B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                  </button>
+                  <div class="w-24 text-right">
+                    <div class="text-[14.5px] font-bold">{{ lt | rupees if lt is not none else '—' }}</div>
+                    {% if row.quantity_source == 'manual_amount' %}<div class="text-[11px] text-faint">by amount</div>{% endif %}
+                  </div>
+                {% else %}
+                  <button type="button" @click="open = true" class="pill-amber">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B8873B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3"/><path d="m6.6 18.4 1.4-8h8l1.4 8Z"/><path d="M4 18.4h16"/></svg>
+                    needs weight
+                  </button>
+                  <div class="w-24 text-right text-[14.5px] font-bold text-faint">—</div>
+                {% endif %}
+                <form method="post" action="{{ url_for('till.update_line', index=i) }}">
+                  <button name="op" value="remove" class="text-faint hover:text-coral px-1" title="Remove">&times;</button>
+                </form>
+              </div>
+            </template>
+          </div>
+
+          <div x-show="open" x-cloak x-transition class="mt-3 flex flex-wrap items-center gap-3 pl-[60px]">
+            <div class="flex bg-hairline/60 rounded-[11px] p-[3px] gap-1">
+              <button type="button" @click="mode = 'manual_weight'"
+                      :class="mode === 'manual_weight' ? 'bg-teal text-white' : 'text-muted'"
+                      class="px-3 py-1.5 rounded-[8px] text-xs font-bold transition-colors">Weight (kg)</button>
+              <button type="button" @click="mode = 'manual_amount'"
+                      :class="mode === 'manual_amount' ? 'bg-teal text-white' : 'text-muted'"
+                      class="px-3 py-1.5 rounded-[8px] text-xs font-bold transition-colors">Amount (Rs)</button>
+            </div>
+
+            <form method="post" action="{{ url_for('till.update_line', index=i) }}"
+                  x-show="mode === 'manual_weight'" class="flex items-center gap-2">
+              <input type="hidden" name="op" value="set_weight">
+              <input type="number" name="weight" step="0.001" min="0" x-model.number="weight"
+                     placeholder="0.000" class="field w-28">
+              <span class="text-xs text-muted">kg</span>
+              <span class="pill-teal" x-show="approxRs" x-text="'≈ Rs ' + approxRs"></span>
+              <button type="submit" class="btn-ghost !py-2 !px-3 text-xs">Set</button>
+            </form>
+            <form method="post" action="{{ url_for('till.update_line', index=i) }}"
+                  x-show="mode === 'manual_amount'" class="flex items-center gap-2">
+              <input type="hidden" name="op" value="set_amount">
+              <span class="text-xs text-muted">Rs</span>
+              <input type="number" name="amount" step="1" min="0" x-model.number="amount"
+                     placeholder="0" class="field w-24">
+              <span class="pill-teal" x-show="approxKg" x-text="'≈ ' + approxKg + ' kg'"></span>
+              <button type="submit" class="btn-ghost !py-2 !px-3 text-xs">Set</button>
+            </form>
+            <button type="button" @click="open = false" class="text-xs text-faint hover:text-ink">cancel</button>
+          </div>
+        </div>
         {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
 
-        {% if row.allows_fractional %}
-          <br>
-          <form method="post" action="{{ url_for('till.update_line', index=i) }}" style="display:inline">
-            <input type="hidden" name="op" value="set_weight">
-            <input type="number" name="weight" step="0.001" min="0" size="6" placeholder="kg">
-            <button type="submit">Set weight</button>
-          </form>
-          <form method="post" action="{{ url_for('till.update_line', index=i) }}" style="display:inline">
-            <input type="hidden" name="op" value="set_amount">
-            Rs <input type="number" name="amount" step="1" min="0" size="6" placeholder="amount">
-            <button type="submit">Set amount</button>
-          </form>
-        {% endif %}
-      </td>
-      <td>{% if lt is not none %}{{ lt | rupees }}{% else %}&mdash;{% endif %}</td>
-      <td>
-        <form method="post" action="{{ url_for('till.update_line', index=i) }}">
-          <button name="op" value="remove">Remove</button>
-        </form>
-      </td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
+  <!-- RIGHT: summary + payment -->
+  <div class="w-full lg:w-[380px] shrink-0 panel p-6"
+       x-data="{
+         method: 'cash',
+         total: {{ summary.total_paisa }},
+         tendered: {{ (summary.total_paisa / 100) | round(0, 'ceil') | int if summary.total_paisa else 0 }},
+         get change() { return Math.max(0, Math.round(this.tendered * 100) - this.total) }
+       }">
+    <div class="flex items-center gap-3 bg-sunk rounded-[16px] px-4 py-3.5 mb-5">
+      <div class="avatar w-9 h-9 text-[12px]">WI</div>
+      <div class="flex-1">
+        <div class="text-[13.5px] font-bold">Walk-in customer</div>
+        <div class="text-[11.5px] text-muted">No account needed for cash sales</div>
+      </div>
+    </div>
 
-<form method="post" action="{{ url_for('till.clear') }}">
-  <button type="submit">Clear cart</button>
-</form>
-{% endif %}
+    <div class="flex justify-between text-sm font-semibold text-inkSoft mb-3">
+      <span>Subtotal</span><span>{{ summary.subtotal_paisa | rupees }}</span>
+    </div>
+    <div class="h-px bg-hairline mb-5"></div>
 
-<h2>Payment</h2>
-<p>Subtotal: {{ summary.subtotal_paisa | rupees }}<br>
-   <strong>Total due: {{ summary.total_paisa | rupees }}</strong><br>
-   <small>Tax included. No discounts (v1).</small></p>
+    <div class="text-center mb-6">
+      <div class="text-[13px] text-muted font-semibold mb-1.5">Total due</div>
+      <div class="text-[44px] font-extrabold tracking-[-0.02em] leading-none">{{ summary.total_paisa | rupees }}</div>
+      {% if summary.unweighed_count %}
+        <div class="text-[11.5px] text-amber font-semibold mt-2">Waiting on {{ summary.unweighed_count }} weight{{ '' if summary.unweighed_count == 1 else 's' }}</div>
+      {% else %}
+        <div class="text-[11.5px] text-faint mt-2">Tax included · no discounts</div>
+      {% endif %}
+    </div>
 
-{% if summary.unweighed_count %}
-  <p><strong>{{ summary.unweighed_count }} item{{ '' if summary.unweighed_count == 1 else 's' }}
-  still need{{ 's' if summary.unweighed_count == 1 else '' }} a weight.</strong>
-  Checkout is disabled until every line has a quantity.</p>
-{% endif %}
+    <form method="post" action="{{ url_for('till.checkout') }}">
+      <div class="label mb-2.5">How are they paying?</div>
+      <div class="flex gap-2.5 mb-5">
+        <label class="flex-1 text-center rounded-md py-3.5 cursor-pointer transition-colors"
+               :class="method === 'cash' ? 'bg-teal text-white shadow-teal' : 'bg-sunk text-inkSoft'">
+          <input type="radio" name="payment_method" value="cash" x-model="method" class="sr-only">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" :stroke="method === 'cash' ? '#fff' : '#48484D'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="mx-auto"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/></svg>
+          <div class="text-[13px] font-bold mt-1.5">Cash</div>
+        </label>
+        <label class="flex-1 text-center rounded-md py-3.5 cursor-pointer transition-colors"
+               :class="method === 'card' ? 'bg-teal text-white shadow-teal' : 'bg-sunk text-inkSoft'">
+          <input type="radio" name="payment_method" value="card" x-model="method" class="sr-only">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" :stroke="method === 'card' ? '#fff' : '#48484D'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="mx-auto"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+          <div class="text-[13px] font-bold mt-1.5">Card</div>
+        </label>
+        <label class="flex-1 text-center rounded-md py-3.5 cursor-pointer transition-colors"
+               :class="method === 'credit' ? 'bg-teal text-white shadow-teal' : 'bg-sunk text-inkSoft'">
+          <input type="radio" name="payment_method" value="credit" x-model="method" class="sr-only">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" :stroke="method === 'credit' ? '#fff' : '#48484D'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="mx-auto"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/></svg>
+          <div class="text-[13px] font-bold mt-1.5">Khata</div>
+        </label>
+      </div>
 
-<form method="post" action="{{ url_for('till.checkout') }}">
-  <p>
-    <label><input type="radio" name="payment_method" value="cash" checked> Cash</label>
-    <label><input type="radio" name="payment_method" value="card"> Card</label>
-    <label><input type="radio" name="payment_method" value="credit"> Khata (credit)</label>
-  </p>
-  <p><label>Cash received, Rs (cash only):
-    <input type="number" name="amount_tendered" step="1" min="0"></label></p>
-  <p><label>Customer ID (Khata only):
-    <input type="number" name="customer_id" step="1" min="1"></label></p>
-  <button type="submit" {{ 'disabled' if not summary.ready }}>
-    Complete sale — {{ summary.total_paisa | rupees }}
-  </button>
-</form>
+      <div x-show="method === 'cash'" x-cloak class="bg-sunk rounded-md px-4.5 py-4 mb-5">
+        <div class="text-xs text-muted font-semibold mb-2">Cash received</div>
+        <div class="flex items-baseline gap-1.5 mb-3.5">
+          <span class="text-lg font-bold text-faint">Rs</span>
+          <input type="number" name="amount_tendered" step="1" min="0" x-model.number="tendered"
+                 class="text-[26px] font-extrabold bg-transparent w-32 focus:outline-none">
+        </div>
+        <div class="flex gap-2">
+          <button type="button" @click="tendered = total / 100"
+                  class="flex-1 text-center bg-surface rounded-[10px] py-2 text-xs font-semibold">Exact</button>
+          <button type="button" @click="tendered = Math.ceil(total/100/100)*100"
+                  class="flex-1 text-center bg-teal text-white rounded-[10px] py-2 text-xs font-semibold"
+                  x-text="'Rs ' + (Math.ceil(total/100/100)*100).toLocaleString()"></button>
+          <button type="button" @click="tendered = Math.ceil(total/100/500)*500"
+                  class="flex-1 text-center bg-surface rounded-[10px] py-2 text-xs font-semibold"
+                  x-text="'Rs ' + (Math.ceil(total/100/500)*500).toLocaleString()"></button>
+        </div>
+      </div>
+
+      <div x-show="method === 'credit'" x-cloak class="mb-5">
+        <label class="label">Customer ID (Khata)</label>
+        <input type="number" name="customer_id" step="1" min="1" class="field">
+      </div>
+
+      <div x-show="method === 'cash' && change > 0" x-cloak
+           class="flex justify-between items-center bg-sky-tint rounded-[14px] px-4 py-3.5 mb-4">
+        <span class="text-[13px] text-sky font-semibold">Change to return</span>
+        <span class="text-base text-sky font-extrabold" x-text="'Rs ' + change.toLocaleString()"></span>
+      </div>
+
+      <button type="submit" class="btn-primary btn-lg w-full justify-between px-6"
+              {{ 'disabled' if not summary.ready }}>
+        <span>Complete sale</span>
+        <span>{{ summary.total_paisa | rupees }}</span>
+      </button>
+    </form>
+  </div>
+</div>
 {% endblock %}

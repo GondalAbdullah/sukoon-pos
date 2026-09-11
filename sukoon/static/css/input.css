@@ -20,6 +20,7 @@
   }
   h1 { @apply text-[19px] font-extrabold tracking-[-0.02em]; }
   a { @apply text-teal hover:text-teal-deep; }
+  [x-cloak] { display: none !important; }
 }
 
 @layer components {

@@ -1,50 +1,91 @@
-{% extends "base.html" %}
-{% block title %}Sale complete — Sukoon{% endblock %}
-{% block content %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sale complete — Sukoon</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
+  <script src="{{ url_for('static', filename='js/alpine.min.js') }}" defer></script>
+  <noscript><meta http-equiv="refresh" content="8; url={{ url_for('till.index') }}"></noscript>
+</head>
 {#
-  Phase 3: functional HTML. The Design System's full-bleed calm moment (Figure 8)
-  and the ~8s auto-advance ring (O-9, context.md §4b) arrive with the visual
-  pass. The meta refresh below is the countdown's honest stand-in.
+  Sale Complete (Figure 8) — the calmest, least-rushed screen in the product.
+  Full-bleed radial wash, no nav rail. The auto-advance ring (O-9, §4b) is real
+  here: an Alpine countdown that cancels on any key press or tap and never
+  fires while the cashier is mid-interaction with the receipt links.
 #}
-<meta http-equiv="refresh" content="8; url={{ url_for('till.index') }}">
+<body class="min-h-screen bg-paper text-ink font-sans antialiased flex flex-col items-center justify-center p-6 text-center
+             bg-[radial-gradient(circle_at_50%_34%,#E7F3EF_0%,#FAF9F6_58%)]"
+      x-data="{
+        seconds: 8, cancelled: false, timer: null,
+        start() {
+          this.timer = setInterval(() => {
+            if (this.cancelled) { clearInterval(this.timer); return }
+            this.seconds -= 1
+            if (this.seconds <= 0) { clearInterval(this.timer); window.location = '{{ url_for('till.index') }}' }
+          }, 1000)
+        },
+        cancel() { this.cancelled = true; clearInterval(this.timer) }
+      }"
+      x-init="start()"
+      @keydown.window="cancel()" @click.window="cancel()">
 
-<h1>Sale complete</h1>
-<p>Invoice <strong>{{ sale.invoice_number }}</strong> &middot;
-   {{ sale.total_paisa | rupees }} &middot; {{ sale.payment_method }}</p>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for message in messages %}
+      <div class="mb-4 rounded-[12px] px-4 py-2.5 text-sm font-semibold bg-ink text-white">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
 
-{% if sale.payment_method == 'cash' %}
-  <p>Cash received {{ sale.amount_tendered_paisa | rupees }} &mdash;
-     <strong>change to return {{ sale.change_paisa | rupees }}</strong></p>
-{% elif sale.payment_method == 'credit' %}
-  <p>Added to the customer's Khata.</p>
-{% endif %}
+  <div class="w-[66px] h-[66px] rounded-full bg-teal shadow-teal flex items-center justify-center mb-6">
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+  </div>
 
-<p>
-  {% if receipt_medium == 'thermal' %}
-    Receipt printed.
-  {% elif receipt_medium == 'pdf' %}
-    <strong>Printer unavailable</strong> —
-    <a href="{{ url_for('till.receipt_pdf', sale_id=sale.id) }}">download the PDF receipt</a>.
+  <h1 class="text-2xl font-extrabold tracking-[-0.02em] mb-2.5">Sale complete</h1>
+  <p class="text-[13.5px] text-muted font-medium mb-6">
+    Invoice <strong class="text-inkSoft">{{ sale.invoice_number }}</strong> ·
+    {{ sale.total_paisa | rupees }} · {{ sale.payment_method|capitalize }}
+  </p>
+
+  {% if sale.payment_method == 'cash' %}
+    <div class="text-[13px] text-muted font-semibold mb-1">Change to return</div>
+    <div class="text-[44px] font-extrabold tracking-[-0.02em] text-sky mb-8">{{ sale.change_paisa | rupees }}</div>
+  {% elif sale.payment_method == 'credit' %}
+    <p class="text-sm text-muted mb-8">Added to the customer&rsquo;s Khata.</p>
+  {% else %}
+    <div class="mb-8"></div>
   {% endif %}
-  <a href="{{ url_for('till.receipt_pdf', sale_id=sale.id) }}">PDF</a> ·
-  <form method="post" action="{{ url_for('till.reprint_receipt', sale_id=sale.id) }}" style="display:inline">
-    <button type="submit">Print again</button>
-  </form>
-</p>
 
-<table border="1" cellpadding="6" cellspacing="0">
-  <thead><tr><th>Item</th><th>Qty</th><th>Line total</th></tr></thead>
-  <tbody>
-  {% for item in items %}
-    <tr>
-      <td>{{ item.product_name_snapshot }}</td>
-      <td>{{ item.quantity_milli | qty }}</td>
-      <td>{{ item.line_total_paisa | rupees }}</td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
+  <div class="relative inline-flex mb-3" @click.stop>
+    <svg width="248" height="60" viewBox="0 0 248 60" class="absolute inset-0 pointer-events-none" x-show="!cancelled">
+      <rect x="1.5" y="1.5" width="245" height="57" rx="16" fill="none" stroke="#0A4F41" stroke-width="3"
+            stroke-opacity="0.35" stroke-linecap="round" stroke-dasharray="604"
+            :stroke-dashoffset="604 * (1 - seconds / 8)" style="transition: stroke-dashoffset 1s linear"/>
+    </svg>
+    <a href="{{ url_for('till.index') }}" @click="cancel()"
+       class="btn-primary btn-lg w-[248px]">Start next sale</a>
+  </div>
+  <p class="text-xs text-muted font-medium mb-8">
+    <span x-show="!cancelled">Starts on its own in <strong x-text="seconds"></strong>s · press any key or tap to stay</span>
+    <span x-show="cancelled" x-cloak>Staying on this screen.</span>
+  </p>
 
-<p><a href="{{ url_for('till.index') }}">Start next sale</a>
-   &mdash; this page moves on by itself in 8 seconds.</p>
-{% endblock %}
+  <div class="flex flex-col items-center gap-3">
+    <p class="text-sm">
+      {% if receipt_medium == 'thermal' %}
+        <span class="pill-teal">Receipt printed</span>
+      {% elif receipt_medium == 'pdf' %}
+        <span class="pill-amber">Printer unavailable</span>
+      {% endif %}
+    </p>
+    <div class="flex gap-3">
+      <a href="{{ url_for('till.receipt_pdf', sale_id=sale.id) }}" class="btn-ghost">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#48484D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>
+        PDF receipt
+      </a>
+      <form method="post" action="{{ url_for('till.reprint_receipt', sale_id=sale.id) }}">
+        <button type="submit" class="btn-ghost">Print again</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

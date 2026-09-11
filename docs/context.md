@@ -10,11 +10,10 @@ work session, not just every phase.
 
 | | |
 |---|---|
-| **Phase** | Phase 3 — POS & Billing — **STARTED**. STOP AND ASK gate CLOSED (§4g). |
 | **Phase** | **Phase 3.5 — Visual Pass ([ADR-0022](adr/0022-dedicated-visual-pass.md)) — IN PROGRESS.** Phase 3 (POS & Billing) functionally complete and signed off (§4h). |
-| **Status** | Phase 3 functional DoD signed off by the client 2026-09-11 (§4h). Phase 3.5 started (session 13): front-end toolchain in place — `tailwind.config.js` (Design System §10.2 tokens + prototype radius/shadow), `static/css/input.css` + the component layer, `scripts/build_css.sh`, compiled `static/css/tailwind.css` **committed**. Inter 400–800 bundled as **woff2** locally; Alpine + htmx vendored to `static/js/` (no CDN — Design System §10.1). `base.html` rebuilt as the real app shell (78px nav rail + 72px top bar). **Login (Figure 1)** converted — radial wash, staff avatar row, greeting, Alpine avatar→password reveal, ADR-0008 password deviation kept. `ruff` clean, **235 tests green** (unchanged — templates only). See §4i for the per-screen tracker. |
-| **Last session** | 2026-09-11 (session 13) |
-| **Next action** | Continue **Phase 3.5** — convert the remaining screens to the Design System, one per session, keeping tests green: **Till + Sale Complete** (Figures 2, 8 — the highest-traffic; O-11 loose row + O-9 ring from the §4b mockups), then **Stock** (list / detail / form / bulk / categories — Figures 3, 7), then **Refunds**, then `placeholder.html`. Tracker in §4i. **Notes:** credit-limit enforcement (ADR-0014) is Phase 4. The session cart does not survive session loss (§5 Auth item, deferred). |
+| **Status** | Phase 3 functional DoD signed off (§4h). Phase 3.5 toolchain + Login done (session 13). **Till + Sale Complete converted (session 14):** cart as Design System cards (sealed stepper unchanged; the §4b loose-goods row — Alpine segmented Weight/Amount toggle, live `≈` preview, amber "needs weight" state, collapse-to-pill once filled), payment pills + cash quick-amounts + live change preview (Alpine, all client-side-only, no route changes), and Sale Complete's **real O-9 auto-advance ring** (Alpine countdown, drains over 8s, cancels on any key or tap; `<noscript>` meta-refresh kept as a no-JS fallback). Verified with real headless-browser screenshots against a live server, not just markup review. `ruff` clean, **tests unchanged and green** — this pass never touches routes/services (one narrow session-13 exception, noted in §4i). See §4i for the tracker and the deliberate htmx-swap deferral. |
+| **Last session** | 2026-09-11 (session 14) |
+| **Next action** | Continue **Phase 3.5**: **Stock** (list / detail / form / bulk entry / categories — Figures 3, 7) next, then **Refunds** (O-7 pixels), then `placeholder.html`, then the deferred htmx fragment-swap pass, then the full design-DoD side-by-side (§4i). **Notes:** credit-limit enforcement (ADR-0014) is Phase 4. The session cart does not survive session loss (§5 Auth item, deferred). |
 
 ## 2. Decisions made so far
 
@@ -481,16 +480,32 @@ Flask, no CDN (Design System §10.1). `base.html` = the app shell.
 
 **Rule:** this pass touches templates, `input.css`, and static assets only —
 never routes or services — so the two-tier test suite stays green throughout.
-Any intentional departure from a reference screenshot still goes in §4b.
+(One narrow exception, session 13: `routes/auth.py` gained a render-context-only
+change — passing the active-staff list and a greeting string to the login
+template — no behaviour change, noted there rather than silently bent.) Any
+intentional departure from a reference screenshot still goes in §4b.
+
+**Deliberately deferred within this pass:** true htmx fragment-swapping (Design
+System §10.3 — cart mutations without a full reload) is **not** done yet. Every
+Till/cart action still does a classic POST + redirect. Reasoning: wiring real
+htmx swaps changes response semantics per request (detecting `HX-Request`,
+deciding what to return) in a way this pass's own "templates only" rule is meant
+to keep out of scope, and it deserves interactive/browser verification this
+text-only session cannot give with confidence. Alpine covers the pure
+client-side niceties instead (payment-pill toggle, cash quick-amounts, a live
+change preview, the loose-row weight/amount toggle) — real UX gain, zero route
+risk. Flagged as a deliberate scope line, not a silent skip; revisit once the
+visual pass is done and can be checked in a real browser.
 
 | Screen (Design System figure) | State |
 |---|---|
 | `base.html` app shell — nav rail + top bar (§5) | ✅ session 13 |
 | Login (Figure 1) | ✅ session 13 — radial wash, avatar row, greeting, Alpine reveal; ADR-0008 password deviation kept |
-| Till (Figure 2) + Sale Complete (Figure 8) | ☐ next |
-| Stock list / detail / form / bulk / categories (Figures 3, 7) | ☐ |
+| Till (Figure 2) + Sale Complete (Figure 8) | ✅ session 14 — cart cards, sealed stepper, §4b loose row (Alpine segmented weight/amount toggle + live ≈ preview), payment pills, cash quick-amounts + live change preview, real O-9 countdown ring (Alpine, cancels on key/tap) |
+| Stock list / detail / form / bulk / categories (Figures 3, 7) | ☐ next |
 | Refunds (find / sale / pending) — O-7 pixels | ☐ |
 | `placeholder.html` (landing) | ☐ |
+| htmx fragment-swapping pass (deferred above) | ☐ |
 | Design DoD side-by-side vs all 9 screenshots (Design System §13) | ☐ at the end |
 
 ## 5. Edge case and test matrix
@@ -730,6 +745,46 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-11 — Session 14: Phase 3.5 — Till + Sale Complete converted
+
+**Done (templates + `input.css` only — no route or service changes)**
+- **Till (`till/till.html`, Figure 2):** two-column layout — scan field, cart
+  cards, summary/payment panel — against the prototype's literal spacing/shadow
+  values. Sealed-pack rows keep the stepper untouched. Loose rows implement the
+  §4b design exactly: a fresh/unweighed line opens by default in the amber
+  "needs weight" state with the segmented **Weight (kg) / Amount (Rs)** toggle
+  (Alpine `x-data` per row — `mode`, and `weight`/`amount` with `get approxRs()`
+  / `get approxKg()` computed getters for the live `≈` preview); once set, the
+  row collapses to a compact value pill, tap to reopen. Payment is three
+  equal-weight pills with an Alpine active state; cash mode adds the
+  received-amount field, Exact/round-number quick buttons, and a live "change to
+  return" preview — all client-side convenience over the same server-authoritative
+  total, nothing here changes what gets submitted or how `checkout` computes.
+- **Sale Complete (`till/complete.html`, Figure 8):** full-bleed radial wash,
+  checkmark, change figure, and the **real O-9 auto-advance ring** — an Alpine
+  countdown (`seconds`, `cancelled`, a 1s `setInterval`) draining an SVG ring
+  around "Start next sale" over 8 seconds, cancelled by any keypress or click
+  and by interacting with the receipt buttons; a `<noscript>` meta-refresh is
+  the no-JS fallback. Receipt outcome shown as a pill (printed / printer
+  unavailable) with PDF and "print again" actions.
+- `[x-cloak] { display: none !important; }` added to `input.css` (Alpine-hidden
+  elements no longer flash visible before Alpine mounts).
+- **Verified visually, not just by markup review:** built a real cart (sealed +
+  two loose lines, one left deliberately unweighed) against the actual dev
+  server via a small script (login, add-to-cart, set-weight over HTTP), and
+  took real headless-Chrome screenshots of both the Till (mid-flow, showing the
+  needs-weight and filled loose states together) and Sale Complete. Both sent
+  to the client. Caught and fixed one real bug this way: the countdown ring's
+  `stroke-dashoffset` formula had time backwards (filling instead of draining) —
+  wrong on markup review alone, visible immediately once rendered.
+- `ruff` clean; **235 tests still pass** — confirms the "templates only" rule
+  held (no Python behaviour touched this session).
+
+**Deliberately deferred (recorded in §4i, not silently skipped):** true htmx
+fragment-swapping for cart mutations (Design System §10.3). Alpine covers the
+client-side polish instead; the swap pass needs route-level response handling
+and real browser interaction testing, so it's split out as its own step.
 
 ### 2026-09-11 — Session 13: Phase 3 signed off; Phase 3.5 visual pass — toolchain + shell + Login
 
