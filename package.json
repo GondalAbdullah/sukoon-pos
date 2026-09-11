@@ -1,0 +1,23 @@
+{
+  "name": "sukoon",
+  "version": "1.0.0",
+  "description": "Build-time front-end toolchain for Sukoon (Tailwind CSS, vendored Alpine/htmx). No Node runtime ships in the installer — only the compiled sukoon/static/css/tailwind.css and the vendored JS in sukoon/static/js/ (Dev Spec §5.1, Design System §10.1).",
+  "private": true,
+  "license": "SEE LICENSE IN LICENSE",
+  "scripts": {
+    "build:css": "tailwindcss -c tailwind.config.js -i sukoon/static/css/input.css -o sukoon/static/css/tailwind.css --minify",
+    "watch:css": "tailwindcss -c tailwind.config.js -i sukoon/static/css/input.css -o sukoon/static/css/tailwind.css --watch",
+    "vendor:js": "cp node_modules/alpinejs/dist/cdn.min.js sukoon/static/js/alpine.min.js && cp node_modules/htmx.org/dist/htmx.min.js sukoon/static/js/htmx.min.js",
+    "vendor:fonts": "for w in 400 500 600 700 800; do cp node_modules/@fontsource/inter/files/inter-latin-$w-normal.woff2 sukoon/static/fonts/inter-$w.woff2; done"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GondalAbdullah/sukoon-pos.git"
+  },
+  "devDependencies": {
+    "@fontsource/inter": "^5.1.0",
+    "alpinejs": "^3.14.1",
+    "htmx.org": "^1.9.12",
+    "tailwindcss": "^3.4.14"
+  }
+}

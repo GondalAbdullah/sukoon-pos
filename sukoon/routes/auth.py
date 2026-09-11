@@ -17,9 +17,31 @@ from flask import (
 from flask_login import current_user, login_required, login_user, logout_user
 
 from sukoon.extensions import db
+from sukoon.models import User
 from sukoon.services import auth_service
 
 bp = Blueprint("auth", __name__)
+
+
+def _greeting(now: datetime) -> str:
+    h = now.hour
+    if h < 12:
+        return "Good morning"
+    if h < 17:
+        return "Good afternoon"
+    return "Good evening"
+
+
+def _login_page(status: int = 200):
+    users = db.session.scalars(
+        db.select(User).where(User.is_active.is_(True)).order_by(User.name)
+    ).all()
+    return (
+        render_template(
+            "auth/login.html", staff=users, greeting=_greeting(datetime.now(UTC))
+        ),
+        status,
+    )
 
 
 @bp.route("/login", methods=["GET", "POST"])
@@ -41,11 +63,11 @@ def login():
         except auth_service.AccountLockedError:
             db.session.commit()
             flash("Too many attempts. Try again shortly.", "error")
-            return render_template("auth/login.html"), 429
+            return _login_page(429)
         except auth_service.AuthError as exc:
             db.session.commit()  # persist any failed-attempt increment
             flash(str(exc), "error")
-            return render_template("auth/login.html"), 401
+            return _login_page(401)
 
         db.session.commit()
         login_user(user)
@@ -53,7 +75,7 @@ def login():
         next_url = request.args.get("next")
         return redirect(next_url or url_for("main.placeholder"))
 
-    return render_template("auth/login.html")
+    return _login_page()
 
 
 @bp.route("/logout", methods=["POST"])

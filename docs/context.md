@@ -11,9 +11,10 @@ work session, not just every phase.
 | | |
 |---|---|
 | **Phase** | Phase 3 — POS & Billing — **STARTED**. STOP AND ASK gate CLOSED (§4g). |
-| **Status** | **Phase 3 — POS & Billing — functionally COMPLETE (functional HTML).** Gate closed (§4g / [ADR-0020](adr/0020-phase-3-refund-and-discount-policy.md)). Built: sale transaction core (money/invoicing/pricing/sales_service, atomic race-safe invoice numbering, all-or-nothing `record_sale`), the Till (cart in session, sealed stepper + loose "needs weight" row, Cash/Card/Khata, provisional-create), the refund flow (`refund`/`refund_item` + migration `58f3a01f76d8`, Cashier initiates / Admin approves + step-up, restock + ledger reversal), and ESC/POS receipts + 80 mm PDF fallback (`services/receipts/`, `python-escpos`; a dead printer degrades to PDF, never blocks the sale). `ruff` clean, **235 tests green, 95% coverage**. **Phase 3 functional DoD presented in §4h — awaiting client sign-off.** |
-| **Last session** | 2026-09-11 (session 12) |
-| **Next action** | **Get the client's sign-off on the Phase 3 functional DoD (§4h).** Then [ADR-0022](adr/0022-dedicated-visual-pass.md): **"Phase 3.5" — one dedicated visual pass** converting every template (Login, Stock, Till, Sale Complete, Refunds) to the Design System, compiling `static/css/tailwind.css`, before Phase 4. **Notes:** credit-limit enforcement (ADR-0014) is Phase 4. The session cart does not survive session loss (§5 Auth item, deferred). |
+| **Phase** | **Phase 3.5 — Visual Pass ([ADR-0022](adr/0022-dedicated-visual-pass.md)) — IN PROGRESS.** Phase 3 (POS & Billing) functionally complete and signed off (§4h). |
+| **Status** | Phase 3 functional DoD signed off by the client 2026-09-11 (§4h). Phase 3.5 started (session 13): front-end toolchain in place — `tailwind.config.js` (Design System §10.2 tokens + prototype radius/shadow), `static/css/input.css` + the component layer, `scripts/build_css.sh`, compiled `static/css/tailwind.css` **committed**. Inter 400–800 bundled as **woff2** locally; Alpine + htmx vendored to `static/js/` (no CDN — Design System §10.1). `base.html` rebuilt as the real app shell (78px nav rail + 72px top bar). **Login (Figure 1)** converted — radial wash, staff avatar row, greeting, Alpine avatar→password reveal, ADR-0008 password deviation kept. `ruff` clean, **235 tests green** (unchanged — templates only). See §4i for the per-screen tracker. |
+| **Last session** | 2026-09-11 (session 13) |
+| **Next action** | Continue **Phase 3.5** — convert the remaining screens to the Design System, one per session, keeping tests green: **Till + Sale Complete** (Figures 2, 8 — the highest-traffic; O-11 loose row + O-9 ring from the §4b mockups), then **Stock** (list / detail / form / bulk / categories — Figures 3, 7), then **Refunds**, then `placeholder.html`. Tracker in §4i. **Notes:** credit-limit enforcement (ADR-0014) is Phase 4. The session cart does not survive session loss (§5 Auth item, deferred). |
 
 ## 2. Decisions made so far
 
@@ -188,9 +189,11 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   five Inter weights are already inlined as base64 above it, so the prototype renders
   correctly and the import silently 404s. Harmless there — but it must not be carried
   into the real templates, where a missing local asset would be a genuine offline bug.
-- **Prototype fonts are `woff`, the spec asks for `woff2`.** Design System 10.1
-  specifies bundling Inter as woff2. The prototype embeds woff. Source proper woff2
-  files for `/static/fonts/` rather than extracting the prototype's base64.
+- ~~**Prototype fonts are `woff`, the spec asks for `woff2`.**~~ **RESOLVED
+  2026-09-11 (Phase 3.5).** Inter 400/500/600/700/800 (Latin subset) bundled as
+  woff2 in `sukoon/static/fonts/` from `@fontsource/inter`, `@font-face` in
+  `static/css/input.css` — no CDN (Design System §10.1). The prototype's base64
+  woff was not used.
 - **Design assets are in place and verified.** All nine reference screenshots named
   in Design System 6 are present in `docs/design/` and are nine genuinely distinct
   images (confirmed by checksum — their identical file sizes are an artefact of the
@@ -435,13 +438,16 @@ model are in [ADR-0020](adr/0020-phase-3-refund-and-discount-policy.md), Accepte
 **This gate is now closed.** Phase 3 build may proceed. (The Till *UI* still waits on
 O-11, a design question, not a gate.)
 
-## 4h. Phase 3 Definition of Done — AWAITING CLIENT SIGN-OFF (presented 2026-09-11)
+## 4h. Phase 3 Definition of Done — SIGNED OFF 2026-09-11
+
+**The client reviewed and approved the Phase 3 functional DoD on 2026-09-11 and
+directed that the ADR-0022 visual pass (Phase 3.5) begin.** Phase 3 (POS &
+Billing) is functionally complete.
 
 Per Development Specification Phase 3. The STOP AND ASK gate (§4g) is already
-closed; this is the "present the DoD before the next phase" step. **Functional
+closed; this was the "present the DoD before the next phase" step. **Functional
 HTML only** — the Design System visual layer for these screens is
-[ADR-0022](adr/0022-dedicated-visual-pass.md)'s Phase 3.5, which starts once this
-is signed off.
+[ADR-0022](adr/0022-dedicated-visual-pass.md)'s Phase 3.5, now in progress.
 
 | Checklist item | Status |
 |---|---|
@@ -457,11 +463,35 @@ is signed off.
 - Refund reverses stock and ledger — `test_refunds.py`.
 
 **Deferred out of Phase 3, with rationale:**
-- **The Design System visual layer** for every Phase 1–3 screen → ADR-0022 Phase 3.5, next.
+- **The Design System visual layer** for every Phase 1–3 screen → ADR-0022 Phase 3.5, in progress (§4i).
 - **Session-loss-mid-sale cart survival** → a `draft_sale` table if it becomes real (§4b).
 - **Credit-limit enforcement on a credit sale** → Phase 4 with the rest of Khata (ADR-0014).
 - **The Khata customer picker** on the Till (raw ID for now) → Phase 4.
 - **`quantity_source` values `usb_scale` / `scale_label`** → deferred behind the ADR-0005 seam until a scale exists (O-12).
+
+## 4i. Phase 3.5 — Visual Pass tracker ([ADR-0022](adr/0022-dedicated-visual-pass.md))
+
+**Toolchain (done, session 13):** `package.json` (build-time only — dev deps
+`tailwindcss`, `alpinejs`, `htmx.org`, `@fontsource/inter`; `node_modules/`
+gitignored), `tailwind.config.js`, `sukoon/static/css/input.css` +
+`@layer components`, `scripts/build_css.sh` / `npm run build:css`. The compiled
+`sukoon/static/css/tailwind.css` **is committed** (Dev Spec §5.1 — no Node in the
+installer). Inter woff2 + Alpine + htmx vendored into `sukoon/static/`, served by
+Flask, no CDN (Design System §10.1). `base.html` = the app shell.
+
+**Rule:** this pass touches templates, `input.css`, and static assets only —
+never routes or services — so the two-tier test suite stays green throughout.
+Any intentional departure from a reference screenshot still goes in §4b.
+
+| Screen (Design System figure) | State |
+|---|---|
+| `base.html` app shell — nav rail + top bar (§5) | ✅ session 13 |
+| Login (Figure 1) | ✅ session 13 — radial wash, avatar row, greeting, Alpine reveal; ADR-0008 password deviation kept |
+| Till (Figure 2) + Sale Complete (Figure 8) | ☐ next |
+| Stock list / detail / form / bulk / categories (Figures 3, 7) | ☐ |
+| Refunds (find / sale / pending) — O-7 pixels | ☐ |
+| `placeholder.html` (landing) | ☐ |
+| Design DoD side-by-side vs all 9 screenshots (Design System §13) | ☐ at the end |
 
 ## 5. Edge case and test matrix
 
@@ -700,6 +730,35 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-11 — Session 13: Phase 3 signed off; Phase 3.5 visual pass — toolchain + shell + Login
+
+**Sign-off**
+- **Client approved the Phase 3 functional DoD (§4h)** and directed that the
+  ADR-0022 visual pass begin. Phase 3 (POS & Billing) is functionally complete.
+
+**Done (Phase 3.5 — templates & static assets only, no route/service changes)**
+- **Front-end toolchain** (build-time only; `node_modules/` gitignored):
+  `package.json` (`tailwindcss`, `alpinejs`, `htmx.org`, `@fontsource/inter` as
+  dev deps), `tailwind.config.js` (Design System §10.2 token palette + the
+  prototype's literal radius/shadow values — ADR-0006), `sukoon/static/css/input.css`
+  with an `@layer components` layer, `scripts/build_css.sh` + `npm run build:css`.
+  The **compiled `sukoon/static/css/tailwind.css` is committed** (Dev Spec §5.1 —
+  no Node ships in the installer).
+- **Assets bundled locally, no CDN** (Design System §10.1): Inter 400–800 Latin
+  subset as **woff2** in `static/fonts/` (closes the §4 woff-vs-woff2 issue);
+  Alpine 3 + htmx 1.9 vendored to `static/js/`.
+- **`base.html`** rebuilt as the real app shell — a persistent 78px nav rail
+  (Till / Stock / Refunds + sign-out) and a 72px top bar with the user chip
+  (Design System §5). Full-bleed "moment" screens (Login, Sale Complete) opt out.
+- **Login (Figure 1)** converted: radial calm-wash background, staff avatar row
+  (route now passes active users + a time-of-day greeting), Alpine avatar→password
+  reveal (`x-data`/`x-show`/`x-transition`, §10.4), "or type your name" fallback.
+  The ADR-0008 password-for-PIN deviation is kept and re-noted in the template.
+- `ruff` clean; **235 tests pass** (unchanged — this session changed no Python
+  behaviour, only `routes/auth.py`'s render context and templates).
+
+**Next:** §4i tracker — Till + Sale Complete, then Stock, then Refunds.
 
 ### 2026-09-11 — Session 12: ESC/POS receipts + PDF fallback — Phase 3 functionally complete
 

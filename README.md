@@ -72,6 +72,20 @@ flask seed                         # permissions + a dev Admin/Cashier + sample 
 without them it uses a placeholder and logs a warning. `flask seed --no-sample`
 loads only the permission catalogue (which every environment needs).
 
+### Front-end assets
+
+The compiled stylesheet (`sukoon/static/css/tailwind.css`) and the vendored
+Alpine/htmx/Inter files are **committed** — the app runs without Node. Rebuild the
+CSS only when you edit a template or `sukoon/static/css/input.css`:
+
+```bash
+npm install          # one-time, dev machine only
+npm run build:css    # -> sukoon/static/css/tailwind.css
+```
+
+No Node runtime ships in the Windows installer (Dev Spec §5.1); only the static
+output does.
+
 ## Running the app
 
 ```bash
@@ -79,8 +93,7 @@ source .venv/bin/activate
 flask --app sukoon.app run
 ```
 
-Serves a placeholder page at `http://127.0.0.1:5000/`; the sign-in form is at
-`/login`. The fully styled Login screen (Tailwind) arrives in a later phase.
+Serves a landing page at `http://127.0.0.1:5000/`; the sign-in form is at `/login`.
 
 ## Running the tests
 

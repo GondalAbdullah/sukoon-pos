@@ -1,0 +1,98 @@
+/* Source for the compiled stylesheet. Build with scripts/build_css.sh:
+   node_modules/.bin/tailwindcss -i input.css -o tailwind.css --minify
+   The compiled tailwind.css IS committed (Dev Spec §5.1: no Node in the
+   installer — only the static .css ships). */
+
+/* Inter, bundled locally — no CDN (Design System §10.1). */
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 400; font-display: swap; src: url("/static/fonts/inter-400.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 500; font-display: swap; src: url("/static/fonts/inter-500.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 600; font-display: swap; src: url("/static/fonts/inter-600.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 700; font-display: swap; src: url("/static/fonts/inter-700.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 800; font-display: swap; src: url("/static/fonts/inter-800.woff2") format("woff2"); }
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+  }
+  h1 { @apply text-[19px] font-extrabold tracking-[-0.02em]; }
+  a { @apply text-teal hover:text-teal-deep; }
+}
+
+@layer components {
+  /* --- surfaces --- */
+  .card { @apply bg-surface rounded-lg shadow-card; }
+  .panel { @apply bg-surface rounded-[20px] shadow-card; }
+
+  /* --- app shell --- */
+  .rail {
+    @apply fixed inset-y-0 left-0 w-[78px] bg-surface border-r border-hairline
+           flex flex-col items-center py-5 gap-1 z-20;
+  }
+  .rail-link {
+    @apply w-12 h-12 rounded-[14px] flex items-center justify-center text-muted
+           hover:bg-sunk hover:text-ink transition-colors;
+  }
+  .rail-link.is-active { @apply bg-teal-tint text-teal-deep; }
+  .rail-label { @apply text-[10px] font-semibold text-faint mb-3 -mt-0.5; }
+
+  .topbar {
+    @apply h-[72px] flex items-center justify-between px-7 border-b border-hairline
+           bg-paper/80 backdrop-blur;
+  }
+  .topbar-title { @apply text-[19px] font-extrabold tracking-[-0.02em]; }
+  .topbar-sub { @apply text-xs text-muted font-medium mt-0.5; }
+
+  .content { @apply ml-[78px] min-h-screen; }
+  .content-pad { @apply px-8 py-7; }
+
+  /* --- controls --- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-5 py-3
+           text-sm font-bold transition-colors cursor-pointer;
+  }
+  .btn-primary { @apply btn bg-teal text-white shadow-teal hover:bg-teal-deep; }
+  .btn-ghost { @apply btn border-[1.5px] border-hairline text-inkSoft hover:bg-sunk; }
+  .btn-lg { @apply px-6 py-[19px] text-[15px]; }
+  .btn:disabled { @apply bg-sunk text-faint shadow-none cursor-not-allowed; }
+
+  .field {
+    @apply w-full bg-surface border-[1.5px] border-teal-tint2 rounded-[14px]
+           px-4 py-3 text-[15px] text-ink placeholder:text-faint
+           focus:outline-none focus:border-teal;
+  }
+  .label { @apply block text-xs font-bold text-muted tracking-[0.02em] mb-2; }
+
+  /* --- pills / badges --- */
+  .pill { @apply inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-[11px] font-bold; }
+  .pill-teal { @apply pill bg-teal-tint text-teal-deep; }
+  .pill-amber { @apply pill bg-amber-tint text-amber; }
+  .pill-coral { @apply pill bg-coral-tint text-coral; }
+  .pill-sky { @apply pill bg-sky-tint text-sky; }
+
+  /* --- stepper (prototype: 26px keys, 12px tray) --- */
+  .stepper { @apply inline-flex items-center gap-3 bg-sunk rounded-[12px] px-2 py-1.5; }
+  .stepper-key {
+    @apply w-[26px] h-[26px] rounded-[8px] bg-surface shadow-control
+           flex items-center justify-center text-[15px] font-bold text-inkSoft cursor-pointer;
+  }
+
+  /* --- flashes -> the toast/inline treatment (Design System §4.6, §9) --- */
+  .flashes { @apply fixed left-1/2 -translate-x-1/2 bottom-6 z-50 flex flex-col gap-2 items-center; }
+  .flash { @apply rounded-[12px] px-4 py-2.5 text-sm font-semibold shadow-card; }
+  .flash-info { @apply bg-ink text-white; }
+  .flash-error { @apply bg-coral text-white; }
+
+  /* --- data tables (functional screens, pending their own visual pass) --- */
+  .table { @apply w-full text-sm border-collapse; }
+  .table th { @apply text-left text-xs font-bold text-muted tracking-[0.02em] px-3 py-2 border-b border-hairline; }
+  .table td { @apply px-3 py-2.5 border-b border-hairline align-top; }
+
+  .avatar {
+    @apply rounded-full bg-teal-tint2 text-teal-deep font-bold
+           flex items-center justify-center;
+  }
+}

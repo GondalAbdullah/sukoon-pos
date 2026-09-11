@@ -4,40 +4,77 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Sukoon{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
+  <script src="{{ url_for('static', filename='js/htmx.min.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/alpine.min.js') }}" defer></script>
 </head>
 <body>
-  {#
-    Phase 2 templates are functional HTML only. The Tailwind build and the
-    Design System's visual language (Stock list, the Add Stock modal in
-    Figure 7) arrive with the styling pass in a later phase. Structure here
-    honours the interaction rules that matter now: one entry point for stock
-    changes, a mandatory reason on every adjustment.
-  #}
-  <header>
-    <a href="{{ url_for('main.placeholder') }}">Sukoon</a>
-    {% if current_user.is_authenticated %}
-      &nbsp;|&nbsp; <a href="{{ url_for('till.index') }}">Till</a>
-      &nbsp;|&nbsp; <a href="{{ url_for('stock.index') }}">Stock</a>
-      &nbsp;|&nbsp; <a href="{{ url_for('refunds.find') }}">Refunds</a>
-      &nbsp;|&nbsp; <span>{{ current_user.name }} ({{ current_user.role }})</span>
-      <form method="post" action="{{ url_for('auth.logout') }}" style="display:inline">
-        <button type="submit">Sign out</button>
-      </form>
-    {% endif %}
+{#
+  Phase 3.5 visual pass (ADR-0022): the app shell — a persistent 78px nav rail
+  and a 72px top bar (Design System §5). Screens are converted one at a time;
+  a screen still on functional HTML sits inside this shell until its turn.
+  Login and Sale Complete are full-bleed "moments" and do not extend this base.
+#}
+{% if current_user.is_authenticated %}
+<nav class="rail">
+  <a href="{{ url_for('till.index') }}"
+     class="rail-link {{ 'is-active' if request.blueprint == 'till' }}" title="Till">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
+  </a>
+  <span class="rail-label">Till</span>
+
+  <a href="{{ url_for('stock.index') }}"
+     class="rail-link {{ 'is-active' if request.blueprint == 'stock' }}" title="Stock">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7v10l9 5 9-5V7Z"/><path d="M3 7l9 5 9-5"/><path d="M12 12v10"/></svg>
+  </a>
+  <span class="rail-label">Stock</span>
+
+  <a href="{{ url_for('refunds.find') }}"
+     class="rail-link {{ 'is-active' if request.blueprint == 'refunds' }}" title="Refunds">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 1 0-3-7l-3 3"/></svg>
+  </a>
+  <span class="rail-label">Refunds</span>
+
+  <div class="flex-1"></div>
+
+  <form method="post" action="{{ url_for('auth.logout') }}">
+    <button type="submit" class="rail-link" title="Sign out ({{ current_user.name }})">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+    </button>
+  </form>
+</nav>
+{% endif %}
+
+<div class="{{ 'content' if current_user.is_authenticated else '' }}">
+  {% if current_user.is_authenticated %}
+  <header class="topbar">
+    <div>
+      <div class="topbar-title">{% block heading %}Sukoon{% endblock %}</div>
+      <div class="topbar-sub">{% block subheading %}Al-Rehman General Store{% endblock %}</div>
+    </div>
+    <div class="flex items-center gap-2.5 text-sm">
+      <div class="avatar w-9 h-9 text-[13px]">{{ current_user.initials }}</div>
+      <div>
+        <div class="font-bold leading-tight">{{ current_user.name }}</div>
+        <div class="text-xs text-muted capitalize">{{ current_user.role }}</div>
+      </div>
+    </div>
   </header>
+  {% endif %}
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <ul class="flashes">
-        {% for category, message in messages %}
-          <li class="flash flash-{{ category }}">{{ message }}</li>
-        {% endfor %}
-      </ul>
-    {% endif %}
-  {% endwith %}
-
-  <main>
+  <main class="content-pad">
     {% block content %}{% endblock %}
   </main>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul class="flashes">
+      {% for category, message in messages %}
+        <li class="flash flash-{{ category }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
 </body>
 </html>
