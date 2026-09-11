@@ -42,6 +42,16 @@ bp = Blueprint("till", __name__, url_prefix="/till")
 
 _CART_KEY = "cart"
 
+# A till's name is a property of the physical PC/browser, not of whoever is
+# signed in on it — kept in a plain long-lived cookie, not the signed Flask
+# session (ADR-0023). Nothing server-side registers or polls it.
+_TERMINAL_COOKIE = "sukoon_terminal"
+_TERMINAL_COOKIE_MAX_AGE = 60 * 60 * 24 * 365  # 1 year
+
+
+def _terminal_label() -> str | None:
+    return request.cookies.get(_TERMINAL_COOKIE) or None
+
 
 # --- session cart plumbing ------------------------------------------------
 
@@ -129,7 +139,23 @@ def index():
         can_create_provisional=role_has_permission(
             current_user.role, "product.create_provisional"
         ),
+        terminal_label=_terminal_label(),
     )
+
+
+@bp.route("/terminal", methods=["POST"])
+@login_required
+@permission_required("sale.ring")
+def set_terminal():
+    """Name (or rename) this till (ADR-0023). A label, not a registration —
+    nothing server-side tracks which tills exist."""
+    label = (request.form.get("label") or "").strip()[:32]
+    resp = redirect(url_for("till.index"))
+    if label:
+        resp.set_cookie(
+            _TERMINAL_COOKIE, label, max_age=_TERMINAL_COOKIE_MAX_AGE, samesite="Lax"
+        )
+    return resp
 
 
 @bp.route("/add", methods=["POST"])
@@ -314,6 +340,7 @@ def checkout():
             user_id=current_user.id,
             customer_id=int(customer_id) if customer_id else None,
             amount_tendered_paisa=tendered,
+            terminal_label=_terminal_label(),
         )
     except (sales_service.SaleError, inv.InventoryError) as exc:
         flash(str(exc), "error")

@@ -303,3 +303,51 @@ def test_the_complete_page_is_shown_after_a_sale(till, milk):
     assert resp.status_code == 200
     assert sale.invoice_number.encode() in resp.data
     assert till.get("/till/complete/9999").status_code == 404
+
+
+# --- till terminal identity (ADR-0023) --------------------------------
+
+def test_a_fresh_till_is_asked_to_name_itself(till):
+    resp = till.get("/till/")
+    assert b"Name this till" in resp.data
+
+
+def test_naming_a_till_sets_a_cookie_and_stops_asking(till):
+    resp = till.post("/till/terminal", data={"label": "Till 2"}, follow_redirects=True)
+    assert b"Name this till" not in resp.data
+    assert b"Till 2" in resp.data
+    assert till.get_cookie("sukoon_terminal").value.strip('"') == "Till 2"
+
+
+def test_a_sale_rung_up_after_naming_carries_the_terminal_label(till, milk):
+    till.post("/till/terminal", data={"label": "Till 2"}, follow_redirects=True)
+    _add(till, product_id=milk.id)
+    till.post("/till/checkout", data={"payment_method": "card"}, follow_redirects=True)
+    sale = db.session.query(Sale).one()
+    assert sale.terminal_label == "Till 2"
+
+
+def test_a_sale_before_naming_has_no_terminal_label(till, milk):
+    _add(till, product_id=milk.id)
+    till.post("/till/checkout", data={"payment_method": "card"}, follow_redirects=True)
+    sale = db.session.query(Sale).one()
+    assert sale.terminal_label is None
+
+
+def test_renaming_a_till_only_affects_future_sales(till, milk):
+    till.post("/till/terminal", data={"label": "Till 1"}, follow_redirects=True)
+    _add(till, product_id=milk.id)
+    till.post("/till/checkout", data={"payment_method": "card"}, follow_redirects=True)
+
+    till.post("/till/terminal", data={"label": "Till 1 (front counter)"}, follow_redirects=True)
+    _add(till, product_id=milk.id)
+    till.post("/till/checkout", data={"payment_method": "card"}, follow_redirects=True)
+
+    labels = sorted(s.terminal_label for s in db.session.query(Sale).all())
+    assert labels == ["Till 1", "Till 1 (front counter)"]
+
+
+def test_a_blank_label_does_not_overwrite_an_existing_name(till, milk):
+    till.post("/till/terminal", data={"label": "Till 2"}, follow_redirects=True)
+    till.post("/till/terminal", data={"label": "   "}, follow_redirects=True)
+    assert till.get_cookie("sukoon_terminal").value.strip('"') == "Till 2"

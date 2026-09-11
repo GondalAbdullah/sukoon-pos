@@ -15,7 +15,12 @@ from sukoon.services import sales_service, settings_service
 from sukoon.services.auth_service import hash_password
 from sukoon.services.receipts import printer
 from sukoon.services.receipts import service as receipts
-from sukoon.services.receipts.receipt import build_receipt, render_escpos, render_pdf
+from sukoon.services.receipts.receipt import (
+    build_receipt,
+    receipt_body,
+    render_escpos,
+    render_pdf,
+)
 from sukoon.services.sales_service import CartLine
 from tests.conftest import CASHIER_PASSWORD
 
@@ -73,6 +78,26 @@ def test_the_shop_name_and_contact_come_from_settings(sale):
     data = build_receipt(sale)
     assert data.shop_name == "Al-Rehman Kiryana"
     assert "0300-1234567" in data.shop_contact
+
+
+def test_the_till_name_appears_when_the_sale_carries_one(cashier):
+    # ADR-0023: terminal_label is None on sales rung before a till was named
+    milk = inv.create_product(name="Milk 1L", sell_price_paisa=28_000)
+    inv.apply_stock_movement(product=milk, movement_type="stock_in", quantity_milli=5_000,
+                             reason="in", user_id=cashier.id)
+    named = sales_service.record_sale(
+        lines=[CartLine(product=milk, quantity_milli=1_000, unit_price_paisa=28_000,
+                        quantity_source="stepper")],
+        payment_method="cash", user_id=cashier.id, now=JAN, terminal_label="Till 2",
+    )
+    unnamed = sales_service.record_sale(
+        lines=[CartLine(product=milk, quantity_milli=1_000, unit_price_paisa=28_000,
+                        quantity_source="stepper")],
+        payment_method="cash", user_id=cashier.id, now=JAN,
+    )
+    assert "Till" in " ".join(receipt_body(build_receipt(named)))
+    assert b"Till 2" in render_escpos(build_receipt(named))
+    assert "Till" not in " ".join(receipt_body(build_receipt(unnamed)))
 
 
 # --- ESC/POS --------------------------------------------------------

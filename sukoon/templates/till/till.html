@@ -17,6 +17,35 @@
   <!-- LEFT: scan + cart -->
   <div class="flex-1 w-full min-w-0">
 
+    {# Till identity (ADR-0023) — a label on the physical PC/browser, kept in a
+       cookie, never a login-time question. First use asks once; afterwards a
+       small pill with a "change" affordance sits above the scan field. #}
+    {% if terminal_label %}
+    <div class="mb-3" x-data="{ renaming: false }">
+      <button type="button" @click="renaming = true" x-show="!renaming"
+              class="pill bg-sunk text-inkSoft">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#86868B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 18v3"/></svg>
+        {{ terminal_label }}
+      </button>
+      <form method="post" action="{{ url_for('till.set_terminal') }}"
+            x-show="renaming" x-cloak class="flex items-center gap-2">
+        <input type="text" name="label" value="{{ terminal_label }}" maxlength="32" autofocus
+               class="field w-40 !py-1.5 !text-xs">
+        <button type="submit" class="btn-ghost !py-1.5 !px-2.5 text-xs">Save</button>
+      </form>
+    </div>
+    {% else %}
+    <form method="post" action="{{ url_for('till.set_terminal') }}"
+          class="card mb-4 p-5 flex flex-wrap items-end gap-3 border border-teal-tint2">
+      <div class="flex-1 min-w-[200px]">
+        <div class="text-sm font-bold mb-1">Name this till</div>
+        <div class="text-xs text-muted">Once, per PC — e.g. &ldquo;Till 1&rdquo;. Shows on receipts so a sale can be traced back to it.</div>
+      </div>
+      <input type="text" name="label" required maxlength="32" placeholder="Till 1" class="field w-36">
+      <button type="submit" class="btn-primary">Save</button>
+    </form>
+    {% endif %}
+
     <form method="post" action="{{ url_for('till.add') }}"
           class="flex items-center gap-3 card px-5 py-4 border-[1.5px] border-teal-tint2">
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#0E6B57" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>

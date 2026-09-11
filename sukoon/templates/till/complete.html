@@ -44,6 +44,7 @@
   <p class="text-[13.5px] text-muted font-medium mb-6">
     Invoice <strong class="text-inkSoft">{{ sale.invoice_number }}</strong> ·
     {{ sale.total_paisa | rupees }} · {{ sale.payment_method|capitalize }}
+    {%- if sale.terminal_label %} · {{ sale.terminal_label }}{% endif %}
   </p>
 
   {% if sale.payment_method == 'cash' %}

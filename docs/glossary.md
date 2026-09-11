@@ -297,6 +297,12 @@ numeric keypad is replaced by a password field.
 **Terminal** *(Settled)* — One PC or browser session acting as a till. Terminal 1 is
 the server PC itself; others reach it over the shop LAN.
 
+**Till name** *(Settled)* — A terminal's human-facing label (e.g. "Till 2"),
+stored in a long-lived cookie on that PC/browser, not tied to whoever is signed
+in. Set once via a one-time prompt on the Till; recorded on `sale.terminal_label`
+at checkout and shown on Sale Complete and the receipt. No server-side registry
+of "known tills" exists — naming, not registration. See ADR-0023.
+
 ## Process terms
 
 **grill-with-docs** *(Settled)* — The mandatory human-invoked interview that

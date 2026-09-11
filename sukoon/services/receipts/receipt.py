@@ -45,6 +45,7 @@ class ReceiptData:
     amount_tendered_paisa: int | None = None
     change_paisa: int | None = None
     customer_name: str | None = None
+    terminal_label: str | None = None  # ADR-0023; None on sales rung before it existed
     footer: str = "Thank you. Come again."
 
 
@@ -84,6 +85,7 @@ def build_receipt(sale: Sale) -> ReceiptData:
         shop_contact=settings_service.get("shop.contact"),
         amount_tendered_paisa=sale.amount_tendered_paisa,
         change_paisa=sale.change_paisa,
+        terminal_label=sale.terminal_label,
         customer_name=customer,
     )
 
@@ -107,6 +109,8 @@ def receipt_body(data: ReceiptData) -> list[str]:
         _row("Date", data.when.strftime("%Y-%m-%d %H:%M")),
         _row("Cashier", data.cashier_name),
     ]
+    if data.terminal_label:
+        out.append(_row("Till", data.terminal_label))
     if data.customer_name:
         out.append(_row("Customer", data.customer_name))
     out.append(rule)

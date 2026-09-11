@@ -11,9 +11,9 @@ work session, not just every phase.
 | | |
 |---|---|
 | **Phase** | **Phase 3.5 — Visual Pass ([ADR-0022](adr/0022-dedicated-visual-pass.md)) — IN PROGRESS.** Phase 3 (POS & Billing) functionally complete and signed off (§4h). |
-| **Status** | Phase 3 functional DoD signed off (§4h). Phase 3.5 toolchain + Login done (session 13). **Till + Sale Complete converted (session 14):** cart as Design System cards (sealed stepper unchanged; the §4b loose-goods row — Alpine segmented Weight/Amount toggle, live `≈` preview, amber "needs weight" state, collapse-to-pill once filled), payment pills + cash quick-amounts + live change preview (Alpine, all client-side-only, no route changes), and Sale Complete's **real O-9 auto-advance ring** (Alpine countdown, drains over 8s, cancels on any key or tap; `<noscript>` meta-refresh kept as a no-JS fallback). Verified with real headless-browser screenshots against a live server, not just markup review. `ruff` clean, **tests unchanged and green** — this pass never touches routes/services (one narrow session-13 exception, noted in §4i). See §4i for the tracker and the deliberate htmx-swap deferral. |
-| **Last session** | 2026-09-11 (session 14) |
-| **Next action** | Continue **Phase 3.5**: **Stock** (list / detail / form / bulk entry / categories — Figures 3, 7) next, then **Refunds** (O-7 pixels), then `placeholder.html`, then the deferred htmx fragment-swap pass, then the full design-DoD side-by-side (§4i). **Notes:** credit-limit enforcement (ADR-0014) is Phase 4. The session cart does not survive session loss (§5 Auth item, deferred). |
+| **Status** | Phase 3 functional DoD signed off (§4h). Phase 3.5 toolchain + Login done (session 13); Till + Sale Complete converted (session 14, §4i). **Till terminal identification shipped (session 15, addendum — [ADR-0023](adr/0023-till-terminal-identification.md)):** a till names itself once via a long-lived cookie (never at login), `sale.terminal_label` (frozen since Phase 1, never populated until now) is finally set on checkout, and the name shows on Sale Complete and both receipt renderers. Resolves the labelling half of **O-8**; live terminal health-status stays open. Real routes + service wiring (not a Phase 3.5 template change) — `ruff` clean, **242 tests green, 95% coverage**. |
+| **Last session** | 2026-09-12 (session 15) |
+| **Next action** | Back to **Phase 3.5**: **Stock** (list / detail / form / bulk entry / categories — Figures 3, 7) next, then **Refunds** (O-7 pixels), then `placeholder.html`, then the deferred htmx fragment-swap pass, then the full design-DoD side-by-side (§4i). **Notes:** credit-limit enforcement (ADR-0014) is Phase 4. The session cart does not survive session loss (§5 Auth item, deferred). |
 
 ## 2. Decisions made so far
 
@@ -41,6 +41,7 @@ work session, not just every phase.
 | [0020](adr/0020-phase-3-refund-and-discount-policy.md) | Phase 3 gate — no discounts (confirmed); refund = Cashier initiates / Admin approves + step-up; original invoice required, partial refunds, auto-restock (+ damaged flag), ledger reversal for credit sales; new `refund`/`refund_item` tables; `catalog.manage`/`stock.adjust` stay coarse. Refines ADR-0008 §4, resolves O-7 | **Accepted** |
 | [0021](adr/0021-invoicing-module-purity.md) | `invoicing.py` stays pure (rule 3 wins over ADR-0003's contradictory module-list gloss); the atomic invoice claim lives in `sales_service` | **Accepted** |
 | [0022](adr/0022-dedicated-visual-pass.md) | Phases 1–3 stay functional HTML; **one dedicated visual pass ("Phase 3.5") after Phase 3, before Phase 4** converts every template to the Design System; Phases 4–6 built styled from the start. Deviates from Dev Spec §5.1's style-as-you-go | **Accepted** |
+| [0023](adr/0023-till-terminal-identification.md) | A till names itself once via a long-lived cookie (not at login, not server config); `sale.terminal_label` finally populated; shown on Sale Complete + both receipt renderers. Resolves O-8's labelling half; live terminal status stays open | **Accepted** |
 
 (Historical rule, now satisfied: no ADR could move to **Accepted** until the Phase 0
 grill session had run. It ran on 2026-09-10; ADR-0017 onward are ordinary Phase-N
@@ -158,9 +159,17 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   [ADR-0020](adr/0020-phase-3-refund-and-discount-policy.md), Accepted. The screen's
   **visual** design is deferred with the rest of the UI (Tailwind pass), consistent
   with every other screen so far.
-- **O-8 — Second terminal registration.** The Settings mock lists
-  "Second Till (Terminal 2) — Checking…", implying terminals register and report
-  health. No such feature exists in the specification. Real feature or mock dressing?
+- **O-8 — Second terminal registration.** *(Partially resolved 2026-09-12.)* The
+  Settings mock lists "Second Till (Terminal 2) — Checking…", implying terminals
+  register and report health. Put to the client as a scoped choice; they chose the
+  narrowest option — **identify which till rang up each sale**, not live
+  registration/health-monitoring, and explicitly not independent/offline tills
+  (ruled out as contradicting ADR-0001). See
+  [ADR-0023](adr/0023-till-terminal-identification.md): a till names itself once
+  via a cookie, `sale.terminal_label` is populated, shown on Sale Complete and both
+  receipts. **Still open:** the live "Checking…" health-status half of the mock —
+  no `terminal` table, no heartbeat, nothing server-side tracks which tills exist.
+  Revisit if that's ever actually wanted.
 - ~~**O-9 — Sale Complete auto-advance.**~~ **RESOLVED 2026-09-11.** The countdown is
   real (follows the Design System text; the prototype's silence is not a decision per
   ADR-0006). A quiet progress ring on "Start next sale" advances after **~8 seconds**;
@@ -695,6 +704,20 @@ This list grows as new cases are found.
       `::test_approving_restocks_and_completes_the_status_transition`,
       `::test_a_damaged_line_is_not_restocked`, `::test_a_failure_during_approval_leaves_the_refund_pending`
 
+### Till terminal identity (Phase 3 addendum — ADR-0023)
+- [x] A fresh browser with no `sukoon_terminal` cookie sees the naming prompt on the Till
+      — `test_till::test_a_fresh_till_is_asked_to_name_itself`
+- [x] Naming a till sets the cookie and the prompt does not reappear
+      — `test_till::test_naming_a_till_sets_a_cookie_and_stops_asking`
+- [x] A sale rung up after naming carries that `terminal_label`; before naming it stays NULL
+      — `test_till::test_a_sale_rung_up_after_naming_carries_the_terminal_label`, `::test_a_sale_before_naming_has_no_terminal_label`
+- [x] Renaming a till changes future sales, not past ones
+      — `test_till::test_renaming_a_till_only_affects_future_sales`
+- [x] A blank label does not overwrite an existing name
+      — `test_till::test_a_blank_label_does_not_overwrite_an_existing_name`
+- [x] The receipt (ESC/POS bytes and the PDF) shows the till's name when the sale carries one
+      — `test_receipts::test_the_till_name_appears_when_the_sale_carries_one`
+
 ### Credit customers / Khata (Phase 4)
 - [ ] Ledger balance maths is correct across mixed sequences of sales and partial payments
 - [ ] A customer with an outstanding balance cannot be deleted
@@ -745,6 +768,43 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-12 — Session 15: till terminal identification (ADR-0023)
+
+**Decision**
+- Client asked for "multiple tills." Put to them as a scoped question since it
+  touches the long-open **O-8** and the architecture already supports concurrent
+  terminals by design (ADR-0001 LAN/browser model; Phase 3's atomic invoice
+  numbering and guarded stock updates already proven safe under real concurrency).
+  They chose the narrowest option: **identify which till rang up each sale.**
+  [ADR-0023](adr/0023-till-terminal-identification.md) — a till's name lives in a
+  long-lived cookie (a property of the physical PC/browser, not of whoever is
+  logged in — rejected asking at login, and rejected server-side config since one
+  Flask process serves every terminal). Resolves O-8's labelling half; live
+  registration/health-status stays open, explicitly not built.
+
+**Done (real routes + service wiring — outside Phase 3.5's templates-only rule,
+by design, since this is a Phase 3 functional addendum, not a restyle)**
+- `routes/till.py` — `_terminal_label()` reads the `sukoon_terminal` cookie;
+  `POST /till/terminal` sets/renames it (a blank label is ignored, never
+  overwrites); `index()` and `checkout()` thread it through.
+  `sales_service.record_sale(terminal_label=...)` has accepted this since Phase 1
+  (`sale.terminal_label`, frozen, always `NULL` until today) — no migration.
+- `services/receipts/receipt.py` — `ReceiptData.terminal_label`; `build_receipt`
+  copies it from the sale; `receipt_body` shows a "Till" row when present — one
+  change, both the ESC/POS and PDF renderers pick it up since they share the
+  layout.
+- `templates/till/till.html` — a one-time "Name this till" card when unset;
+  once set, a small pill + inline rename (Alpine `x-data`), consistent with the
+  loose-row pill pattern from session 14.
+- `templates/till/complete.html` — the till's name appended to the invoice line.
+- Verified visually (screenshot before and after naming) — caught and fixed a
+  real icon collision this way: the till pill first reused the Stock rail's box
+  icon, confusing at a glance; swapped for a monitor icon.
+- `tests/integration/test_till.py` (+6), `test_receipts.py` (+1). `ruff` clean;
+  **242 tests pass, 95% coverage**.
+
+**Open / next:** back to Phase 3.5 — Stock is next (§4i).
 
 ### 2026-09-11 — Session 14: Phase 3.5 — Till + Sale Complete converted
 
