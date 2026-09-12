@@ -10,10 +10,10 @@ work session, not just every phase.
 
 | | |
 |---|---|
-| **Phase** | **Phase 3.5 — Visual Pass ([ADR-0022](adr/0022-dedicated-visual-pass.md)) — DESIGN DoD PRESENTED, one question open.** Phase 3 functionally complete and signed off (§4h). |
-| **Status** | Phase 3.5 built out sessions 13–19 (toolchain, Login, Till, Sale Complete, terminal ID, Stock, Refunds, landing page, htmx pass — see §4i). **Session 20: the Design System §13 DoD side-by-side, done for real** — fresh screenshots of every built screen plus an actually-rendered receipt PDF compared against all 9 reference images, not a documentation exercise. Found and fixed three real issues: two undersized/no-hover action buttons (Till "Add", Refunds "Find") switched to the standard `.btn-ghost`; a receipt footer line that ran off the edge of the 80mm page for a long shop-contact string, fixed with real word-wrapping (measured, not guessed) and covered by new regression tests; and two missing Login details restored (the date line, per-avatar role labels). Full write-up, including the honoured deviations and **one open question for the client**, in §4j. `ruff` clean, **245 tests green** (3 new receipt word-wrap tests). |
+| **Phase** | **Phase 3.5 — Visual Pass ([ADR-0022](adr/0022-dedicated-visual-pass.md)) — CLOSED.** Phase 3 (POS & Billing) and Phase 3.5 (visual pass) are both complete. **Phase 4 — Credit Customer Management (Khata) — next.** |
+| **Status** | Phase 3.5 built out sessions 13–19 (toolchain, Login, Till, Sale Complete, terminal ID, Stock, Refunds, landing page, htmx pass — §4i), then the Design System §13 DoD side-by-side (session 20, §4j) — fresh screenshots of every screen plus an actually-rendered receipt PDF against all 9 reference images, not a documentation exercise. Found and fixed three real issues (two undersized/no-hover buttons, a receipt footer line that ran off the page, fixed with real word-wrapping + regression tests) and restored two missing Login details. One genuine tension between ADR-0006 (prototype pixel-fidelity) and the Design System's written 44px touch-target rule was put to the client rather than picked unilaterally: **keep the prototype-exact stepper size, no change** — recorded with rationale. **Phase 3.5 is now formally closed.** `ruff` clean, **245 tests green, 95% coverage**. |
 | **Last session** | 2026-09-12 (session 20) |
-| **Next action** | **Awaiting the client's answer to §4j's one open question** (the cart/stock stepper's button size: keep prototype-exact 26px, or bump to the Design System's 44px floor?) — then Phase 3.5 is formally closed and **Phase 4 (Khata / credit customers)** begins. **Notes:** credit-limit enforcement (ADR-0014) is Phase 4. The session cart does not survive session loss (§5 Auth item, deferred). |
+| **Next action** | Begin **Phase 4 — Credit Customer Management (Khata)**. No STOP AND ASK gate in the spec (same shape as Phase 2). Steps: customer CRUD with duplicate-phone handling (ADR-0013 already settled the policy), credit ledger entries tied to sales/payments, full/partial payment application, per-customer statement view/export. Required tests: ledger balance correctness across mixed sale/payment sequences, blocked deletion of a customer with an outstanding balance, overpayment produces an explicit credit-balance state. Policy groundwork is already laid from the Phase 0 grill session — ADR-0013 (phone identity), ADR-0014 (credit-limit enforcement + step-up override), ADR-0015 (overdue aging) — so this phase is mostly build, not new decisions. |
 
 ## 2. Decisions made so far
 
@@ -643,14 +643,20 @@ was built.
 **Not yet built, correctly out of scope:** Khata (Figure 4, Phase 4),
 Insights (Figure 5, Phase 6), Settings (Figure 6, not yet scheduled).
 
-### The one open question for you
+### The stepper-size question — RESOLVED 2026-09-12
 
 The cart stepper (Till, §4b) and the Add Stock modal's own ± stepper are
 26–42px, under the Design System's 44px minimum touch target, but pixel-exact
 to the prototype's own stepper (which ADR-0006 makes the literal style
-authority). Keep the smaller, prototype-exact size, or bump to 44px for
-touch reliability? No action taken either way pending your call — this
-doesn't block anything else.
+authority). **Client's call: keep the prototype-exact size, no change.**
+Rationale recorded: this is a mouse/keyboard till on a regular PC, not
+necessarily a touchscreen, so the 44px floor may not be the binding constraint
+here, and a bigger control would crowd the cart row's dense layout. If the
+shop later runs Sukoon on a touchscreen till, revisit this specific control.
+
+**Phase 3.5 is now formally closed.** All nine Design DoD bullets pass (§4j
+above), the one open question is resolved, and every screen in the §4i
+tracker is built and reviewed. Phase 4 (Khata / credit customers) begins next.
 
 ## 5. Edge case and test matrix
 
