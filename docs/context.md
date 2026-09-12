@@ -11,9 +11,9 @@ work session, not just every phase.
 | | |
 |---|---|
 | **Phase** | **Phase 3.5 — Visual Pass ([ADR-0022](adr/0022-dedicated-visual-pass.md)) — IN PROGRESS.** Phase 3 (POS & Billing) functionally complete and signed off (§4h). |
-| **Status** | Phase 3 functional DoD signed off (§4h). Phase 3.5 toolchain + Login done (session 13); Till + Sale Complete converted (session 14, §4i); till terminal identification shipped (session 15, [ADR-0023](adr/0023-till-terminal-identification.md), resolves O-8's labelling half). **Stock converted (session 16, §4i):** list (Figure 3 — stat cards, search/filter row, the labelled stock-level bar reading directly off `compute_stock_status`, never a misleading full bar at zero stock), product detail with a real Add Stock modal (Figure 7 — segmented Stock in/out/Correct, live "new stock level" preview via Alpine), product form, bulk entry, categories. Verified with real screenshots at every step — caught and fixed two real bugs this way (an out-of-stock item with no threshold showing a full bar; "Stock_in" instead of "Stock in" in the movements table). Templates + `input.css` only. `ruff` clean, **242 tests green, 95% coverage**. |
-| **Last session** | 2026-09-12 (session 16) |
-| **Next action** | Continue **Phase 3.5**: **Refunds** (O-7 pixels — find / sale / pending) next, then `placeholder.html`, then the deferred htmx fragment-swap pass, then the full design-DoD side-by-side (§4i). **Notes:** credit-limit enforcement (ADR-0014) is Phase 4. The session cart does not survive session loss (§5 Auth item, deferred). |
+| **Status** | Phase 3 functional DoD signed off (§4h). Phase 3.5: toolchain + Login (session 13); Till + Sale Complete (session 14, §4i); till terminal identification (session 15, [ADR-0023](adr/0023-till-terminal-identification.md), resolves O-8's labelling half); Stock (session 16, §4i). **Refunds converted (session 17, §4i — resolves O-7's pixels):** find / sale / pending, on the established card-panel-pill vocabulary (no reference screenshot exists for Refunds — ADR-0006 rule 4). A per-line live "≈ Rs" refund-amount preview added (Alpine, client-side estimate only — `refund_service` stays authoritative). Verified with real screenshots against a live sale + a real pending refund; no bugs found this round. Templates + `input.css` only. `ruff` clean, **242 tests green, 95% coverage**. |
+| **Last session** | 2026-09-12 (session 17) |
+| **Next action** | Continue **Phase 3.5**: `placeholder.html` (the landing page) next, then the deferred htmx fragment-swap pass, then the full design-DoD side-by-side against all 9 reference screenshots (§4i). **Notes:** credit-limit enforcement (ADR-0014) is Phase 4. The session cart does not survive session loss (§5 Auth item, deferred). |
 
 ## 2. Decisions made so far
 
@@ -156,9 +156,11 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   step-up; original invoice required; partial refunds allowed; refunded goods
   auto-restock (per-line damaged flag); credit-sale refunds reverse the ledger. New
   `refund` / `refund_item` tables (new migration). See
-  [ADR-0020](adr/0020-phase-3-refund-and-discount-policy.md), Accepted. The screen's
-  **visual** design is deferred with the rest of the UI (Tailwind pass), consistent
-  with every other screen so far.
+  [ADR-0020](adr/0020-phase-3-refund-and-discount-policy.md), Accepted. **The
+  screen's visual design is done too now** (session 17, Phase 3.5, §4i) — no
+  reference screenshot exists for Refunds, so it uses the established
+  card/panel/pill vocabulary consistently (ADR-0006 rule 4) rather than a literal
+  mock recreation.
 - **O-8 — Second terminal registration.** *(Partially resolved 2026-09-12.)* The
   Settings mock lists "Second Till (Terminal 2) — Checking…", implying terminals
   register and report health. Put to the client as a scoped choice; they chose the
@@ -510,7 +512,7 @@ visual pass is done and can be checked in a real browser.
 | Login (Figure 1) | ✅ session 13 — radial wash, avatar row, greeting, Alpine reveal; ADR-0008 password deviation kept |
 | Till (Figure 2) + Sale Complete (Figure 8) | ✅ session 14 — cart cards, sealed stepper, §4b loose row (Alpine segmented weight/amount toggle + live ≈ preview), payment pills, cash quick-amounts + live change preview, real O-9 countdown ring (Alpine, cancels on key/tap) |
 | Stock list / detail / form / bulk / categories (Figures 3, 7) | ✅ session 16 — stat cards, labelled stock bar (reads `compute_stock_status`, never full at zero), a real Add Stock `<dialog>` modal with the segmented control + live preview |
-| Refunds (find / sale / pending) — O-7 pixels | ☐ next |
+| Refunds (find / sale / pending) — O-7 pixels | ✅ session 17 — established vocabulary (no reference screenshot exists), live per-line refund-amount preview |
 | `placeholder.html` (landing) | ☐ |
 | htmx fragment-swapping pass (deferred above) | ☐ |
 | Design DoD side-by-side vs all 9 screenshots (Design System §13) | ☐ at the end |
@@ -766,6 +768,37 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-12 — Session 17: Phase 3.5 — Refunds converted (resolves O-7's pixels)
+
+**Done (templates + `input.css` only — routes/services untouched)**
+- **`refunds/find.html`** — a search card (matches the Till/Stock scan-field
+  pattern), the found sale as a summary row with a status pill and "Start a
+  refund" CTA. Dropped a redundant inline "no sale found" message that
+  duplicated the route's existing flash.
+- **`refunds/sale.html`** — the refund-line table restyled (`panel`/`table`),
+  status pills on both the sale and its existing refunds (amber
+  `pending_approval`, teal `approved`, coral `rejected`/`out`, matching the
+  Stock bar's colour vocabulary). Added a **live per-line refund-amount preview**
+  (`≈ Rs …`, Alpine, client-side estimate only) that wasn't in the functional
+  version at all — the cashier previously got no feedback on the refund amount
+  before submitting. `refund_service` stays the only authority on the real figure.
+- **`refunds/pending.html`** — each pending refund as a panel: total + method
+  pill, reason, a sunk-background line-item breakdown with restock/damaged pills,
+  the step-up password field and Approve/Reject actions.
+- No reference screenshot exists for Refunds (O-7's design gap was always
+  policy + data model, resolved at the Phase 3 gate — ADR-0020; the pixels were
+  the remaining half). Built on the established card/panel/pill/field vocabulary
+  per ADR-0006 rule 4, not a literal mock recreation.
+- Verified with real screenshots: seeded a real sale and a real pending refund,
+  walked find → sale → pending as both a Cashier and an Admin. No bugs found
+  this round — the discipline from the last two sessions (screenshot before
+  calling it done) held up with a clean pass.
+- `ruff` clean; **242 tests pass, 95% coverage** — unchanged, confirming the
+  templates-only rule held.
+
+**Next:** `placeholder.html`, then the deferred htmx pass, then the full
+design-DoD side-by-side (§4i) — the last items before Phase 4.
 
 ### 2026-09-12 — Session 16: Phase 3.5 — Stock converted (Figures 3, 7)
 

@@ -1,34 +1,61 @@
 {% extends "base.html" %}
 {% block title %}Pending refunds — Sukoon{% endblock %}
+{% block heading %}Refunds waiting for approval{% endblock %}
+{% block subheading %}{{ refunds|length }} pending{% endblock %}
 {% block content %}
-<h1>Refunds waiting for approval</h1>
-<p>Approving one puts stock back, reverses a credit sale's Khata, and moves the
-   sale to <em>partially refunded</em> / <em>refunded</em>. Approval needs your
-   password re-entered (ADR-0008 §5).</p>
+{# Phase 3.5 (ADR-0022): established vocabulary, no reference screenshot (O-7). #}
+<p class="text-sm text-muted max-w-2xl mb-6">Approving one puts stock back, reverses a
+   credit sale's Khata, and moves the sale to <em>partially refunded</em> /
+   <em>refunded</em>. Approval needs your password re-entered (ADR-0008 §5).</p>
 
 {% if not refunds %}
-  <p>Nothing pending.</p>
+  <div class="card p-6 text-sm text-muted">Nothing pending.</div>
 {% else %}
+<div class="flex flex-col gap-4 max-w-2xl">
 {% for r in refunds %}
-  <fieldset>
-    <legend>Refund #{{ r.id }} — {{ r.total_paisa | rupees }} — {{ r.method }}</legend>
-    <p>Reason: {{ r.reason }}<br>
-       Initiated by user {{ r.initiated_by_user_id }} on {{ r.created_at }}</p>
-    <ul>
-    {% for item in r.items %}
-      <li>sale item {{ item.sale_item_id }} — {{ item.quantity_milli | qty }} —
-          {{ item.line_total_paisa | rupees }}
-          — {{ 'restock' if item.restock else 'damaged, no restock' }}</li>
-    {% endfor %}
-    </ul>
-    <form method="post" action="{{ url_for('refunds.approve', refund_id=r.id) }}" style="display:inline">
-      <label>Your password <input type="password" name="step_up_password" required></label>
-      <button type="submit">Approve</button>
-    </form>
-    <form method="post" action="{{ url_for('refunds.reject', refund_id=r.id) }}" style="display:inline">
-      <button type="submit">Reject</button>
-    </form>
-  </fieldset>
+  <div class="panel p-6">
+    <div class="flex items-center justify-between mb-3">
+      <div class="flex items-center gap-3">
+        <span class="text-base font-bold">Refund #{{ r.id }}</span>
+        <span class="text-base font-bold">{{ r.total_paisa | rupees }}</span>
+        <span class="pill-sky">{{ r.method.replace('_', ' ') }}</span>
+      </div>
+    </div>
+    <p class="text-sm text-muted mb-4">
+      {{ r.reason }}<br>
+      <span class="text-xs">Initiated by user #{{ r.initiated_by_user_id }} on {{ r.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+    </p>
+
+    <div class="bg-sunk rounded-md px-4 py-3 mb-5 flex flex-col gap-1.5">
+      {% for item in r.items %}
+        <div class="flex items-center justify-between text-sm">
+          <span>Sale item #{{ item.sale_item_id }} · {{ item.quantity_milli | qty }}</span>
+          <span class="flex items-center gap-2">
+            <span class="font-semibold">{{ item.line_total_paisa | rupees }}</span>
+            {% if item.restock %}
+              <span class="pill-teal">restock</span>
+            {% else %}
+              <span class="pill-coral">damaged, no restock</span>
+            {% endif %}
+          </span>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="flex flex-wrap items-end gap-3">
+      <form method="post" action="{{ url_for('refunds.approve', refund_id=r.id) }}" class="flex items-end gap-2">
+        <label>
+          <span class="label">Your password</span>
+          <input type="password" name="step_up_password" required class="field !py-2 w-44">
+        </label>
+        <button type="submit" class="btn-primary">Approve</button>
+      </form>
+      <form method="post" action="{{ url_for('refunds.reject', refund_id=r.id) }}">
+        <button type="submit" class="btn-ghost !text-coral">Reject</button>
+      </form>
+    </div>
+  </div>
 {% endfor %}
+</div>
 {% endif %}
 {% endblock %}
