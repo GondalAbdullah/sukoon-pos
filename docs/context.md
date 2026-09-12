@@ -10,10 +10,10 @@ work session, not just every phase.
 
 | | |
 |---|---|
-| **Phase** | **Phase 3.5 — Visual Pass ([ADR-0022](adr/0022-dedicated-visual-pass.md)) — IN PROGRESS.** Phase 3 (POS & Billing) functionally complete and signed off (§4h). |
-| **Status** | Phase 3 functional DoD signed off (§4h). Phase 3.5: toolchain + Login (13); Till + Sale Complete (14); till terminal identification (15, [ADR-0023](adr/0023-till-terminal-identification.md)); Stock (16); Refunds (17, resolves O-7's pixels); landing page (18). **htmx fragment-swap pass done (session 19, §4i, closes the last deferred item):** every Till cart mutation (add, stepper, remove, set weight/amount, clear, name-this-till, provisional-create) now swaps only `#till-body` (Design System §10.3) — zero route changes; htmx follows the existing redirect itself and `hx-select` lifts the fragment back out. Checkout deliberately still does a real navigation to Sale Complete (a distinct "moment"). Scan-field focus is restored after every swap (`htmx:afterSwap`), matching the "cursor returns to the scan field" promise already made for bulk entry (ADR-0011 §1). **Verified in a real headless Chrome via `puppeteer-core`** (installed as a dev tool) — not just eyeballed: scripted add → stepper × 3 → remove, and separately the loose-goods weight-entry path, asserting zero full-page navigations (`framenavigated` count) throughout, correct DOM state at each step, and scan-field refocus; a third script confirmed checkout still navigates for real. `ruff` clean, **242 tests green, 95% coverage** (route behaviour untouched). |
-| **Last session** | 2026-09-12 (session 19) |
-| **Next action** | Every §4i item is done. **The last step to close Phase 3.5** is the full design-DoD side-by-side against all 9 reference screenshots (Design System §13) — present it, get sign-off, then Phase 4 (Khata / credit customers) begins. **Notes:** credit-limit enforcement (ADR-0014) is Phase 4. The session cart does not survive session loss (§5 Auth item, deferred). |
+| **Phase** | **Phase 3.5 — Visual Pass ([ADR-0022](adr/0022-dedicated-visual-pass.md)) — DESIGN DoD PRESENTED, one question open.** Phase 3 functionally complete and signed off (§4h). |
+| **Status** | Phase 3.5 built out sessions 13–19 (toolchain, Login, Till, Sale Complete, terminal ID, Stock, Refunds, landing page, htmx pass — see §4i). **Session 20: the Design System §13 DoD side-by-side, done for real** — fresh screenshots of every built screen plus an actually-rendered receipt PDF compared against all 9 reference images, not a documentation exercise. Found and fixed three real issues: two undersized/no-hover action buttons (Till "Add", Refunds "Find") switched to the standard `.btn-ghost`; a receipt footer line that ran off the edge of the 80mm page for a long shop-contact string, fixed with real word-wrapping (measured, not guessed) and covered by new regression tests; and two missing Login details restored (the date line, per-avatar role labels). Full write-up, including the honoured deviations and **one open question for the client**, in §4j. `ruff` clean, **245 tests green** (3 new receipt word-wrap tests). |
+| **Last session** | 2026-09-12 (session 20) |
+| **Next action** | **Awaiting the client's answer to §4j's one open question** (the cart/stock stepper's button size: keep prototype-exact 26px, or bump to the Design System's 44px floor?) — then Phase 3.5 is formally closed and **Phase 4 (Khata / credit customers)** begins. **Notes:** credit-limit enforcement (ADR-0014) is Phase 4. The session cart does not survive session loss (§5 Auth item, deferred). |
 
 ## 2. Decisions made so far
 
@@ -516,7 +516,141 @@ asserting zero full-page navigations and correct DOM state at each step.
 | Refunds (find / sale / pending) — O-7 pixels | ✅ session 17 — established vocabulary (no reference screenshot exists), live per-line refund-amount preview |
 | `placeholder.html` (landing) | ✅ session 18 — "Welcome back" + Till/Stock/Refunds tiles (authenticated), a plain sign-in prompt (anonymous); no reference screenshot exists |
 | htmx fragment-swapping pass | ✅ session 19 — Till cart mutations swap `#till-body`; verified in a real browser via `puppeteer-core` |
-| Design DoD side-by-side vs all 9 screenshots (Design System §13) | ☐ at the end |
+| Design DoD side-by-side vs all 9 screenshots (Design System §13) | ✅ session 20 — see §4j; one open question for the client |
+
+## 4j. Phase 3.5 — Design Definition of Done (Design System §13) — presented 2026-09-12
+
+Per Design System §13: *"no phase that touches UI closes until all of the
+following are true."* Nine checklist bullets, checked against real rendered
+output (fresh screenshots + a rendered receipt PDF, not the templates read
+cold), plus a screen-by-screen comparison against the reference screenshot
+each has. Two real gaps were found and fixed in this same session, not just
+logged for later.
+
+### The nine bullets
+
+1. **No technical/implementation terms on any cashier/customer screen** — ✅
+   PASS. Grepped every template and every `flash()` string in `routes/` for
+   database/API/HTTP/JSON/exception-shaped language; the only hits were Jinja
+   variable names and SVG markup, never rendered text.
+2. **Exactly one dominant focal point per screen** — ✅ PASS. Till: the Rs
+   total (44px). Sale Complete: the checkmark, then the change figure. Stock:
+   the table (stat cards are deliberately smaller/secondary). Login: the
+   avatar row.
+3. **Coral only for negative/urgent, Amber only for caution, never raw
+   red/orange/yellow** — ✅ PASS. Grepped templates, `input.css`, and
+   `tailwind.config.js` for any `red-*`/`orange-*`/`yellow-*` utility or raw
+   hex — zero hits. Every negative state uses `coral`, every caution state
+   uses `amber`.
+4. **Every status indicator pairs colour with a text label** — ✅ PASS. Stock
+   bar, refund status, provisional badge — all render the word, not just the
+   tint.
+5. **Every primary button ≥44×44px; the highest-frequency action is the
+   largest control** — ⚠️ **found and fixed one real gap.** The Till's "Add"
+   button and the Refunds "Find" button were a leftover ad-hoc small pill
+   (~22px tall, no hover state) instead of the shared `.btn-ghost` component —
+   switched both to `.btn-ghost` (≥44px, hover included). **One item left
+   open for you, below:** the cart stepper's ± keys are 26×26px, matching the
+   literal prototype's own stepper size (ADR-0006 ranks the prototype as the
+   literal style source) — but that's under the Design System's own 44px
+   floor. The two governing documents disagree with each other here; I didn't
+   pick a side.
+6. **Every interactive element has a visibly distinct default/hover/disabled
+   state** — ✅ PASS (after the fix above). `.btn-primary`/`.btn-ghost`/`<a>`
+   all carry `hover:` in their shared component definition, so every button
+   built from them inherits it automatically; `.btn:disabled` is a distinct
+   sunk/faint treatment, verified in the Till checkout button screenshot.
+7. **Fonts and icons served locally; zero external requests** — ✅ PASS,
+   verified by inspecting the actual shipped files, not assumed: grepped
+   every template, `input.css`, the compiled `tailwind.css`, and both vendored
+   JS files for `http(s)://`. The only two hits are inert — Tailwind's own
+   license-comment banner and a string inside Alpine's unregistered-plugin
+   *error message* (only prints to console if a missing plugin is invoked,
+   never fetched). No live request leaves the page.
+8. **Copy checked against §9** — ✅ PASS. Zero exclamation marks anywhere in
+   templates. Every `flash()` message in every route read calmly and
+   factually ("Stock updated.", "Too many attempts. Try again shortly.") —
+   none blame the person. Empty states are full sentences ("Nothing in the
+   cart yet — scan or search to add an item." — the Design System's own
+   example, verbatim) not bare words.
+9. **Side-by-side against the reference screenshot, deviations noted here** —
+   see below.
+
+### Side-by-side findings, by screen
+
+**Login (Figure 1).** Close match after two small additions made this
+session: the date line above the greeting, and a role label under each
+avatar's name (both present in the reference, both missing before). The
+reference's corner logo+store-name header bar and "Working normally, on this
+device" status line were **not** added — the corner header would duplicate
+the centred wordmark for no real gain, and fabricating a health-check line
+we have no data for would be dishonest chrome (O-8 is deferred). Replaced my
+own placeholder line ("· working offline-first", which was itself a stray
+bit of implementation jargon) with a plain "Al-Rehman General Store". The
+PIN-pad-to-password swap stays exactly as ADR-0008 already recorded.
+
+**Till (Figure 2).** Structurally very close to the reference already — same
+two-column layout, same stat treatment on the total, same stepper visual
+language. No new deviations found beyond the already-recorded ones (loose-row
+control, no Discounts line).
+
+**Sale Complete (Figure 8).** Two differences, left as-is rather than
+"fixed", because each has a reason: the reference's headline reads "All
+done" where ours reads "Sale complete" — kept, because the Design System's
+own body text calls this screen "Sale Complete" throughout and it's already
+what the test suite encodes; and the reference shows a "Received / Change
+due" two-column figure where we show only the change — kept, because the
+Design System's own **written** spec for this screen says *"the checkmark,
+headline, and change-due figure are the only things on screen"*, which is
+what we built. Two governing documents (the screenshot and its own caption
+text) disagree with each other; we followed the written spec.
+
+**Stock list (Figure 3).** One real bug found and fixed already in session
+16 (an out-of-stock item with no threshold showed a full bar) stays fixed.
+One deliberate omission newly confirmed here: the reference repeats "Low" /
+"Restock" as a badge next to the product name *and* in the stock-level
+column; we show it once, in the stock-level column only, where the bar and
+the words already carry it — showing it twice is the kind of redundant
+"data slop" the design guidance itself warns against, not a gap.
+
+**Add Stock modal (Figure 7).** The reference's quantity control is a
+whole-number ± stepper; ours is a typed number field. Same reasoning as the
+Till's loose-goods row (ADR-0004/0005) — a stock correction can be fractional
+(a loose product's count is in kg, not whole units), and a ±1 stepper cannot
+express that. Recorded as the same deviation family, not a new one.
+
+**The printed receipt (Figure 9).** Rendered a real PDF and looked at it
+directly rather than trusting the code. Found and fixed one real bug this
+way: the footer line repeating the shop's contact details ran off the edge
+of the 80 mm page for a contact string this long — thermal printers don't
+wrap gracefully, they just cut it off. Added proper word-wrapping
+(measuring actual string width, not guessing a character count) and used it
+for both the header contact line and the new footer line. Also added, to
+close two real gaps against the reference: a drawn logomark (a teal
+rounded square with an amber dot — no image asset needed or available, so
+drawn directly) above the shop name, and the footer repeating the shop's
+contact so a customer checking the bottom of their receipt finds a number to
+call. Left different on purpose: "Served by" (reference) vs "Cashier" (ours,
+matches the rest of the app's own vocabulary); one line per item vs the
+reference's inline "×N" (ours has to also carry a loose item's weight and
+unit, which "×N" can't express cleanly).
+
+**Refunds, the landing page.** No reference screenshot exists for either
+(O-7's screen and the app's own landing page respectively) — built on the
+established vocabulary per ADR-0006 rule 4, as already recorded when each
+was built.
+
+**Not yet built, correctly out of scope:** Khata (Figure 4, Phase 4),
+Insights (Figure 5, Phase 6), Settings (Figure 6, not yet scheduled).
+
+### The one open question for you
+
+The cart stepper (Till, §4b) and the Add Stock modal's own ± stepper are
+26–42px, under the Design System's 44px minimum touch target, but pixel-exact
+to the prototype's own stepper (which ADR-0006 makes the literal style
+authority). Keep the smaller, prototype-exact size, or bump to 44px for
+touch reliability? No action taken either way pending your call — this
+doesn't block anything else.
 
 ## 5. Edge case and test matrix
 
@@ -769,6 +903,67 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-12 — Session 20: the Design System §13 DoD, done against real output
+
+Full write-up in §4j. Summary: went through all 9 checklist bullets and all 9
+reference screenshots against fresh screenshots of the real running app (and,
+for the receipt, an actually-rendered PDF, not the code read cold) — the
+review this project's own rules require before a UI phase can close, done as
+a real check rather than a formality.
+
+**Found and fixed (not just logged):**
+- Till's "Add" button and Refunds' "Find" button were an ad-hoc small pill
+  (~22px, no hover state) instead of the shared `.btn-ghost` — switched both;
+  now ≥44px with the standard hover treatment.
+- The receipt's new footer contact line ran off the edge of the 80mm page for
+  a long `shop.contact` string — thermal printers cut long lines off rather
+  than wrapping them. Added real word-wrapping (`stringWidth`-measured, not a
+  guessed character count) to both the header and footer contact lines.
+  Caught by actually rendering a PDF and looking at it, not by reading the
+  code. Regression-tested: `test_long_text_wraps_within_the_printable_width`
+  asserts every wrapped line's measured width fits, `test_a_long_shop_contact_
+  does_not_run_off_the_receipt` renders one end-to-end.
+- Login was missing two details the reference has: the date line above the
+  greeting, and a role label under each avatar's name. Added both (Alpine
+  `x-text` for the date — no route change; the role was already on the `staff`
+  query from session 13). Also dropped "· working offline-first" from my own
+  placeholder status line — accurate but itself a stray bit of implementation
+  jargon on a cashier-facing screen (DoD bullet 1).
+- Receipt gained a drawn logomark (teal rounded square + amber dot — no image
+  asset exists, so drawn directly in ReportLab) and a footer line repeating
+  the shop's contact, closing two real gaps against Figure 9.
+
+**Checked and confirmed clean, not assumed:** zero raw red/orange/yellow
+anywhere (grepped `input.css` + `tailwind.config.js` + every template); zero
+external network requests (grepped every template, the compiled CSS, and both
+vendored JS files for `http`/`https` — the two hits are an inert license
+comment and an error-message string, never fetched); zero exclamation marks
+or blame-toned copy in any template or `flash()` call; every status pairs
+colour with a text label.
+
+**Deviations from a reference screenshot, considered and kept as-is (recorded
+here, not silently decided):**
+- Sale Complete says "Sale complete" where the mock says "All done" — kept,
+  matches the Design System's own body text and the existing test suite.
+- Sale Complete omits the "Received" figure the mock shows — kept, matches
+  the Design System's own *written* spec for the screen ("the checkmark,
+  headline, and change-due figure are the only things on screen").
+- Stock list shows "Low"/"Restock" once (in the stock-level column) where the
+  mock repeats it as a name badge too — kept single; showing it twice is
+  redundant, not more informative.
+- The Add Stock modal's quantity control is a typed field, not the mock's
+  ±1 stepper — same reasoning as the Till's loose-goods row (ADR-0004/0005): a
+  stock correction can be fractional, and a whole-unit stepper can't express
+  that.
+
+**One open question, not decided either way:** the cart/stock stepper's ±
+keys are 26–42px — exact to the prototype's own stepper (ADR-0006's literal
+style authority) but under the Design System's written 44px touch-target
+floor. The two governing documents disagree with each other; put to the
+client in §4j rather than picked unilaterally.
+
+`ruff` clean; **245 tests pass** (3 new: the word-wrap regression tests).
 
 ### 2026-09-12 — Session 19: the htmx fragment-swap pass (§4i's last deferral closed)
 

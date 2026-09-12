@@ -14,6 +14,7 @@ from datetime import datetime
 
 from escpos.printer import Dummy
 from reportlab.lib.units import mm
+from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.pdfgen import canvas
 
 from sukoon.extensions import db
@@ -154,28 +155,90 @@ def render_escpos(data: ReceiptData) -> bytes:
 # --- PDF fallback (80 mm roll) -------------------------------------
 
 
+def _wrap_centered(text: str, *, font: str, size: int, max_width: float) -> list[str]:
+    """Greedy word-wrap so a long shop name/contact never runs off an 80 mm
+    receipt — printers don't clip gracefully, they just cut the line off."""
+    words = text.split()
+    lines: list[str] = []
+    current = ""
+    for word in words:
+        candidate = f"{current} {word}".strip()
+        if stringWidth(candidate, font, size) <= max_width or not current:
+            current = candidate
+        else:
+            lines.append(current)
+            current = word
+    if current:
+        lines.append(current)
+    return lines
+
+
 def render_pdf(data: ReceiptData) -> bytes:
     body = receipt_body(data)
     line_h = 12
     width = 80 * mm
-    height = 24 * mm + line_h * len(body) + 14 * mm
+    printable = width - 8 * mm
+    logo_size = 7 * mm
+
+    contact_lines = (
+        _wrap_centered(data.shop_contact, font="Courier", size=8, max_width=printable)
+        if data.shop_contact
+        else []
+    )
+    footer_lines = (
+        _wrap_centered(
+            f"Questions about this bill? {data.shop_contact}",
+            font="Helvetica", size=7, max_width=printable,
+        )
+        if data.shop_contact
+        else []
+    )
+
+    height = (
+        16 * mm + logo_size  # top margin + logomark
+        + line_h  # shop name
+        + line_h * len(contact_lines)
+        + 4 + line_h * len(body)  # the shared body
+        + line_h * len(footer_lines)
+        + 10 * mm  # bottom margin
+    )
 
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=(width, height))
-    y = height - 12 * mm
+    y = height - 8 * mm
 
+    # A small drawn logomark — no image asset needed, just brand-teal shapes
+    # (Design System Figure 9: "the logomark appears even on the printed
+    # receipt — brand consistency extends past the screen").
+    logo_x = width / 2 - logo_size / 2
+    logo_y = y - logo_size
+    c.setFillColorRGB(0x0E / 255, 0x6B / 255, 0x57 / 255)
+    c.roundRect(logo_x, logo_y, logo_size, logo_size, 2 * mm, fill=1, stroke=0)
+    c.setFillColorRGB(0xF4 / 255, 0xC5 / 255, 0x67 / 255)
+    c.circle(width / 2, logo_y + logo_size * 0.6, logo_size * 0.16, fill=1, stroke=0)
+    y = logo_y - line_h
+
+    c.setFillColorRGB(0, 0, 0)
     c.setFont("Helvetica-Bold", 12)
     c.drawCentredString(width / 2, y, data.shop_name)
     y -= line_h + 2
     c.setFont("Courier", 8)
-    if data.shop_contact:
-        c.drawCentredString(width / 2, y, data.shop_contact)
+    for line in contact_lines:
+        c.drawCentredString(width / 2, y, line)
         y -= line_h
     y -= 4
 
     for row in body:
         c.drawString(4 * mm, y, row)
         y -= line_h
+
+    if footer_lines:
+        y -= 2
+        c.setFont("Helvetica", 7)
+        c.setFillColorRGB(0x86 / 255, 0x86 / 255, 0x8B / 255)
+        for line in footer_lines:
+            c.drawCentredString(width / 2, y, line)
+            y -= line_h
 
     c.showPage()
     c.save()

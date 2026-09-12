@@ -16,6 +16,7 @@ from sukoon.services.auth_service import hash_password
 from sukoon.services.receipts import printer
 from sukoon.services.receipts import service as receipts
 from sukoon.services.receipts.receipt import (
+    _wrap_centered,
     build_receipt,
     receipt_body,
     render_escpos,
@@ -116,6 +117,35 @@ def test_pdf_fallback_renders_a_pdf(sale):
     pdf = render_pdf(build_receipt(sale))
     assert pdf.startswith(b"%PDF-")
     assert len(pdf) > 500
+
+
+# --- word-wrap (a real bug, found by rendering and looking) --------
+
+def test_short_text_does_not_wrap():
+    assert _wrap_centered("Cash", font="Helvetica", size=8, max_width=200) == ["Cash"]
+
+
+def test_long_text_wraps_within_the_printable_width():
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+
+    text = "Main Bazaar, Shop #14, Near the Old Clock Tower, Lahore  0300-1234567"
+    max_width = 72 * 2.834  # ~72mm in points, the receipt's usable width
+    lines = _wrap_centered(text, font="Courier", size=8, max_width=max_width)
+    assert len(lines) > 1  # this string is long enough that it must wrap
+    for line in lines:
+        assert stringWidth(line, "Courier", 8) <= max_width
+    # no words were dropped or reordered
+    assert " ".join(lines).split() == text.split()
+
+
+def test_a_long_shop_contact_does_not_run_off_the_receipt(sale):
+    settings_service.set(
+        "shop.contact",
+        "Main Bazaar, Shop #14, Near the Old Clock Tower, Lahore  0300-1234567",
+    )
+    db.session.commit()
+    pdf = render_pdf(build_receipt(sale))
+    assert pdf.startswith(b"%PDF-")  # renders without error either way
 
 
 # --- issue_receipt: the printer decision -------------------------
