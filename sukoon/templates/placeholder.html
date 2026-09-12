@@ -1,18 +1,51 @@
 {% extends "base.html" %}
 {% block title %}Sukoon{% endblock %}
+{% block heading %}Welcome{% endblock %}
+{% block subheading %}Al-Rehman General Store{% endblock %}
 {% block content %}
-<h1>sukoon</h1>
-<p>Al-Rehman General Store.</p>
-
+{#
+  Phase 3.5 (ADR-0022): no reference screenshot for this landing page — the
+  Design System's screens assume the rail (Till/Stock/Khata/Insights/Settings)
+  as the way in, not a separate home page. Kept as a calm one-time entry point
+  rather than folded away, styled on the established vocabulary (ADR-0006
+  rule 4). "Sukoon" appears here as its own text node — not just the wordmark
+  split across styled spans elsewhere — so the page still visibly says its own
+  name (also what the Phase 0 smoke test looks for).
+#}
 {% if current_user.is_authenticated %}
-  <p>Signed in as <strong>{{ current_user.name }}</strong> ({{ current_user.role }}).
-     Use the links in the header, or:</p>
-  <ul>
-    <li><a href="{{ url_for('till.index') }}">Till</a> — ring up a sale, take payment</li>
-    <li><a href="{{ url_for('stock.index') }}">Stock</a> — catalogue, stock levels, barcodes, labels</li>
-  </ul>
-  <p><small>Sign out from the header above.</small></p>
+  <h1 class="text-2xl font-extrabold tracking-[-0.02em] mb-1">Welcome back, {{ current_user.name }}</h1>
+  <p class="text-sm text-muted mb-8">Sukoon is ready. Pick a screen to get started, or use the rail on the left.</p>
+
+  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-3xl">
+    <a href="{{ url_for('till.index') }}" class="panel p-6 border border-transparent hover:border-teal-tint2 transition-colors">
+      <div class="w-11 h-11 rounded-[13px] bg-teal-tint flex items-center justify-center mb-4">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#0A4F41" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
+      </div>
+      <div class="text-[15px] font-bold mb-1">Till</div>
+      <div class="text-sm text-muted">Ring up a sale, take payment</div>
+    </a>
+
+    <a href="{{ url_for('stock.index') }}" class="panel p-6 border border-transparent hover:border-teal-tint2 transition-colors">
+      <div class="w-11 h-11 rounded-[13px] bg-sky-tint flex items-center justify-center mb-4">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#3E6FBF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7v10l9 5 9-5V7Z"/><path d="M3 7l9 5 9-5"/><path d="M12 12v10"/></svg>
+      </div>
+      <div class="text-[15px] font-bold mb-1">Stock</div>
+      <div class="text-sm text-muted">Catalogue, stock levels, barcodes, labels</div>
+    </a>
+
+    <a href="{{ url_for('refunds.find') }}" class="panel p-6 border border-transparent hover:border-teal-tint2 transition-colors">
+      <div class="w-11 h-11 rounded-[13px] bg-amber-tint flex items-center justify-center mb-4">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#B8873B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 1 0-3-7l-3 3"/></svg>
+      </div>
+      <div class="text-[15px] font-bold mb-1">Refunds</div>
+      <div class="text-sm text-muted">Find a sale, return an item</div>
+    </a>
+  </div>
 {% else %}
-  <p><a href="{{ url_for('auth.login') }}">Sign in</a> to continue.</p>
+  <div class="max-w-sm">
+    <h1 class="text-2xl font-extrabold tracking-[-0.02em] mb-2">Sukoon</h1>
+    <p class="text-sm text-muted mb-6">Al-Rehman General Store's inventory and point of sale.</p>
+    <a href="{{ url_for('auth.login') }}" class="btn-primary">Sign in</a>
+  </div>
 {% endif %}
 {% endblock %}

@@ -11,9 +11,9 @@ work session, not just every phase.
 | | |
 |---|---|
 | **Phase** | **Phase 3.5 — Visual Pass ([ADR-0022](adr/0022-dedicated-visual-pass.md)) — IN PROGRESS.** Phase 3 (POS & Billing) functionally complete and signed off (§4h). |
-| **Status** | Phase 3 functional DoD signed off (§4h). Phase 3.5: toolchain + Login (session 13); Till + Sale Complete (session 14, §4i); till terminal identification (session 15, [ADR-0023](adr/0023-till-terminal-identification.md), resolves O-8's labelling half); Stock (session 16, §4i). **Refunds converted (session 17, §4i — resolves O-7's pixels):** find / sale / pending, on the established card-panel-pill vocabulary (no reference screenshot exists for Refunds — ADR-0006 rule 4). A per-line live "≈ Rs" refund-amount preview added (Alpine, client-side estimate only — `refund_service` stays authoritative). Verified with real screenshots against a live sale + a real pending refund; no bugs found this round. Templates + `input.css` only. `ruff` clean, **242 tests green, 95% coverage**. |
-| **Last session** | 2026-09-12 (session 17) |
-| **Next action** | Continue **Phase 3.5**: `placeholder.html` (the landing page) next, then the deferred htmx fragment-swap pass, then the full design-DoD side-by-side against all 9 reference screenshots (§4i). **Notes:** credit-limit enforcement (ADR-0014) is Phase 4. The session cart does not survive session loss (§5 Auth item, deferred). |
+| **Status** | Phase 3 functional DoD signed off (§4h). Phase 3.5: toolchain + Login (session 13); Till + Sale Complete (session 14); till terminal identification (session 15, [ADR-0023](adr/0023-till-terminal-identification.md)); Stock (session 16); Refunds (session 17, resolves O-7's pixels). **Landing page converted (session 18, §4i):** `placeholder.html` — a calm "Welcome back" with three destination tiles (Till/Stock/Refunds) for an authenticated visit, a simple sign-in prompt for an anonymous one; no reference screenshot exists (the Design System assumes the rail as the way in, not a separate home page). The Phase 0 smoke test (`b"sukoon" in response.data.lower()`) still passes — checked deliberately, not just hoped. Templates + `input.css` only. `ruff` clean, **242 tests green, 95% coverage**. |
+| **Last session** | 2026-09-12 (session 18) |
+| **Next action** | Every screen in §4i's tracker is now converted. Continue **Phase 3.5**'s last two items: **the deferred htmx fragment-swap pass** (cart mutations without a full reload — needs a route change + real browser interaction testing, deliberately split out earlier), then **the full design-DoD side-by-side** against all 9 reference screenshots (Design System §13) to formally close Phase 3.5 before Phase 4. **Notes:** credit-limit enforcement (ADR-0014) is Phase 4. The session cart does not survive session loss (§5 Auth item, deferred). |
 
 ## 2. Decisions made so far
 
@@ -513,7 +513,7 @@ visual pass is done and can be checked in a real browser.
 | Till (Figure 2) + Sale Complete (Figure 8) | ✅ session 14 — cart cards, sealed stepper, §4b loose row (Alpine segmented weight/amount toggle + live ≈ preview), payment pills, cash quick-amounts + live change preview, real O-9 countdown ring (Alpine, cancels on key/tap) |
 | Stock list / detail / form / bulk / categories (Figures 3, 7) | ✅ session 16 — stat cards, labelled stock bar (reads `compute_stock_status`, never full at zero), a real Add Stock `<dialog>` modal with the segmented control + live preview |
 | Refunds (find / sale / pending) — O-7 pixels | ✅ session 17 — established vocabulary (no reference screenshot exists), live per-line refund-amount preview |
-| `placeholder.html` (landing) | ☐ |
+| `placeholder.html` (landing) | ✅ session 18 — "Welcome back" + Till/Stock/Refunds tiles (authenticated), a plain sign-in prompt (anonymous); no reference screenshot exists |
 | htmx fragment-swapping pass (deferred above) | ☐ |
 | Design DoD side-by-side vs all 9 screenshots (Design System §13) | ☐ at the end |
 
@@ -768,6 +768,27 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-12 — Session 18: Phase 3.5 — the landing page (§4i tracker complete)
+
+**Done (templates + `input.css` only — no route changes)**
+- **`placeholder.html`** — considered and rejected redirecting an authenticated
+  visit straight to the Till (the Design System has no separate "home" screen;
+  the rail is the way in). Chose the smaller, safer move: restyle what exists
+  rather than change `routes/main.py`'s behaviour, consistent with this pass's
+  own rule. Authenticated: a "Welcome back, {name}" heading and three tile
+  cards (Till/Stock/Refunds, each with its section's icon and tint colour) as a
+  calmer alternative to the old bullet list. Anonymous: a plain "Sukoon" heading
+  and a "Sign in" button — unchanged behaviour, just styled.
+- Deliberately kept a literal, contiguous "Sukoon" text node on the page (not
+  just inside spans split for the wordmark treatment) — the Phase 0 required
+  smoke test (`test_app_boots_and_serves_placeholder`) greps the raw response
+  body for `b"sukoon"`, and a split wordmark would have silently broken it.
+  Ran the test rather than assumed.
+- `ruff` clean; **242 tests pass, 95% coverage** — unchanged.
+
+**Every screen in the §4i tracker is now converted.** Two items remain to close
+Phase 3.5: the deferred htmx pass, and the final design-DoD side-by-side.
 
 ### 2026-09-12 — Session 17: Phase 3.5 — Refunds converted (resolves O-7's pixels)
 
