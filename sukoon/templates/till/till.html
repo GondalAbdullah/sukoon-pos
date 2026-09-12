@@ -8,11 +8,13 @@
   values, with the loose-goods row from the §4b mockups (docs/design/drafts/
   till-fractional-cart/). Alpine handles pure client-side niceties — the
   payment-pill toggle, cash quick-amounts, a live change preview, and the
-  weight/amount segmented control. Every action still round-trips to the server
-  (classic POST + redirect); htmx fragment-swapping (Design System §10.3) is a
-  separate follow-up, noted in context.md §4i, not silently skipped.
+  weight/amount segmented control. Cart mutations swap only #till-body (Design
+  System §10.3) — every mutating form below sends its existing POST + redirect
+  unchanged (no route touched); htmx follows the redirect itself, then hx-select
+  lifts #till-body back out of the resulting full page. Checkout deliberately
+  stays a real navigation to Sale Complete — a distinct "moment", not a swap.
 #}
-<div class="flex flex-col lg:flex-row gap-6 items-start">
+<div id="till-body" class="flex flex-col lg:flex-row gap-6 items-start">
 
   <!-- LEFT: scan + cart -->
   <div class="flex-1 w-full min-w-0">
@@ -28,6 +30,8 @@
         {{ terminal_label }}
       </button>
       <form method="post" action="{{ url_for('till.set_terminal') }}"
+            hx-post="{{ url_for('till.set_terminal') }}" hx-select="#till-body"
+            hx-target="#till-body" hx-swap="outerHTML"
             x-show="renaming" x-cloak class="flex items-center gap-2">
         <input type="text" name="label" value="{{ terminal_label }}" maxlength="32" autofocus
                class="field w-40 !py-1.5 !text-xs">
@@ -36,6 +40,8 @@
     </div>
     {% else %}
     <form method="post" action="{{ url_for('till.set_terminal') }}"
+          hx-post="{{ url_for('till.set_terminal') }}" hx-select="#till-body"
+          hx-target="#till-body" hx-swap="outerHTML"
           class="card mb-4 p-5 flex flex-wrap items-end gap-3 border border-teal-tint2">
       <div class="flex-1 min-w-[200px]">
         <div class="text-sm font-bold mb-1">Name this till</div>
@@ -47,9 +53,11 @@
     {% endif %}
 
     <form method="post" action="{{ url_for('till.add') }}"
+          hx-post="{{ url_for('till.add') }}" hx-select="#till-body"
+          hx-target="#till-body" hx-swap="outerHTML"
           class="flex items-center gap-3 card px-5 py-4 border-[1.5px] border-teal-tint2">
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#0E6B57" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
-      <input type="text" name="code" autofocus autocomplete="off"
+      <input type="text" name="code" id="scan-input" autofocus autocomplete="off"
              placeholder="Scan an item, or type a name…"
              class="flex-1 bg-transparent text-[15px] placeholder:text-faint focus:outline-none">
       <button type="submit" class="pill bg-sunk text-muted">Add</button>
@@ -59,7 +67,10 @@
     {# Scan-as-you-go (ADR-0011 §2): an unknown code, created on the spot. #}
     <div class="card mt-4 p-5 border border-amber/30">
       <div class="text-sm font-bold mb-3">&ldquo;{{ new_code }}&rdquo; isn&rsquo;t in the catalogue yet — add it?</div>
-      <form method="post" action="{{ url_for('till.new_provisional') }}" class="flex flex-wrap gap-3 items-end">
+      <form method="post" action="{{ url_for('till.new_provisional') }}"
+            hx-post="{{ url_for('till.new_provisional') }}" hx-select="#till-body"
+            hx-target="#till-body" hx-swap="outerHTML"
+            class="flex flex-wrap gap-3 items-end">
         <input type="hidden" name="code" value="{{ new_code }}">
         <label class="flex-1 min-w-[160px]"><span class="label">Name</span>
           <input type="text" name="name" required autofocus class="field"></label>
@@ -74,7 +85,9 @@
     <div class="mt-6 mb-2 flex items-center justify-between">
       <div class="text-sm font-bold">Cart · {{ rows|length }} item{{ '' if rows|length == 1 else 's' }}</div>
       {% if rows %}
-      <form method="post" action="{{ url_for('till.clear') }}">
+      <form method="post" action="{{ url_for('till.clear') }}"
+            hx-post="{{ url_for('till.clear') }}" hx-select="#till-body"
+            hx-target="#till-body" hx-swap="outerHTML">
         <button type="submit" class="text-sm font-semibold text-muted hover:text-coral">Clear</button>
       </form>
       {% endif %}
@@ -98,12 +111,18 @@
             <div class="text-[11.5px] text-muted mt-0.5">{{ row.unit_price_paisa | rupees }} / {{ row.unit_label }}</div>
           </div>
           <div class="stepper">
-            <form method="post" action="{{ url_for('till.update_line', index=i) }}"><button name="op" value="dec" class="stepper-key">&minus;</button></form>
+            <form method="post" action="{{ url_for('till.update_line', index=i) }}"
+                  hx-post="{{ url_for('till.update_line', index=i) }}" hx-select="#till-body"
+                  hx-target="#till-body" hx-swap="outerHTML"><button name="op" value="dec" class="stepper-key">&minus;</button></form>
             <span class="text-sm font-bold min-w-[14px] text-center">{{ (row.quantity_milli // 1000) }}</span>
-            <form method="post" action="{{ url_for('till.update_line', index=i) }}"><button name="op" value="inc" class="stepper-key">+</button></form>
+            <form method="post" action="{{ url_for('till.update_line', index=i) }}"
+                  hx-post="{{ url_for('till.update_line', index=i) }}" hx-select="#till-body"
+                  hx-target="#till-body" hx-swap="outerHTML"><button name="op" value="inc" class="stepper-key">+</button></form>
           </div>
           <div class="w-24 text-right text-[14.5px] font-bold">{{ lt | rupees if lt is not none else '—' }}</div>
-          <form method="post" action="{{ url_for('till.update_line', index=i) }}">
+          <form method="post" action="{{ url_for('till.update_line', index=i) }}"
+                hx-post="{{ url_for('till.update_line', index=i) }}" hx-select="#till-body"
+                hx-target="#till-body" hx-swap="outerHTML">
             <button name="op" value="remove" class="text-faint hover:text-coral px-1" title="Remove">&times;</button>
           </form>
         </div>
@@ -143,7 +162,9 @@
                   </button>
                   <div class="w-24 text-right text-[14.5px] font-bold text-faint">—</div>
                 {% endif %}
-                <form method="post" action="{{ url_for('till.update_line', index=i) }}">
+                <form method="post" action="{{ url_for('till.update_line', index=i) }}"
+                      hx-post="{{ url_for('till.update_line', index=i) }}" hx-select="#till-body"
+                      hx-target="#till-body" hx-swap="outerHTML">
                   <button name="op" value="remove" class="text-faint hover:text-coral px-1" title="Remove">&times;</button>
                 </form>
               </div>
@@ -161,6 +182,8 @@
             </div>
 
             <form method="post" action="{{ url_for('till.update_line', index=i) }}"
+                  hx-post="{{ url_for('till.update_line', index=i) }}" hx-select="#till-body"
+                  hx-target="#till-body" hx-swap="outerHTML"
                   x-show="mode === 'manual_weight'" class="flex items-center gap-2">
               <input type="hidden" name="op" value="set_weight">
               <input type="number" name="weight" step="0.001" min="0" x-model.number="weight"
@@ -170,6 +193,8 @@
               <button type="submit" class="btn-ghost !py-2 !px-3 text-xs">Set</button>
             </form>
             <form method="post" action="{{ url_for('till.update_line', index=i) }}"
+                  hx-post="{{ url_for('till.update_line', index=i) }}" hx-select="#till-body"
+                  hx-target="#till-body" hx-swap="outerHTML"
                   x-show="mode === 'manual_amount'" class="flex items-center gap-2">
               <input type="hidden" name="op" value="set_amount">
               <span class="text-xs text-muted">Rs</span>
@@ -279,4 +304,17 @@
     </form>
   </div>
 </div>
+
+<script>
+  // Every cart mutation swaps #till-body via htmx (Design System §10.3); the
+  // scan field is a fresh DOM node after each swap and loses focus with it.
+  // Bulk entry already promises "the cursor returns to the scan field after
+  // every committed row" (ADR-0011 §1) — the Till gets the same courtesy.
+  document.body.addEventListener('htmx:afterSwap', (event) => {
+    if (event.target && event.target.id === 'till-body') {
+      const scan = document.getElementById('scan-input');
+      if (scan) scan.focus();
+    }
+  });
+</script>
 {% endblock %}

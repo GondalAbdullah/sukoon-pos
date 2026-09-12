@@ -11,9 +11,9 @@ work session, not just every phase.
 | | |
 |---|---|
 | **Phase** | **Phase 3.5 — Visual Pass ([ADR-0022](adr/0022-dedicated-visual-pass.md)) — IN PROGRESS.** Phase 3 (POS & Billing) functionally complete and signed off (§4h). |
-| **Status** | Phase 3 functional DoD signed off (§4h). Phase 3.5: toolchain + Login (session 13); Till + Sale Complete (session 14); till terminal identification (session 15, [ADR-0023](adr/0023-till-terminal-identification.md)); Stock (session 16); Refunds (session 17, resolves O-7's pixels). **Landing page converted (session 18, §4i):** `placeholder.html` — a calm "Welcome back" with three destination tiles (Till/Stock/Refunds) for an authenticated visit, a simple sign-in prompt for an anonymous one; no reference screenshot exists (the Design System assumes the rail as the way in, not a separate home page). The Phase 0 smoke test (`b"sukoon" in response.data.lower()`) still passes — checked deliberately, not just hoped. Templates + `input.css` only. `ruff` clean, **242 tests green, 95% coverage**. |
-| **Last session** | 2026-09-12 (session 18) |
-| **Next action** | Every screen in §4i's tracker is now converted. Continue **Phase 3.5**'s last two items: **the deferred htmx fragment-swap pass** (cart mutations without a full reload — needs a route change + real browser interaction testing, deliberately split out earlier), then **the full design-DoD side-by-side** against all 9 reference screenshots (Design System §13) to formally close Phase 3.5 before Phase 4. **Notes:** credit-limit enforcement (ADR-0014) is Phase 4. The session cart does not survive session loss (§5 Auth item, deferred). |
+| **Status** | Phase 3 functional DoD signed off (§4h). Phase 3.5: toolchain + Login (13); Till + Sale Complete (14); till terminal identification (15, [ADR-0023](adr/0023-till-terminal-identification.md)); Stock (16); Refunds (17, resolves O-7's pixels); landing page (18). **htmx fragment-swap pass done (session 19, §4i, closes the last deferred item):** every Till cart mutation (add, stepper, remove, set weight/amount, clear, name-this-till, provisional-create) now swaps only `#till-body` (Design System §10.3) — zero route changes; htmx follows the existing redirect itself and `hx-select` lifts the fragment back out. Checkout deliberately still does a real navigation to Sale Complete (a distinct "moment"). Scan-field focus is restored after every swap (`htmx:afterSwap`), matching the "cursor returns to the scan field" promise already made for bulk entry (ADR-0011 §1). **Verified in a real headless Chrome via `puppeteer-core`** (installed as a dev tool) — not just eyeballed: scripted add → stepper × 3 → remove, and separately the loose-goods weight-entry path, asserting zero full-page navigations (`framenavigated` count) throughout, correct DOM state at each step, and scan-field refocus; a third script confirmed checkout still navigates for real. `ruff` clean, **242 tests green, 95% coverage** (route behaviour untouched). |
+| **Last session** | 2026-09-12 (session 19) |
+| **Next action** | Every §4i item is done. **The last step to close Phase 3.5** is the full design-DoD side-by-side against all 9 reference screenshots (Design System §13) — present it, get sign-off, then Phase 4 (Khata / credit customers) begins. **Notes:** credit-limit enforcement (ADR-0014) is Phase 4. The session cart does not survive session loss (§5 Auth item, deferred). |
 
 ## 2. Decisions made so far
 
@@ -494,17 +494,18 @@ change — passing the active-staff list and a greeting string to the login
 template — no behaviour change, noted there rather than silently bent.) Any
 intentional departure from a reference screenshot still goes in §4b.
 
-**Deliberately deferred within this pass:** true htmx fragment-swapping (Design
-System §10.3 — cart mutations without a full reload) is **not** done yet. Every
-Till/cart action still does a classic POST + redirect. Reasoning: wiring real
-htmx swaps changes response semantics per request (detecting `HX-Request`,
-deciding what to return) in a way this pass's own "templates only" rule is meant
-to keep out of scope, and it deserves interactive/browser verification this
-text-only session cannot give with confidence. Alpine covers the pure
-client-side niceties instead (payment-pill toggle, cash quick-amounts, a live
-change preview, the loose-row weight/amount toggle) — real UX gain, zero route
-risk. Flagged as a deliberate scope line, not a silent skip; revisit once the
-visual pass is done and can be checked in a real browser.
+**The htmx fragment-swap deferral is now closed (session 19).** It turned out
+not to need a route change at all: every mutating Till form kept its existing
+POST + redirect verbatim, and gained `hx-post` (same URL) + `hx-select="#till-body"`
++ `hx-target="#till-body"` + `hx-swap="outerHTML"`. htmx follows the server's
+redirect itself (same as a browser would), receives the resulting full `/till/`
+page, and `hx-select` lifts `#till-body` back out of it — so the view function
+never learns or cares whether the request came from htmx. Zero coupling, zero
+`HX-Request` branching, and the "templates only" rule for this pass held after
+all. The interactive-verification concern was real, so it was met head-on rather
+than waved off: `puppeteer-core` (dev dependency) drove a real headless Chrome
+through add → stepper × 3 → remove and the loose-goods weight-entry path,
+asserting zero full-page navigations and correct DOM state at each step.
 
 | Screen (Design System figure) | State |
 |---|---|
@@ -514,7 +515,7 @@ visual pass is done and can be checked in a real browser.
 | Stock list / detail / form / bulk / categories (Figures 3, 7) | ✅ session 16 — stat cards, labelled stock bar (reads `compute_stock_status`, never full at zero), a real Add Stock `<dialog>` modal with the segmented control + live preview |
 | Refunds (find / sale / pending) — O-7 pixels | ✅ session 17 — established vocabulary (no reference screenshot exists), live per-line refund-amount preview |
 | `placeholder.html` (landing) | ✅ session 18 — "Welcome back" + Till/Stock/Refunds tiles (authenticated), a plain sign-in prompt (anonymous); no reference screenshot exists |
-| htmx fragment-swapping pass (deferred above) | ☐ |
+| htmx fragment-swapping pass | ✅ session 19 — Till cart mutations swap `#till-body`; verified in a real browser via `puppeteer-core` |
 | Design DoD side-by-side vs all 9 screenshots (Design System §13) | ☐ at the end |
 
 ## 5. Edge case and test matrix
@@ -768,6 +769,53 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-12 — Session 19: the htmx fragment-swap pass (§4i's last deferral closed)
+
+**Decision, made while implementing rather than assumed beforehand**
+- The original deferral (session 13) worried that htmx swaps would need
+  server-side `HX-Request` branching — a route change outside this pass's
+  "templates only" rule. Turned out not to be true: htmx already follows a
+  redirect response itself, exactly like a browser does, before handing the
+  final body to `hx-select`. So every mutating Till form keeps its existing
+  `method="post" action="..."` (untouched fallback) and gains
+  `hx-post="<same url>" hx-select="#till-body" hx-target="#till-body"
+  hx-swap="outerHTML"`. The view function is never touched and cannot tell the
+  difference. Recorded here because the original worry was wrong, not because
+  the plan changed on request.
+
+**Done**
+- `templates/till/till.html` — `id="till-body"` wraps the cart + summary
+  columns; every mutating form (add/scan, stepper ±, remove, set weight, set
+  amount, clear, name-this-till, provisional-create) got the four `hx-*`
+  attributes above. Checkout's form deliberately did **not** — it stays a real
+  navigation to Sale Complete, a distinct "moment" (Design System's own
+  reasoning, §10.3).
+- Scan-field focus restored after every swap: `id="scan-input"` on the field,
+  and a small script listens for `htmx:afterSwap` on `#till-body` and refocuses
+  it — the same "cursor returns to the scan field" promise ADR-0011 §1 already
+  made for bulk entry, now honoured for the Till too.
+- **Verified in a real browser, not asserted.** Added `puppeteer-core` as a dev
+  dependency (drives the system Chrome directly, no bundled browser download)
+  and wrote three scripts against a live dev server:
+  1. Add a sealed product, click "+" three times, remove the line — asserted
+     `framenavigated` fired **zero** times across the whole sequence, the
+     stepper's displayed quantity was correct at each step (1 → 4), and the
+     scan field held focus and was cleared after every swap.
+  2. Add a loose product (opens straight into the weight/amount Alpine control,
+     per the §4b design), type a weight, submit — same zero-navigation proof,
+     plus the row correctly collapsed to show "1.5 kg" and stopped needing a
+     weight.
+  3. A full cash checkout — confirmed this path still performs a **real**
+     navigation to `/till/complete/<id>` with a "Sale complete" heading, proving
+     the one deliberately-excluded form was not swept up by mistake.
+- `ruff` clean; **242 tests pass, 95% coverage** — the Flask test client never
+  executes JS, so the existing route-level test suite was unaffected by design;
+  the interaction behaviour itself was proven by the puppeteer scripts above,
+  not by pytest.
+
+**Phase 3.5's §4i tracker is now fully closed.** One step remains before Phase 4:
+the design-DoD side-by-side against all 9 reference screenshots.
 
 ### 2026-09-12 — Session 18: Phase 3.5 — the landing page (§4i tracker complete)
 
