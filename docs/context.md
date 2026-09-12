@@ -11,9 +11,9 @@ work session, not just every phase.
 | | |
 |---|---|
 | **Phase** | **Phase 3.5 — Visual Pass ([ADR-0022](adr/0022-dedicated-visual-pass.md)) — IN PROGRESS.** Phase 3 (POS & Billing) functionally complete and signed off (§4h). |
-| **Status** | Phase 3 functional DoD signed off (§4h). Phase 3.5 toolchain + Login done (session 13); Till + Sale Complete converted (session 14, §4i). **Till terminal identification shipped (session 15, addendum — [ADR-0023](adr/0023-till-terminal-identification.md)):** a till names itself once via a long-lived cookie (never at login), `sale.terminal_label` (frozen since Phase 1, never populated until now) is finally set on checkout, and the name shows on Sale Complete and both receipt renderers. Resolves the labelling half of **O-8**; live terminal health-status stays open. Real routes + service wiring (not a Phase 3.5 template change) — `ruff` clean, **242 tests green, 95% coverage**. |
-| **Last session** | 2026-09-12 (session 15) |
-| **Next action** | Back to **Phase 3.5**: **Stock** (list / detail / form / bulk entry / categories — Figures 3, 7) next, then **Refunds** (O-7 pixels), then `placeholder.html`, then the deferred htmx fragment-swap pass, then the full design-DoD side-by-side (§4i). **Notes:** credit-limit enforcement (ADR-0014) is Phase 4. The session cart does not survive session loss (§5 Auth item, deferred). |
+| **Status** | Phase 3 functional DoD signed off (§4h). Phase 3.5 toolchain + Login done (session 13); Till + Sale Complete converted (session 14, §4i); till terminal identification shipped (session 15, [ADR-0023](adr/0023-till-terminal-identification.md), resolves O-8's labelling half). **Stock converted (session 16, §4i):** list (Figure 3 — stat cards, search/filter row, the labelled stock-level bar reading directly off `compute_stock_status`, never a misleading full bar at zero stock), product detail with a real Add Stock modal (Figure 7 — segmented Stock in/out/Correct, live "new stock level" preview via Alpine), product form, bulk entry, categories. Verified with real screenshots at every step — caught and fixed two real bugs this way (an out-of-stock item with no threshold showing a full bar; "Stock_in" instead of "Stock in" in the movements table). Templates + `input.css` only. `ruff` clean, **242 tests green, 95% coverage**. |
+| **Last session** | 2026-09-12 (session 16) |
+| **Next action** | Continue **Phase 3.5**: **Refunds** (O-7 pixels — find / sale / pending) next, then `placeholder.html`, then the deferred htmx fragment-swap pass, then the full design-DoD side-by-side (§4i). **Notes:** credit-limit enforcement (ADR-0014) is Phase 4. The session cart does not survive session loss (§5 Auth item, deferred). |
 
 ## 2. Decisions made so far
 
@@ -253,13 +253,11 @@ recorded rather than smuggled (ADR-0018 §3):
 
 ### Phase 2 UI deviations
 
-- **Stock screens are functional HTML, not the Design System's visual language.**
-  The Stock list (Figure 3) and the Add Stock modal (Figure 7) are implemented as
-  plain forms and a full-page adjust form, not the labelled bars, segmented
-  control, or modal. Structure honours what matters now — one adjust entry point
-  per product, a mandatory reason on every movement, the three movement types. The
-  Tailwind + htmx visual pass is a later phase. Consistent with the Phase 1 login
-  screen's treatment.
+- ~~**Stock screens are functional HTML, not the Design System's visual language.**~~
+  **SUPERSEDED 2026-09-12 (Phase 3.5, session 16).** The Stock list now has the
+  labelled stock-level bar and stat cards (Figure 3), and the Add Stock modal
+  (Figure 7) is a real `<dialog>` with the segmented control and a live preview.
+  See §4i.
 
 ### Phase 3 UI deviations
 
@@ -511,8 +509,8 @@ visual pass is done and can be checked in a real browser.
 | `base.html` app shell — nav rail + top bar (§5) | ✅ session 13 |
 | Login (Figure 1) | ✅ session 13 — radial wash, avatar row, greeting, Alpine reveal; ADR-0008 password deviation kept |
 | Till (Figure 2) + Sale Complete (Figure 8) | ✅ session 14 — cart cards, sealed stepper, §4b loose row (Alpine segmented weight/amount toggle + live ≈ preview), payment pills, cash quick-amounts + live change preview, real O-9 countdown ring (Alpine, cancels on key/tap) |
-| Stock list / detail / form / bulk / categories (Figures 3, 7) | ☐ next |
-| Refunds (find / sale / pending) — O-7 pixels | ☐ |
+| Stock list / detail / form / bulk / categories (Figures 3, 7) | ✅ session 16 — stat cards, labelled stock bar (reads `compute_stock_status`, never full at zero), a real Add Stock `<dialog>` modal with the segmented control + live preview |
+| Refunds (find / sale / pending) — O-7 pixels | ☐ next |
 | `placeholder.html` (landing) | ☐ |
 | htmx fragment-swapping pass (deferred above) | ☐ |
 | Design DoD side-by-side vs all 9 screenshots (Design System §13) | ☐ at the end |
@@ -768,6 +766,46 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-12 — Session 16: Phase 3.5 — Stock converted (Figures 3, 7)
+
+**Done (templates + `input.css` only — routes/services untouched)**
+- **Stock list** (`stock/list.html`, Figure 3): the 4 stat cards (catalog size,
+  stock value, needs attention, out of stock), the search/category/needs-completing
+  filter row, Add product / Bulk entry / Categories actions, and a real **labelled
+  stock-level bar** per row. The bar's fill is a display-only read of the same
+  `compute_stock_status` result already computed — never a second source of truth:
+  full/teal with no threshold set, scaled to 2x the threshold when one exists, and
+  **always empty at zero stock regardless of threshold** (a real bug caught by
+  screenshot review: the first version showed a full coral bar for an out-of-stock
+  item with no threshold configured — an empty product looking "full" red is worse
+  than no bar at all). Pure Jinja arithmetic, no Python touched.
+- **Product detail** (`stock/product_detail.html`): stat-card info row, and the
+  **Add Stock modal** (Figure 7) as a real `<dialog>` — the segmented Stock in /
+  Stock out / Correct count control, a live "new stock level" preview (Alpine,
+  echoing — not replacing — `apply_stock_movement`'s authoritative arithmetic on
+  submit), barcode list/assign/label-sheet sections, movements table. Fixed a
+  second real bug here: `class="capitalize"` on `stock_in` rendered "Stock_in"
+  (CSS capitalize doesn't treat `_` as a word boundary) — now
+  `.replace('_', ' ')` first, so "Stock in".
+- **Product form, bulk entry, categories**: no reference screenshot for these
+  (ADR-0006 rule 4 — the established `card`/`field`/`label`/`btn` vocabulary,
+  applied consistently, not invented per screen).
+- `input.css`: `.stat-card`/`.stat-label`/`.stat-value`/`.stat-sub`,
+  `.stock-bar-track`/`.stock-bar-fill`, and `dialog.modal` (+ `::backdrop`,
+  Design System §4.5 — Surface white, 26px radius, ink at 40% opacity). Checkboxes
+  across Stock get `accent-teal` for brand consistency (a native-control detail
+  noticed in the categories screenshot).
+- Verified with real headless-Chrome screenshots at every step, including forcing
+  the `<dialog open>` attribute to inspect the modal's contents without scripting a
+  real click. One tooling detour worth recording: an early screenshot round
+  silently rendered fully unstyled — not a CSS bug, but Chrome's `ERR_UNSAFE_PORT`
+  silently blocking the dev server's port (5060, one of Chrome's blocklisted
+  ports); moving to a different port fixed it.
+- `ruff` clean; **242 tests pass, 95% coverage** — unchanged, confirming the
+  templates-only rule held.
+
+**Next:** Refunds (O-7 pixels), §4i.
 
 ### 2026-09-12 — Session 15: till terminal identification (ADR-0023)
 

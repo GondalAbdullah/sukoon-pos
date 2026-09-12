@@ -1,105 +1,189 @@
 {% extends "base.html" %}
 {% block title %}{{ product.name }} — Sukoon{% endblock %}
+{% block heading %}{{ product.name }}{% endblock %}
+{% block subheading %}{{ product.sku or '—' }}{% if product.category %} · {{ product.category.name }}{% endif %}{% endblock %}
 {% block content %}
-<p><a href="{{ url_for('stock.index') }}">&larr; Stock</a></p>
-<h1>{{ product.name }}
-  {% if product.is_provisional %}<span class="badge">Needs completing</span>{% endif %}
-  {% if not product.is_active %}<span class="badge">Inactive</span>{% endif %}
-</h1>
-<p>{{ product.sku or '—' }}{% if product.category %} · {{ product.category.name }}{% endif %}</p>
+{#
+  Phase 3.5 (ADR-0022): product detail, with the Add Stock modal (Figure 7)
+  restyled as a real <dialog> + Alpine — the "new stock level" preview is a
+  client-side echo of the same arithmetic apply_stock_movement performs
+  authoritatively on submit, not a second source of truth.
+#}
+<p class="mb-4"><a href="{{ url_for('stock.index') }}" class="text-sm font-semibold">&larr; Stock</a></p>
 
-<dl>
-  <dt>In stock</dt>
-  <dd>{{ product.stock_quantity_milli | qty(product.unit_label) }}
-      ({{ {'out':'Restock','low':'Low','healthy':'healthy'}[status] }})</dd>
-  <dt>Selling price</dt><dd>{{ product.sell_price_paisa | rupees }}</dd>
-  <dt>Cost price</dt><dd>{{ product.cost_price_paisa | rupees if product.cost_price_paisa is not none else 'unknown' }}</dd>
-  <dt>Low-stock threshold</dt>
-  <dd>{{ product.low_stock_threshold_milli | qty(product.unit_label) if product.low_stock_threshold_milli is not none else 'not set' }}</dd>
-</dl>
+<div class="flex items-center gap-2 mb-5">
+  {% if product.is_provisional %}<span class="pill-amber">Needs completing</span>{% endif %}
+  {% if not product.is_active %}<span class="pill-coral">Inactive</span>{% endif %}
+</div>
 
-{% if can_manage %}
-  <p><a href="{{ url_for('stock.edit_product', product_id=product.id) }}">Edit details</a></p>
-  <form method="post" action="{{ url_for('stock.delete_product', product_id=product.id) }}"
-        onsubmit="return confirm('Delete {{ product.name }}?')">
-    <button type="submit">Delete</button>
-  </form>
-{% endif %}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <div class="stat-card">
+    <div class="stat-label">In stock</div>
+    <div class="stat-value {{ 'text-coral' if status == 'out' else ('text-amber' if status == 'low' else '') }}">
+      {{ product.stock_quantity_milli | qty(product.unit_label) }}
+    </div>
+    <div class="stat-sub">{{ 'restock' if status == 'out' else ('low' if status == 'low' else 'healthy') }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Selling price</div>
+    <div class="stat-value">{{ product.sell_price_paisa | rupees }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Cost price</div>
+    <div class="stat-value">{{ product.cost_price_paisa | rupees if product.cost_price_paisa is not none else '—' }}</div>
+    <div class="stat-sub">{{ '' if product.cost_price_paisa is not none else 'unknown' }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Low-stock threshold</div>
+    <div class="stat-value">{{ product.low_stock_threshold_milli | qty(product.unit_label) if product.low_stock_threshold_milli is not none else '—' }}</div>
+    <div class="stat-sub">{{ '' if product.low_stock_threshold_milli is not none else 'not set' }}</div>
+  </div>
+</div>
+
+<div class="flex flex-wrap gap-3 mb-8">
+  {% if can_manage %}
+    <a href="{{ url_for('stock.edit_product', product_id=product.id) }}" class="btn-ghost">Edit details</a>
+    <form method="post" action="{{ url_for('stock.delete_product', product_id=product.id) }}"
+          onsubmit="return confirm('Delete {{ product.name }}?')">
+      <button type="submit" class="btn-ghost !text-coral">Delete</button>
+    </form>
+  {% endif %}
+  {% if can_adjust %}
+    <button type="button" class="btn-primary" onclick="document.getElementById('adjust-modal').showModal()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+      Adjust stock
+    </button>
+  {% endif %}
+</div>
 
 {% if can_adjust %}
-<h2>Adjust stock</h2>
-<form method="post" action="{{ url_for('stock.adjust_stock', product_id=product.id) }}">
-  <label><input type="radio" name="movement_type" value="stock_in" checked> Stock in</label>
-  <label><input type="radio" name="movement_type" value="stock_out"> Stock out</label>
-  <label><input type="radio" name="movement_type" value="correction"> Correct count</label>
-  <br>
-  <label>Quantity (for a correction, the new counted level)<br>
-    <input type="number" name="quantity" min="0" step="0.001" required></label><br>
-  <label>Reason (required)<br>
-    <input type="text" name="reason" required placeholder="Supplier delivery · PO-8821"></label><br>
-  <button type="submit">Confirm update</button>
-</form>
+<dialog id="adjust-modal" class="modal w-full max-w-md"
+        x-data="{
+          mode: 'stock_in',
+          current: {{ product.stock_quantity_milli / 1000 }},
+          qty: null,
+          get preview() {
+            if (this.qty === null || this.qty === '') return this.current
+            if (this.mode === 'correction') return this.qty
+            if (this.mode === 'stock_in') return this.current + Number(this.qty)
+            return Math.max(0, this.current - Number(this.qty))
+          }
+        }"
+        @click="$el.close()">
+  <div class="p-7" @click.stop>
+    <div class="flex items-center justify-between mb-5">
+      <div class="text-base font-bold">Adjust stock — {{ product.name }}</div>
+      <button type="button" onclick="document.getElementById('adjust-modal').close()" class="text-faint hover:text-ink text-xl leading-none">&times;</button>
+    </div>
+
+    <div class="flex justify-between items-center bg-sunk rounded-md px-4.5 py-3.5 mb-5">
+      <span class="text-[13px] text-muted font-semibold">Currently in stock</span>
+      <span class="text-lg font-extrabold" x-text="current.toLocaleString() + ' {{ product.unit_label }}'"></span>
+    </div>
+
+    <form method="post" action="{{ url_for('stock.adjust_stock', product_id=product.id) }}">
+      <div class="label">What's happening?</div>
+      <div class="flex gap-2 mb-5">
+        <label class="flex-1 text-center rounded-md py-3 cursor-pointer text-[13.5px] font-semibold transition-colors"
+               :class="mode === 'stock_in' ? 'bg-teal text-white' : 'bg-sunk text-inkSoft'">
+          <input type="radio" name="movement_type" value="stock_in" x-model="mode" class="sr-only">Stock in</label>
+        <label class="flex-1 text-center rounded-md py-3 cursor-pointer text-[13.5px] font-semibold transition-colors"
+               :class="mode === 'stock_out' ? 'bg-teal text-white' : 'bg-sunk text-inkSoft'">
+          <input type="radio" name="movement_type" value="stock_out" x-model="mode" class="sr-only">Stock out</label>
+        <label class="flex-1 text-center rounded-md py-3 cursor-pointer text-[13.5px] font-semibold transition-colors"
+               :class="mode === 'correction' ? 'bg-teal text-white' : 'bg-sunk text-inkSoft'">
+          <input type="radio" name="movement_type" value="correction" x-model="mode" class="sr-only">Correct count</label>
+      </div>
+
+      <div class="label" x-text="mode === 'correction' ? 'New counted level' : 'How many units?'"></div>
+      <input type="number" name="quantity" min="0" step="0.001" required x-model.number="qty"
+             class="field mb-5" placeholder="0">
+
+      <div class="label">Reason (required)</div>
+      <input type="text" name="reason" required placeholder="Supplier delivery · PO-8821" class="field mb-5">
+
+      <div class="flex justify-between items-center bg-teal-tint rounded-[14px] px-4.5 py-3.5 mb-6">
+        <span class="text-[13px] text-teal-deep font-semibold">New stock level</span>
+        <span class="text-base text-teal-deep font-extrabold" x-text="preview.toLocaleString() + ' {{ product.unit_label }}'"></span>
+      </div>
+
+      <div class="flex gap-3">
+        <button type="button" onclick="document.getElementById('adjust-modal').close()" class="btn-ghost flex-1">Cancel</button>
+        <button type="submit" class="btn-primary flex-[1.4]">Confirm update</button>
+      </div>
+    </form>
+  </div>
+</dialog>
 {% endif %}
 
-<h2>Barcodes</h2>
-<ul>
-{% for b in barcodes %}
-  <li>
-    <code>{{ b.barcode }}</code>
-    {% if b.price_override_paisa is not none %} — override {{ b.price_override_paisa | rupees }}{% endif %}
-    {% if b.label %} — {{ b.label }}{% endif %}
-    {% if not b.is_active %} (inactive){% endif %}
-    {% if can_manage and b.is_active %}
-      <form method="post" action="{{ url_for('stock.deactivate_barcode', barcode_id=b.id) }}" style="display:inline">
-        <button type="submit">Deactivate</button>
-      </form>
-    {% endif %}
-  </li>
-{% else %}
-  <li>No barcodes yet.</li>
-{% endfor %}
-</ul>
+<div class="mb-8">
+  <h2 class="text-base font-bold mb-3">Barcodes</h2>
+  <div class="panel divide-y divide-hairline mb-4">
+    {% for b in barcodes %}
+      <div class="flex items-center gap-3 px-5 py-3.5">
+        <code class="text-sm font-semibold bg-sunk rounded-[8px] px-2 py-1">{{ b.barcode }}</code>
+        {% if b.price_override_paisa is not none %}<span class="pill-sky">override {{ b.price_override_paisa | rupees }}</span>{% endif %}
+        {% if b.label %}<span class="text-xs text-muted">{{ b.label }}</span>{% endif %}
+        {% if not b.is_active %}<span class="pill bg-sunk text-faint">inactive</span>{% endif %}
+        <div class="flex-1"></div>
+        {% if can_manage and b.is_active %}
+          <form method="post" action="{{ url_for('stock.deactivate_barcode', barcode_id=b.id) }}">
+            <button type="submit" class="text-xs font-semibold text-faint hover:text-coral">Deactivate</button>
+          </form>
+        {% endif %}
+      </div>
+    {% else %}
+      <div class="px-5 py-4 text-sm text-muted">No barcodes yet.</div>
+    {% endfor %}
+  </div>
 
-{% if can_manage %}
-<form method="post" action="{{ url_for('stock.add_barcode', product_id=product.id) }}">
-  <label>Manufacturer barcode<br><input type="text" name="barcode"></label><br>
-  <label>Label (optional)<br><input type="text" name="label" placeholder="Near expiry, Oct"></label><br>
-  <label>Price override, Rs (optional — needs step-up password)<br>
-    <input type="number" name="price_override" min="0" step="1"></label><br>
-  <label>Step-up password (only for a price override)<br>
-    <input type="password" name="step_up_password"></label><br>
-  <button type="submit" name="mode" value="assign">Assign barcode</button>
-  <button type="submit" name="mode" value="generate">Generate internal barcode</button>
-</form>
+  {% if can_manage %}
+  <div class="card p-5 mb-4">
+    <form method="post" action="{{ url_for('stock.add_barcode', product_id=product.id) }}"
+          class="flex flex-wrap gap-3 items-end">
+      <label class="min-w-[160px]"><span class="label">Manufacturer barcode</span><input type="text" name="barcode" class="field"></label>
+      <label class="min-w-[140px]"><span class="label">Label (optional)</span><input type="text" name="label" placeholder="Near expiry, Oct" class="field"></label>
+      <label class="w-28"><span class="label">Override, Rs</span><input type="number" name="price_override" min="0" step="1" class="field"></label>
+      <label class="w-36"><span class="label">Step-up password</span><input type="password" name="step_up_password" class="field"></label>
+      <button type="submit" name="mode" value="assign" class="btn-ghost">Assign</button>
+      <button type="submit" name="mode" value="generate" class="btn-ghost">Generate internal</button>
+    </form>
+  </div>
 
-{% if barcodes %}
-<form method="post" action="{{ url_for('stock.label_sheet') }}">
-  <p>Print a label sheet:</p>
-  {% for b in barcodes if b.is_active %}
-    <label><input type="checkbox" name="barcode_id" value="{{ b.id }}"> {{ b.barcode }}</label>
-    <input type="number" name="copies_{{ b.id }}" value="1" min="1" style="width:4em">
-    <br>
-  {% endfor %}
-  <button type="submit">Download PDF</button>
-</form>
-{% endif %}
-{% endif %}
+  {% if barcodes %}
+  <div class="card p-5">
+    <form method="post" action="{{ url_for('stock.label_sheet') }}">
+      <div class="text-sm font-bold mb-3">Print a label sheet</div>
+      {% for b in barcodes if b.is_active %}
+        <label class="flex items-center gap-2 mb-2 text-sm">
+          <input type="checkbox" name="barcode_id" value="{{ b.id }}" class="accent-teal"> {{ b.barcode }}
+          <input type="number" name="copies_{{ b.id }}" value="1" min="1" class="field w-16 !py-1">
+        </label>
+      {% endfor %}
+      <button type="submit" class="btn-primary mt-2">Download PDF</button>
+    </form>
+  </div>
+  {% endif %}
+  {% endif %}
+</div>
 
-<h2>Recent stock movements</h2>
-<table>
-  <thead><tr><th>When</th><th>Type</th><th>Change</th><th>After</th><th>Reason</th></tr></thead>
-  <tbody>
-  {% for m in movements %}
-    <tr>
-      <td>{{ m.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-      <td>{{ m.movement_type }}</td>
-      <td>{{ m.quantity_delta_milli | qty(product.unit_label) }}</td>
-      <td>{{ m.quantity_after_milli | qty(product.unit_label) }}</td>
-      <td>{{ m.reason }}</td>
-    </tr>
-  {% else %}
-    <tr><td colspan="5">No movements yet.</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
+<h2 class="text-base font-bold mb-3">Recent stock movements</h2>
+<div class="panel overflow-hidden">
+  <table class="table">
+    <thead><tr><th>When</th><th>Type</th><th>Change</th><th>After</th><th>Reason</th></tr></thead>
+    <tbody>
+    {% for m in movements %}
+      <tr>
+        <td class="whitespace-nowrap">{{ m.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td class="capitalize">{{ m.movement_type.replace('_', ' ') }}</td>
+        <td>{{ m.quantity_delta_milli | qty(product.unit_label) }}</td>
+        <td>{{ m.quantity_after_milli | qty(product.unit_label) }}</td>
+        <td>{{ m.reason }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="text-center text-muted py-6">No movements yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
 {% endblock %}

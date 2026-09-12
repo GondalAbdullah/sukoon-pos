@@ -1,63 +1,128 @@
 {% extends "base.html" %}
 {% block title %}Stock — Sukoon{% endblock %}
+{% block heading %}Stock{% endblock %}
+{% block subheading %}Everything in the shop, at a glance{% endblock %}
 {% block content %}
-<h1>Stock</h1>
-<p>Everything in the shop, at a glance.</p>
+{#
+  Phase 3.5 (ADR-0022): Stock list (Figure 3) restyled against the prototype's
+  literal stat-card/table/bar values. The stock-level bar's fill is a display-only
+  read of the same status compute_stock_status already decides — not a new metric:
+  no threshold set -> full/teal (matches "no check runs"); with a threshold, full
+  at 2x the threshold, so the bar reads ~50% right at the reorder point. Pure
+  Jinja arithmetic, no Python touched (still within Phase 3.5's "templates only"
+  rule).
+#}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+  <div class="stat-card">
+    <div class="stat-label">Catalog size</div>
+    <div class="stat-value">{{ summary.catalog_size }}</div>
+    <div class="stat-sub">items tracked</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Stock value</div>
+    <div class="stat-value">{{ summary.stock_value_paisa | rupees }}</div>
+    <div class="stat-sub">at cost price</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Needs attention</div>
+    <div class="stat-value text-amber">{{ summary.needs_attention }}</div>
+    <div class="stat-sub">running low</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Out of stock</div>
+    <div class="stat-value text-coral">{{ summary.out_of_stock }}</div>
+    <div class="stat-sub">reorder soon</div>
+  </div>
+</div>
 
-<dl class="summary">
-  <dt>Catalog size</dt><dd>{{ summary.catalog_size }} items</dd>
-  <dt>Stock value (at cost)</dt><dd>{{ summary.stock_value_paisa | rupees }}</dd>
-  <dt>Needs attention</dt><dd>{{ summary.needs_attention }} running low</dd>
-  <dt>Out of stock</dt><dd>{{ summary.out_of_stock }}</dd>
-</dl>
-
-<form method="get" action="{{ url_for('stock.index') }}">
-  <input type="search" name="q" value="{{ q }}" placeholder="Search by name, SKU, or scan a barcode…">
-  <select name="category">
+<form method="get" action="{{ url_for('stock.index') }}" class="flex flex-wrap items-center gap-3 mb-5">
+  <div class="flex-1 min-w-[220px] flex items-center gap-2.5 card px-4 py-3">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B9B9BE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+    <input type="search" name="q" value="{{ q }}" placeholder="Search by name, SKU, or scan a barcode…"
+           class="flex-1 bg-transparent text-sm placeholder:text-faint focus:outline-none">
+  </div>
+  <select name="category" class="card px-4 py-3 text-sm font-semibold text-inkSoft" onchange="this.form.submit()">
     <option value="">All categories</option>
     {% for c in categories %}
       <option value="{{ c.id }}" {{ 'selected' if category_id == c.id }}>{{ c.name }}</option>
     {% endfor %}
   </select>
-  <label><input type="checkbox" name="filter" value="needs_completing" {{ 'checked' if needs_completing }}> Needs completing</label>
-  <button type="submit">Search</button>
+  <label class="card px-4 py-3 text-sm font-semibold text-inkSoft flex items-center gap-2 cursor-pointer">
+    <input type="checkbox" name="filter" value="needs_completing" class="accent-teal" {{ 'checked' if needs_completing }}
+           onchange="this.form.submit()">
+    Needs completing
+  </label>
+  <button type="submit" class="btn-ghost">Search</button>
+
+  {% if can_manage %}
+    <div class="flex-1"></div>
+    <a href="{{ url_for('stock.new_product') }}" class="btn-primary">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+      Add product
+    </a>
+    <a href="{{ url_for('stock.bulk_entry') }}" class="btn-ghost">Bulk entry</a>
+    <a href="{{ url_for('stock.categories') }}" class="btn-ghost">Categories</a>
+  {% endif %}
 </form>
 
-{% if can_manage %}
-  <p>
-    <a href="{{ url_for('stock.new_product') }}">Add product</a> ·
-    <a href="{{ url_for('stock.bulk_entry') }}">Bulk entry</a> ·
-    <a href="{{ url_for('stock.categories') }}">Manage categories</a>
-  </p>
-{% endif %}
+<div class="panel overflow-hidden">
+  <table class="table">
+    <thead>
+      <tr>
+        <th class="w-[46px]"></th>
+        <th>Product</th>
+        <th>Stock level</th>
+        <th class="text-right">Price</th>
+        <th class="w-[24px]"></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for p in products %}
+      {% set st = status_of(p) %}
+      {# The bar always reads "empty" at zero stock, threshold or not — the
+         quantity itself decides that, never a missing reference point. #}
+      {% if st == 'out' %}
+        {% set pct = 0 %}
+      {% elif p.low_stock_threshold_milli %}
+        {% set pct = ((p.stock_quantity_milli / (p.low_stock_threshold_milli * 2)) * 100) | round | int %}
+        {% set pct = [[pct, 100] | min, 2] | max %}
+      {% else %}
+        {% set pct = 100 %}
+      {% endif %}
+      {% set bar_color = {'out': 'bg-coral', 'low': 'bg-amber', 'healthy': 'bg-teal'}[st] %}
+      {% set thumb_bg = {'out': 'bg-coral-tint', 'low': 'bg-amber-tint', 'healthy': 'bg-teal-tint'}[st] %}
+      <tr class="hover:bg-sunk/60 transition-colors cursor-pointer"
+          onclick="window.location='{{ url_for('stock.product_detail', product_id=p.id) }}'">
+        <td><div class="w-[42px] h-[42px] rounded-[13px] {{ thumb_bg }}"></div></td>
+        <td>
+          <div class="text-[14.5px] font-semibold">
+            {{ p.name }}
+            {% if p.is_provisional %}<span class="pill-amber ml-2">Needs completing</span>{% endif %}
+          </div>
+          <div class="text-xs text-muted mt-0.5">{{ p.sku or '—' }}{% if p.category %} · {{ p.category.name }}{% endif %}</div>
+        </td>
+        <td class="min-w-[160px]">
+          <div class="text-xs text-muted font-semibold mb-1.5">
+            {{ p.stock_quantity_milli | qty(p.unit_label) }} ·
+            {{ 'restock' if st == 'out' else ('low' if st == 'low' else 'healthy') }}
+          </div>
+          <div class="stock-bar-track"><div class="stock-bar-fill {{ bar_color }}" style="width: {{ pct }}%"></div></div>
+        </td>
+        <td class="text-right text-[14.5px] font-bold whitespace-nowrap">{{ p.sell_price_paisa | rupees }}</td>
+        <td><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D8D7D1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="text-center text-muted py-8">No products match.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
 
-<table>
-  <thead><tr><th>Product</th><th>Stock level</th><th>Price</th></tr></thead>
-  <tbody>
-  {% for p in products %}
-    {% set st = status_of(p) %}
-    <tr>
-      <td>
-        <a href="{{ url_for('stock.product_detail', product_id=p.id) }}">{{ p.name }}</a>
-        {% if p.is_provisional %}<span class="badge">Needs completing</span>{% endif %}
-        <br><small>{{ p.sku or '—' }}{% if p.category %} · {{ p.category.name }}{% endif %}</small>
-      </td>
-      <td>
-        {{ p.stock_quantity_milli | qty(p.unit_label) }} ·
-        {% if st == 'out' %}<strong>Restock</strong>
-        {% elif st == 'low' %}<strong>Low</strong>
-        {% else %}healthy{% endif %}
-      </td>
-      <td>{{ p.sell_price_paisa | rupees }}</td>
-    </tr>
-  {% else %}
-    <tr><td colspan="3">No products match.</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
-
-<p>Showing {{ products | length }} of {{ total }} items.
-{% if page > 1 %}<a href="{{ url_for('stock.index', q=q, category=category_id, page=page-1) }}">Previous</a>{% endif %}
-{% if page * page_size < total %}<a href="{{ url_for('stock.index', q=q, category=category_id, page=page+1) }}">Next</a>{% endif %}
-</p>
+<div class="flex items-center justify-between mt-4 text-sm text-muted">
+  <span>Showing {{ products | length }} of {{ total }} items</span>
+  <div class="flex gap-3">
+    {% if page > 1 %}<a href="{{ url_for('stock.index', q=q, category=category_id, page=page-1) }}" class="font-semibold">Previous</a>{% endif %}
+    {% if page * page_size < total %}<a href="{{ url_for('stock.index', q=q, category=category_id, page=page+1) }}" class="font-semibold">Next</a>{% endif %}
+  </div>
+</div>
 {% endblock %}

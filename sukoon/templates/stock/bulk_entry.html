@@ -1,42 +1,67 @@
 {% extends "base.html" %}
 {% block title %}Bulk entry — Sukoon{% endblock %}
+{% block heading %}Bulk entry{% endblock %}
+{% block subheading %}Scan, type, Enter, next{% endblock %}
 {% block content %}
-<p><a href="{{ url_for('stock.index') }}">&larr; Stock</a></p>
-<h1>Bulk entry</h1>
-<p>Scan a barcode, fill the row, press Enter. A code that already exists jumps to
-that product instead of adding a duplicate.</p>
-
 {#
-  Phase 2: a plain form that reloads. The Design System / ADR-0011 §1 call for an
-  htmx partial swap per committed row with the cursor returning to the scan field
-  — that arrives with the visual pass. The behaviour (no duplicates, focus starts
-  on the scan field) is honoured here.
+  Phase 3.5 (ADR-0022): no reference screenshot (ADR-0006 rule 4 — the established
+  component vocabulary, applied consistently). The htmx per-row swap + focus
+  return called for in ADR-0011 §1 is part of the deferred htmx pass (§4i); the
+  behaviour honoured now is a duplicate-safe reload with the scan field first.
 #}
-<form method="post" action="{{ url_for('stock.bulk_entry') }}">
-  <p><label>Barcode (optional)<br>
-    <input type="text" name="barcode" autofocus autocomplete="off"></label></p>
-  <p><label>Name (required)<br><input type="text" name="name" required></label></p>
-  <p><label>Selling price, Rs (required)<br>
-    <input type="number" name="sell_price" min="0" step="1" required></label></p>
-  <p><label>Cost price, Rs<br>
-    <input type="number" name="cost_price" min="0" step="1"></label></p>
-  <p><label>Category<br>
-    <select name="category_id">
-      <option value="">— none —</option>
-      {% for c in categories %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
-    </select></label></p>
-  <p><label>Low-stock threshold (units)<br>
-    <input type="number" name="low_stock_threshold" min="0" step="0.001"></label></p>
-  <p><button type="submit">Commit &amp; next</button></p>
-</form>
+<p class="mb-4"><a href="{{ url_for('stock.index') }}" class="text-sm font-semibold">&larr; Stock</a></p>
+<p class="text-sm text-muted mb-5">Scan a barcode, fill the row, press Enter. A code that already
+   exists jumps to that product instead of adding a duplicate.</p>
 
-<h2>Just added</h2>
-<ul>
-{% for p in recent %}
-  <li><a href="{{ url_for('stock.product_detail', product_id=p.id) }}">{{ p.name }}</a>
-      — {{ p.sku }}{% if p.is_provisional %} (needs completing){% endif %}</li>
-{% else %}
-  <li>Nothing yet.</li>
-{% endfor %}
-</ul>
+<div class="grid lg:grid-cols-[1fr,340px] gap-6 items-start">
+  <form method="post" action="{{ url_for('stock.bulk_entry') }}" class="panel p-7">
+    <label class="block mb-4">
+      <span class="label">Barcode (optional)</span>
+      <input type="text" name="barcode" autofocus autocomplete="off" class="field">
+    </label>
+    <label class="block mb-4">
+      <span class="label">Name (required)</span>
+      <input type="text" name="name" required class="field">
+    </label>
+    <div class="grid grid-cols-2 gap-4 mb-4">
+      <label class="block">
+        <span class="label">Selling price, Rs (required)</span>
+        <input type="number" name="sell_price" min="0" step="1" required class="field">
+      </label>
+      <label class="block">
+        <span class="label">Cost price, Rs</span>
+        <input type="number" name="cost_price" min="0" step="1" class="field">
+      </label>
+    </div>
+    <div class="grid grid-cols-2 gap-4 mb-6">
+      <label class="block">
+        <span class="label">Category</span>
+        <select name="category_id" class="field">
+          <option value="">— none —</option>
+          {% for c in categories %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+        </select>
+      </label>
+      <label class="block">
+        <span class="label">Low-stock threshold (units)</span>
+        <input type="number" name="low_stock_threshold" min="0" step="0.001" class="field">
+      </label>
+    </div>
+    <button type="submit" class="btn-primary w-full">Commit &amp; next</button>
+  </form>
+
+  <div class="panel p-6">
+    <div class="text-sm font-bold mb-3">Just added</div>
+    <div class="flex flex-col gap-2">
+      {% for p in recent %}
+        <a href="{{ url_for('stock.product_detail', product_id=p.id) }}"
+           class="flex items-center justify-between text-sm py-2 border-b border-hairline last:border-0">
+          <span class="font-semibold text-inkSoft">{{ p.name }}</span>
+          <span class="text-xs text-muted">{{ p.sku }}{% if p.is_provisional %} · needs completing{% endif %}</span>
+        </a>
+      {% else %}
+        <p class="text-sm text-muted">Nothing yet.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
 {% endblock %}

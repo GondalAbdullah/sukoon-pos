@@ -1,51 +1,76 @@
 {% extends "base.html" %}
 {% block title %}{{ 'Edit' if product else 'New' }} product — Sukoon{% endblock %}
+{% block heading %}{{ 'Edit ' + product.name if product else 'New product' }}{% endblock %}
+{% block subheading %}{{ "Update this product's details" if product else "Add to the catalogue" }}{% endblock %}
 {% block content %}
-<h1>{{ 'Edit ' + product.name if product else 'New product' }}</h1>
-
-<form method="post"
+{# Phase 3.5 (ADR-0022): no reference screenshot for this form (ADR-0006 rule 4 —
+   an undesigned screen still gets the established component vocabulary). #}
+<div class="max-w-xl">
+<form method="post" class="panel p-7"
       action="{{ url_for('stock.update_product', product_id=product.id) if product else url_for('stock.create_product') }}">
 
-  <p><label>Name (required)<br>
-    <input type="text" name="name" required
-           value="{{ product.name if product else (form.name if form) }}"></label></p>
+  <label class="block mb-4">
+    <span class="label">Name (required)</span>
+    <input type="text" name="name" required class="field"
+           value="{{ product.name if product else (form.name if form) }}">
+  </label>
 
-  <p><label>Selling price, Rs (required)<br>
-    <input type="number" name="sell_price" min="0" step="1" required
-           value="{{ (product.sell_price_paisa // 100) if product else (form.sell_price if form) }}"></label>
-    {% if product %}<br><small>Changing this needs your password (step-up).</small>
-      <br><input type="password" name="step_up_password" placeholder="Password (only if changing price)">
-    {% endif %}
-  </p>
+  <label class="block mb-1.5">
+    <span class="label">Selling price, Rs (required)</span>
+    <input type="number" name="sell_price" min="0" step="1" required class="field"
+           value="{{ (product.sell_price_paisa // 100) if product else (form.sell_price if form) }}">
+  </label>
+  {% if product %}
+    <p class="text-xs text-muted mb-4">Changing this needs your password (step-up).</p>
+    <input type="password" name="step_up_password" placeholder="Password (only if changing price)" class="field mb-4">
+  {% else %}
+    <div class="mb-4"></div>
+  {% endif %}
 
-  <p><label>Cost price, Rs (optional)<br>
-    <input type="number" name="cost_price" min="0" step="1"
-           value="{{ (product.cost_price_paisa // 100) if product and product.cost_price_paisa is not none else '' }}"></label></p>
+  <label class="block mb-4">
+    <span class="label">Cost price, Rs (optional)</span>
+    <input type="number" name="cost_price" min="0" step="1" class="field"
+           value="{{ (product.cost_price_paisa // 100) if product and product.cost_price_paisa is not none else '' }}">
+  </label>
 
-  <p><label>Category<br>
-    <select name="category_id">
+  <label class="block mb-4">
+    <span class="label">Category</span>
+    <select name="category_id" class="field">
       <option value="">— none —</option>
       {% for c in categories %}
         <option value="{{ c.id }}" {{ 'selected' if product and product.category_id == c.id }}>{{ c.name }}</option>
       {% endfor %}
-    </select></label></p>
+    </select>
+  </label>
 
-  <p><label>Unit label<br>
-    <input type="text" name="unit_label" value="{{ product.unit_label if product else 'unit' }}"></label></p>
+  <label class="block mb-4">
+    <span class="label">Unit label</span>
+    <input type="text" name="unit_label" value="{{ product.unit_label if product else 'unit' }}" class="field">
+  </label>
 
-  <p><label><input type="checkbox" name="allows_fractional"
-      {{ 'checked' if product and product.allows_fractional }}> Sold loose / by weight (allows fractional quantity)</label></p>
+  <label class="flex items-center gap-2.5 mb-4 text-sm font-semibold cursor-pointer">
+    <input type="checkbox" name="allows_fractional" class="accent-teal" {{ 'checked' if product and product.allows_fractional }}>
+    Sold loose / by weight (allows fractional quantity)
+  </label>
 
-  <p><label>Low-stock threshold (optional, in units)<br>
-    <input type="number" name="low_stock_threshold" min="0" step="0.001"
-           value="{{ (product.low_stock_threshold_milli / 1000) if product and product.low_stock_threshold_milli is not none else '' }}"></label></p>
+  <label class="block mb-4">
+    <span class="label">Low-stock threshold (optional, in units)</span>
+    <input type="number" name="low_stock_threshold" min="0" step="0.001" class="field"
+           value="{{ (product.low_stock_threshold_milli / 1000) if product and product.low_stock_threshold_milli is not none else '' }}">
+  </label>
 
   {% if product %}
-  <p><label>SKU<br>
-    <input type="text" name="sku" value="{{ product.sku or '' }}"></label></p>
+  <label class="block mb-6">
+    <span class="label">SKU</span>
+    <input type="text" name="sku" value="{{ product.sku or '' }}" class="field">
+  </label>
   {% endif %}
 
-  <p><button type="submit">{{ 'Save' if product else 'Create' }}</button>
-     <a href="{{ url_for('stock.product_detail', product_id=product.id) if product else url_for('stock.index') }}">Cancel</a></p>
+  <div class="flex gap-3">
+    <a href="{{ url_for('stock.product_detail', product_id=product.id) if product else url_for('stock.index') }}"
+       class="btn-ghost flex-1 text-center">Cancel</a>
+    <button type="submit" class="btn-primary flex-[1.4]">{{ 'Save' if product else 'Create' }}</button>
+  </div>
 </form>
+</div>
 {% endblock %}

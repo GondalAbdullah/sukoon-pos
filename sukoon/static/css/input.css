@@ -87,7 +87,7 @@
   .flash-info { @apply bg-ink text-white; }
   .flash-error { @apply bg-coral text-white; }
 
-  /* --- data tables (functional screens, pending their own visual pass) --- */
+  /* --- data tables --- */
   .table { @apply w-full text-sm border-collapse; }
   .table th { @apply text-left text-xs font-bold text-muted tracking-[0.02em] px-3 py-2 border-b border-hairline; }
   .table td { @apply px-3 py-2.5 border-b border-hairline align-top; }
@@ -96,4 +96,21 @@
     @apply rounded-full bg-teal-tint2 text-teal-deep font-bold
            flex items-center justify-center;
   }
+
+  /* --- stat card (Stock, Figure 3) --- */
+  .stat-card { @apply panel px-6 py-5; }
+  .stat-label { @apply text-xs font-bold text-muted tracking-[0.02em] mb-2.5; }
+  .stat-value { @apply text-[26px] font-extrabold tracking-[-0.01em] leading-none; }
+  .stat-sub { @apply text-xs text-faint font-medium mt-1.5; }
+
+  /* --- labelled stock-level bar (Figure 3) --- */
+  .stock-bar-track { @apply h-1.5 rounded-full bg-hairline overflow-hidden; }
+  .stock-bar-fill { @apply h-full rounded-full; }
+
+  /* --- modal (Design System §4.5: Surface white, 26px radius, soft strong shadow) --- */
+  dialog.modal {
+    @apply bg-surface rounded-lg p-0 border-0 m-auto;
+    box-shadow: 0 30px 70px rgba(0, 0, 0, 0.25);
+  }
+  dialog.modal::backdrop { @apply bg-ink/40; }
 }
