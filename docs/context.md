@@ -10,10 +10,10 @@ work session, not just every phase.
 
 | | |
 |---|---|
-| **Phase** | **Phase 5 — WhatsApp Notification Module — built (session 26); 🛑 closing gate awaits the client** (§4l). Phase 4 functionally complete (§4k). |
+| **Phase** | **Phase 5 — WhatsApp Notification Module — CLOSED 2026-09-15** (gate approved by the client; the first real send is tracked under O-23, §4l). **Phase 6 — Reports & Dashboard — next.** Phases 0–4 closed or functionally complete. |
 | **Status** | **Session 26:** Phase 5 built against ADR-0027…0033 in three parts — queue/consent/rules, Meta adapter/key store/scheduler, screens — 475 tests, and an end-to-end browser run where the real background worker in `python -m sukoon.run` sent a credit-sale notice by itself (fake provider). Three real bugs found by the tests and fixed (§6). **Session 25:** the Phase 5 `grill-with-docs` session ran on the session-24 proposal — 26 questions, 7 ADRs (0027–0033), O-20 resolved, O-18's trigger sharpened, O-23 opened for Meta facts that must be checked when the account exists. **Session 23:** Phase 4 built — customers with duplicate-number and in-person confirmation (ADR-0013), a single ledger writer that sales, refunds and payments all go through, full/partial/over-payments, credit limits with Admin approval at the till (ADR-0014), overdue flags (ADR-0015), month statements on shop time with an A4 PDF, the Khata screen, and a Khata picker replacing the till's raw customer ID. 363 tests pass; verified in real Chrome. **Session 22:** the client answered O-21/O-22 — shop timezone (ADR-0024) and stock limits at the till (ADR-0025) built; along the way found and fixed a latent bug (items created at the till could never be sold) and B9 (htmx swaps silently dropped every till error message). **Session 21:** a bug sweep driven by the developer's own walkthrough screenshots — 8 real bugs fixed and verified in a real browser (session 21 changelog), plus a plain-language field manual at `docs/field-manual.html` (untracked). Phase 3.5 built out sessions 13–19 (toolchain, Login, Till, Sale Complete, terminal ID, Stock, Refunds, landing page, htmx pass — §4i), then the Design System §13 DoD side-by-side (session 20, §4j) — fresh screenshots of every screen plus an actually-rendered receipt PDF against all 9 reference images, not a documentation exercise. Found and fixed three real issues (two undersized/no-hover buttons, a receipt footer line that ran off the page, fixed with real word-wrapping + regression tests) and restored two missing Login details. One genuine tension between ADR-0006 (prototype pixel-fidelity) and the Design System's written 44px touch-target rule was put to the client rather than picked unilaterally: **keep the prototype-exact stepper size, no change** — recorded with rationale. **Phase 3.5 is now formally closed.** `ruff` clean, **245 tests green, 95% coverage**. |
 | **Last session** | 2026-09-15 (session 26) |
-| **Next action** | **Phase 5's 🛑 closing gate (§4l) — the client's call.** Everything testable without a Meta account is done and verified. The spec's last verification step — *manually trigger one real send* — needs the owner's Meta Business account, card, new SIM, approved templates and O-23's checks. Options: close Phase 5 now with the real send tracked under O-23, or hold it open until that send. After the gate: **Phase 6 — Reports & Dashboard**. On any existing database run `flask db upgrade` and `flask seed`. |
+| **Next action** | **Begin Phase 6 — Reports & Dashboard.** No STOP AND ASK gate or grill in the spec. Steps: sales, inventory, low-stock, outstanding-credit and basic profit/loss reports; a dashboard of the most-used numbers; date-range filters and CSV/PDF export. Required tests: empty ranges render cleanly; date/timezone boundaries (shop time, ADR-0024); performance on thousands of seeded transactions. **Already decided:** profit/margin reporting **excludes** products without a cost price rather than assuming zero (ADR-0011). **Open and relevant:** O-10 (the Insights reference's Today / This week / This month controls). **Before WhatsApp is switched on in the shop:** O-23's real send and checks. |
 
 ## 2. Decisions made so far
 
@@ -130,7 +130,10 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   separate APScheduler jobs against the same customer. A customer overdue and due a
   statement in the same week should not receive two uncoordinated WhatsApp messages.
   Not yet resolved; noted while writing ADR-0015 rather than discovered at Phase 5.
-- **O-23 — Meta platform facts the Phase 5 decisions rely on but nobody has confirmed.**
+- **O-23 — Meta platform facts the Phase 5 decisions rely on but nobody has confirmed — and Phase 5's first real send.**
+  **Hard rule: WhatsApp sending is not switched on in the shop until this is done**: one real
+  send through the owner's account, delivery confirmed on a phone, and the log entry checked
+  (the Development Specification's Phase 5 verification step, deferred at the gate on 2026-09-15).
   Owner: the developer, with the client. **Trigger: when the owner's Meta Business account
   is created — before the real adapter's first send.** Each was marked **(verify)** in
   ADR-0027…0033: per-message pricing for Pakistan (and whether a statement's PDF costs
@@ -800,7 +803,7 @@ developer's walkthrough, fixed once in the shared style, with a stylesheet test)
 **Not in Phase 4, by the spec's own plan:** anything WhatsApp (neutral notice to an
 unconfirmed number, overdue reminders, monthly statement sending) — Phase 5.
 
-## 4l. Phase 5 Definition of Done — built 2026-09-15; 🛑 closing gate open
+## 4l. Phase 5 Definition of Done — CLOSED 2026-09-15 (real send deferred to O-23)
 
 Development Specification, Phase 5:
 
@@ -845,9 +848,10 @@ waiting to send"; **the background worker inside `python -m sukoon.run` sent it 
 and the line became "Last WhatsApp update: credit sale, sent…"; no Send reminder for a
 cashier; the log shows both messages sent.
 
-**🛑 STOP AND ASK — before closing Phase 5.** The gate's content (provider, wording,
-retry limits) was confirmed in the grill. What remains is the client's decision whether to
-close Phase 5 with the real send deferred to O-23's trigger, or hold it open until then.
+**🛑 STOP AND ASK — before closing Phase 5 — CLOSED 2026-09-15.** The gate's content
+(provider, wording, retry limits) was confirmed in the grill (session 25). Asked whether to
+close with no real send possible yet, **the client chose to close Phase 5 now, with the first
+real send tracked under O-23** — rather than hold it open, or test it themselves first.
 
 ## 5. Edge case and test matrix
 
@@ -1127,6 +1131,13 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-15 — Session 26 (cont.): Phase 5 gate closed
+
+🛑 Put to the client: close Phase 5 now with the real send deferred, hold it open until a
+real send, or test it themselves first. **Chosen: close now; first real send tracked under
+O-23**, which now carries a hard rule that sending isn't switched on in the shop before it.
+Next: Phase 6.
 
 ### 2026-09-15 — Session 26: Phase 5 built
 
