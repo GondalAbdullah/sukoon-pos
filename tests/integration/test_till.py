@@ -55,14 +55,16 @@ def test_cashier_can_open_the_till(till):
 
 def test_every_cart_swap_also_refreshes_the_top_bar_count(till, milk):
     # Field-manual B2: htmx swaps only #till-body, and "N items in the cart" lives
-    # in the top bar outside it — so each swap must carry it out-of-band.
+    # in the top bar outside it — so each swap must carry it out-of-band. The toast
+    # list lives outside it too (B9): a refusal during a swap was silently lost.
     _add(till, product_id=milk.id)
     html = till.get("/till/").get_data(as_text=True)
     assert 'id="topbar-sub"' in html
     assert re.search(r'id="topbar-sub">\s*1 item in the cart', html)
     swaps = re.findall(r'<[^>]*hx-select="#till-body"[^>]*>', html)
     assert swaps, "no htmx cart forms rendered"
-    assert all('hx-select-oob="#topbar-sub"' in tag for tag in swaps)
+    assert all('hx-select-oob="#topbar-sub,#flashes"' in tag for tag in swaps)
+    assert 'id="flashes"' in html  # present even with no messages, so oob has a target
 
 
 def test_the_till_requires_a_login(client):
@@ -271,21 +273,27 @@ def test_a_blank_weight_is_reported(till, atta):
 
 
 def test_checkout_is_blocked_when_stock_is_short(till, milk, seeded):
+    # ADR-0025: the cart can no longer over-ask, so the case left for checkout is
+    # the race — the last one goes (another till, a breakage) after it's in the cart
     inv.apply_stock_movement(
         product=milk, movement_type="correction", quantity_milli=1_000,
         reason="recount", user_id=seeded["admin"].id,
     )
     _add(till, product_id=milk.id)
-    _add(till, product_id=milk.id)  # cart wants 2, only 1 in stock
+    inv.apply_stock_movement(
+        product=milk, movement_type="stock_out", quantity_milli=1_000,
+        reason="dropped", user_id=seeded["admin"].id,
+    )
     resp = till.post(
         "/till/checkout",
         data={"payment_method": "cash", "amount_tendered": "1000"},
         follow_redirects=True,
     )
     assert b"in stock" in resp.data
+    assert "of Olpers Milk 1L in stock" in resp.get_data(as_text=True)  # named
     assert db.session.query(Sale).count() == 0
     db.session.expire(milk)
-    assert milk.stock_quantity_milli == 1_000  # untouched
+    assert milk.stock_quantity_milli == 0  # the stock_out's 0 — the refused sale took nothing
 
 
 def test_a_by_amount_loose_sale_completes_and_drops_the_derived_weight(till, atta):
@@ -365,3 +373,90 @@ def test_a_blank_label_does_not_overwrite_an_existing_name(till, milk):
     till.post("/till/terminal", data={"label": "Till 2"}, follow_redirects=True)
     till.post("/till/terminal", data={"label": "   "}, follow_redirects=True)
     assert till.get_cookie("sukoon_terminal").value.strip('"') == "Till 2"
+
+
+# --- stock limits (ADR-0025) ------------------------------------------------
+
+def _counted(product, milli, admin):
+    inv.apply_stock_movement(product=product, movement_type="correction",
+                             quantity_milli=milli, reason="count", user_id=admin.id)
+
+
+def _cart_qty(client):
+    with client.session_transaction() as s:
+        return [row["quantity_milli"] for row in s.get("cart", [])]
+
+
+def test_plus_stops_at_the_counted_stock_level(till, milk, seeded):
+    _counted(milk, 2_000, seeded["admin"])
+    _add(till, product_id=milk.id)
+    till.post("/till/line/0", data={"op": "inc"})
+    assert _cart_qty(till) == [2_000]
+
+    html = till.get("/till/").get_data(as_text=True)
+    assert re.search(r'value="inc" class="stepper-key" disabled', html)
+    assert "all of it — 2 unit in stock" in html
+
+    resp = till.post("/till/line/0", data={"op": "inc"}, follow_redirects=True)
+    assert _cart_qty(till) == [2_000]  # enforced server-side, not just a dead button
+    text = resp.get_data(as_text=True)
+    assert "Olpers Milk 1L in stock, and the cart already has all of it" in text
+
+    resp = _add(till, product_id=milk.id)  # scanning it again is refused too
+    assert _cart_qty(till) == [2_000]
+
+
+def test_plus_works_below_the_limit(till, milk):
+    _add(till, product_id=milk.id)
+    html = till.get("/till/").get_data(as_text=True)
+    assert not re.search(r'value="inc" class="stepper-key" disabled', html)
+
+
+def test_a_counted_product_at_zero_cannot_be_added(till, milk, seeded):
+    _counted(milk, 0, seeded["admin"])
+    resp = _add(till, product_id=milk.id)
+    assert _cart_qty(till) == []
+    assert "Olpers Milk 1L is out of stock." in resp.get_data(as_text=True)
+
+
+def test_a_weight_past_the_level_is_refused_naming_whats_left(till, atta, seeded):
+    _counted(atta, 2_000, seeded["admin"])
+    _add(till, product_id=atta.id)
+    resp = till.post("/till/line/0", data={"op": "set_weight", "weight": "2.5"},
+                     follow_redirects=True)
+    assert _cart_qty(till) == [None]
+    assert "Only 2 kg of" in resp.get_data(as_text=True)
+
+    till.post("/till/line/0", data={"op": "set_weight", "weight": "1.5"})
+    _add(till, product_id=atta.id)  # a second scoop of the same atta
+    resp = till.post("/till/line/1", data={"op": "set_weight", "weight": "1"},
+                     follow_redirects=True)
+    assert _cart_qty(till) == [1_500, None]  # only 0.5 kg left across both lines
+    assert "Only 0.5 kg of" in resp.get_data(as_text=True)
+
+    resp = till.post("/till/line/1", data={"op": "set_amount", "amount": "170"},
+                     follow_redirects=True)  # Rs 170 at Rs 120/kg is ~1.4 kg, also too much
+    assert _cart_qty(till) == [1_500, None]
+
+
+def test_a_never_counted_product_is_not_capped_and_sells(till, seeded):
+    soap = inv.create_product(name="Bulk-entered Soap", sell_price_paisa=10_000)  # no stock_in
+    _add(till, product_id=soap.id)
+    for _ in range(2):
+        till.post("/till/line/0", data={"op": "inc"})
+    assert _cart_qty(till) == [3_000]
+    html = till.get("/till/").get_data(as_text=True)
+    assert not re.search(r'value="inc" class="stepper-key" disabled', html)
+
+    resp = till.post("/till/checkout", data={"payment_method": "cash", "amount_tendered": "300"},
+                     follow_redirects=True)
+    assert b"Sale complete" in resp.data
+
+
+def test_an_item_created_at_the_till_sells_end_to_end(till):
+    # the latent ADR-0011 §2 bug: this always died at checkout with "Only 0 unit"
+    till.post("/till/new", data={"code": "8964999999999", "name": "Local Biscuits",
+                                 "sell_price": "80"})
+    resp = till.post("/till/checkout", data={"payment_method": "cash", "amount_tendered": "100"},
+                     follow_redirects=True)
+    assert b"Sale complete" in resp.data

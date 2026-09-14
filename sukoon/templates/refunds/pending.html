@@ -23,7 +23,7 @@
     </div>
     <p class="text-sm text-muted mb-4">
       {{ r.reason }}<br>
-      <span class="text-xs">Recorded by {{ r.initiated_by.name }} on {{ r.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+      <span class="text-xs">Recorded by {{ r.initiated_by.name }} on {{ r.created_at | shop_time }}</span>
     </p>
 
     <div class="bg-sunk rounded-md px-4 py-3 mb-5 flex flex-col gap-1.5">

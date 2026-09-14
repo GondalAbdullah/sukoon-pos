@@ -174,7 +174,7 @@
     <tbody>
     {% for m in movements %}
       <tr>
-        <td class="whitespace-nowrap">{{ m.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td class="whitespace-nowrap">{{ m.created_at | shop_time }}</td>
         <td class="capitalize">{{ m.movement_type.replace('_', ' ') }}</td>
         <td>{{ m.quantity_delta_milli | qty(product.unit_label) }}</td>
         <td>{{ m.quantity_after_milli | qty(product.unit_label) }}</td>

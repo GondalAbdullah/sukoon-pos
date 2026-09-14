@@ -91,6 +91,8 @@
     @apply w-[26px] h-[26px] rounded-[8px] bg-surface shadow-control
            flex items-center justify-center text-[15px] font-bold text-inkSoft cursor-pointer;
   }
+  /* ADR-0025: + stops at a counted stock level — visibly dead, not just inert. */
+  .stepper-key:disabled { @apply opacity-35 cursor-not-allowed shadow-none; }
 
   /* --- flashes -> the toast/inline treatment (Design System §4.6, §9) --- */
   .flashes { @apply fixed left-1/2 -translate-x-1/2 bottom-6 z-50 flex flex-col gap-2 items-center; }

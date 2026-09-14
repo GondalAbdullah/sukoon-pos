@@ -20,3 +20,7 @@ reportlab==4.2.2
 
 # Phase 3 — POS & Billing (ESC/POS receipt printing; Dev Spec §11 Phase 3 step 5)
 python-escpos==3.1
+
+# Session 21 — shop timezone (ADR-0024). Windows ships no IANA zone database, so
+# zoneinfo cannot resolve Asia/Karachi in the packaged installer without this.
+tzdata==2026.4

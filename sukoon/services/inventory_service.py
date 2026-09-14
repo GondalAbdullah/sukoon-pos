@@ -410,7 +410,7 @@ def apply_stock_movement(
         if new_level is None:
             raise InsufficientStockError(
                 f"Only {product.stock_quantity_milli / _MILLI:g} "
-                f"{product.unit_label} in stock."
+                f"{product.unit_label} of {product.name} in stock."
             )
         after = new_level
         before = after - delta
@@ -445,6 +445,34 @@ def movements_for_product(product_id: int, *, limit: int = 50) -> list[StockMove
             .limit(limit)
         )
     )
+
+
+# --- stock limits at the till (ADR-0025) ---------------------------------------
+
+FOUND_AT_TILL = "found_at_till"  # reference_type of a stock_in booked by a sale
+
+
+def counted_product_ids(product_ids) -> set[int]:
+    """Products Sukoon has been told a quantity for: at least one ``stock_in`` or
+    ``correction`` a person recorded. A "found at the till" booking does not count —
+    otherwise the first sale of an uncounted item would cap every later one at zero.
+    One query for the whole cart."""
+    ids = {pid for pid in product_ids if pid is not None}
+    if not ids:
+        return set()
+    stmt = (
+        db.select(StockMovement.product_id)
+        .where(
+            StockMovement.product_id.in_(ids),
+            StockMovement.movement_type.in_(("stock_in", "correction")),
+            db.or_(
+                StockMovement.reference_type.is_(None),
+                StockMovement.reference_type != FOUND_AT_TILL,
+            ),
+        )
+        .distinct()
+    )
+    return set(db.session.scalars(stmt))
 
 
 # --- low-stock alerting (Development Spec Phase 2 step 4) -----------------

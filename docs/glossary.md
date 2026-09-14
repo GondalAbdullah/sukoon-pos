@@ -45,6 +45,22 @@ stock change. This is the audit trail; no adjustment may be written without one.
 **Low-stock threshold** *(Settled)* — The per-product quantity at or below which a
 product is surfaced in the "needs attention" list and badged **Low** (amber).
 
+**Counted / never counted** *(Settled — ADR-0025)* — A product is *counted* once a
+person has told Sukoon how many exist: at least one stock-in (a delivery) or a correct
+count. Until then it is *never counted*, and its zero level means "unknown", not
+"none". The till caps a counted product at its stock level; a never-counted product is
+not capped.
+
+**Found at the till** *(Settled — ADR-0025)* — A stock-in Sukoon books automatically at
+checkout for a never-counted product, for exactly the quantity the sale needs, so the
+sale can deduct it without the level going negative. Tagged `found_at_till` and named in
+the stock history ("Found at the till — not yet counted (INV-…)"). It never makes a
+product counted.
+
+**Shop time** *(Settled — ADR-0024)* — The one timezone every displayed time is in —
+screens, receipts, and the year on an invoice number — set by `shop.timezone`,
+default Asia/Karachi. Times are still stored in UTC.
+
 **Out of stock / Restock** *(Settled)* — A product at zero stock. Badged **Restock**
 (coral) — a genuinely urgent state, distinct from merely low.
 

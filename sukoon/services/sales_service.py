@@ -26,7 +26,7 @@ from sukoon.models import (
     Sale,
     SaleItem,
 )
-from sukoon.services import inventory_service, invoicing, money, pricing
+from sukoon.services import clock, inventory_service, invoicing, money, pricing
 from sukoon.services.inventory_service import (
     FractionalQuantityError,
     validate_quantity_milli,
@@ -149,7 +149,9 @@ def claim_invoice_number(*, now: datetime | None = None) -> str:
     this into the sale's single commit; a standalone caller commits itself).
     """
     now = now or datetime.now(UTC)
-    year = now.year
+    # The shop's calendar year, not UTC's: 00:00–05:00 on 1 January in Pakistan
+    # is still the old year in UTC (ADR-0024).
+    year = clock.to_shop_time(now).year
     _ensure_counter(year)
 
     stmt = (
@@ -268,6 +270,33 @@ def record_sale(
         )
         db.session.add(sale)
         db.session.flush()  # assigns sale.id
+
+        # ADR-0025: an item nobody has ever counted (created at the till, or bulk
+        # entered but never stocked in) is in the customer's hand even though its
+        # level reads 0. Book exactly the shortfall as "found at the till" first,
+        # inside this same transaction, so the sale's deduction lands on zero.
+        wanted: dict[int, int] = {}
+        for line in lines:
+            wanted[line.product.id] = wanted.get(line.product.id, 0) + line.quantity_milli
+        counted = inventory_service.counted_product_ids(wanted)
+        booked: set[int] = set()
+        for line in lines:
+            pid = line.product.id
+            if pid in counted or pid in booked:
+                continue
+            booked.add(pid)
+            shortfall = wanted[pid] - line.product.stock_quantity_milli
+            if shortfall > 0:
+                inventory_service.apply_stock_movement(
+                    product=line.product,
+                    movement_type="stock_in",
+                    quantity_milli=shortfall,
+                    reason=f"Found at the till — not yet counted ({invoice_number})",
+                    user_id=user_id,
+                    reference_type=inventory_service.FOUND_AT_TILL,
+                    reference_id=sale.id,
+                    commit=False,
+                )
 
         for line, line_total in priced:
             db.session.add(

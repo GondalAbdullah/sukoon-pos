@@ -108,6 +108,13 @@ def _register_template_helpers(app: Flask) -> None:
             return {"pending_refund_count": refund_service.count_pending()}
         return {"pending_refund_count": 0}
 
+    @app.template_filter("shop_time")
+    def shop_time(dt, fmt: str | None = None) -> str:
+        """A stored UTC timestamp as the shop's wall-clock time (ADR-0024)."""
+        from sukoon.services import clock
+
+        return clock.format_shop_time(dt, fmt or clock.DISPLAY_FORMAT)
+
     @app.template_filter("rupees")
     def rupees(paisa: int | None) -> str:
         if paisa is None:

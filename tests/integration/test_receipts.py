@@ -101,6 +101,22 @@ def test_the_till_name_appears_when_the_sale_carries_one(cashier):
     assert "Till" not in " ".join(receipt_body(build_receipt(unnamed)))
 
 
+def test_the_receipt_prints_the_shops_time_not_utc(sale):
+    # ADR-0024: a sale rung at 14:30 UTC is 19:30 in Pakistan. (`now=` on
+    # record_sale only drives the invoice year; created_at is pinned here.)
+    sale.created_at = JAN
+    body = " ".join(receipt_body(build_receipt(sale)))
+    assert "2026-01-05 19:30" in body and "14:30" not in body
+    assert b"19:30" in render_escpos(build_receipt(sale))
+
+
+def test_the_shop_timezone_setting_is_honoured(sale):
+    sale.created_at = JAN
+    settings_service.set("shop.timezone", "UTC")
+    db.session.commit()
+    assert "2026-01-05 14:30" in " ".join(receipt_body(build_receipt(sale)))
+
+
 # --- ESC/POS --------------------------------------------------------
 
 def test_escpos_bytes_carry_the_invoice_and_a_cut(sale):

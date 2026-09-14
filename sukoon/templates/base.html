@@ -69,14 +69,15 @@
   </main>
 </div>
 
+{# Always rendered, even empty: htmx cart swaps (till) carry it out-of-band with
+   hx-select-oob="#flashes". When it only existed with messages, a refusal made
+   during a swap was consumed server-side and never shown. #}
 {% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    <ul class="flashes">
-      {% for category, message in messages %}
-        <li class="flash flash-{{ category }}">{{ message }}</li>
-      {% endfor %}
-    </ul>
-  {% endif %}
+  <ul class="flashes" id="flashes">
+    {% for category, message in messages %}
+      <li class="flash flash-{{ category }}">{{ message }}</li>
+    {% endfor %}
+  </ul>
 {% endwith %}
 </body>
 </html>

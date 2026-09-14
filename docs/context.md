@@ -11,9 +11,9 @@ work session, not just every phase.
 | | |
 |---|---|
 | **Phase** | **Phase 3.5 — Visual Pass ([ADR-0022](adr/0022-dedicated-visual-pass.md)) — CLOSED.** Phase 3 (POS & Billing) and Phase 3.5 (visual pass) are both complete. **Phase 4 — Credit Customer Management (Khata) — next.** |
-| **Status** | **Session 21:** a bug sweep driven by the developer's own walkthrough screenshots — 8 real bugs fixed and verified in a real browser (session 21 changelog), plus a plain-language field manual at `docs/field-manual.html` (untracked). Phase 3.5 built out sessions 13–19 (toolchain, Login, Till, Sale Complete, terminal ID, Stock, Refunds, landing page, htmx pass — §4i), then the Design System §13 DoD side-by-side (session 20, §4j) — fresh screenshots of every screen plus an actually-rendered receipt PDF against all 9 reference images, not a documentation exercise. Found and fixed three real issues (two undersized/no-hover buttons, a receipt footer line that ran off the page, fixed with real word-wrapping + regression tests) and restored two missing Login details. One genuine tension between ADR-0006 (prototype pixel-fidelity) and the Design System's written 44px touch-target rule was put to the client rather than picked unilaterally: **keep the prototype-exact stepper size, no change** — recorded with rationale. **Phase 3.5 is now formally closed.** `ruff` clean, **245 tests green, 95% coverage**. |
-| **Last session** | 2026-09-14 (session 21) |
-| **Next action** | **Two client questions first, neither blocking:** O-21 (timestamps display in UTC, including on receipts) and O-22 (should the till warn when an out-of-stock item goes in the cart?). Then begin **Phase 4 — Credit Customer Management (Khata)**. No STOP AND ASK gate in the spec (same shape as Phase 2). Steps: customer CRUD with duplicate-phone handling (ADR-0013 already settled the policy), credit ledger entries tied to sales/payments, full/partial payment application, per-customer statement view/export. Required tests: ledger balance correctness across mixed sale/payment sequences, blocked deletion of a customer with an outstanding balance, overpayment produces an explicit credit-balance state. Policy groundwork is already laid from the Phase 0 grill session — ADR-0013 (phone identity), ADR-0014 (credit-limit enforcement + step-up override), ADR-0015 (overdue aging) — so this phase is mostly build, not new decisions. |
+| **Status** | **Session 22:** the client answered O-21/O-22 — shop timezone (ADR-0024) and stock limits at the till (ADR-0025) built; along the way found and fixed a latent bug (items created at the till could never be sold) and B9 (htmx swaps silently dropped every till error message). **Session 21:** a bug sweep driven by the developer's own walkthrough screenshots — 8 real bugs fixed and verified in a real browser (session 21 changelog), plus a plain-language field manual at `docs/field-manual.html` (untracked). Phase 3.5 built out sessions 13–19 (toolchain, Login, Till, Sale Complete, terminal ID, Stock, Refunds, landing page, htmx pass — §4i), then the Design System §13 DoD side-by-side (session 20, §4j) — fresh screenshots of every screen plus an actually-rendered receipt PDF against all 9 reference images, not a documentation exercise. Found and fixed three real issues (two undersized/no-hover buttons, a receipt footer line that ran off the page, fixed with real word-wrapping + regression tests) and restored two missing Login details. One genuine tension between ADR-0006 (prototype pixel-fidelity) and the Design System's written 44px touch-target rule was put to the client rather than picked unilaterally: **keep the prototype-exact stepper size, no change** — recorded with rationale. **Phase 3.5 is now formally closed.** `ruff` clean, **245 tests green, 95% coverage**. |
+| **Last session** | 2026-09-14 (session 22) |
+| **Next action** | Begin **Phase 4 — Credit Customer Management (Khata)**. (O-21 and O-22 answered and built in session 22 — ADR-0024, ADR-0025.) No STOP AND ASK gate in the spec (same shape as Phase 2). Steps: customer CRUD with duplicate-phone handling (ADR-0013 already settled the policy), credit ledger entries tied to sales/payments, full/partial payment application, per-customer statement view/export. Required tests: ledger balance correctness across mixed sale/payment sequences, blocked deletion of a customer with an outstanding balance, overpayment produces an explicit credit-balance state. Policy groundwork is already laid from the Phase 0 grill session — ADR-0013 (phone identity), ADR-0014 (credit-limit enforcement + step-up override), ADR-0015 (overdue aging) — so this phase is mostly build, not new decisions. |
 
 ## 2. Decisions made so far
 
@@ -42,6 +42,8 @@ work session, not just every phase.
 | [0021](adr/0021-invoicing-module-purity.md) | `invoicing.py` stays pure (rule 3 wins over ADR-0003's contradictory module-list gloss); the atomic invoice claim lives in `sales_service` | **Accepted** |
 | [0022](adr/0022-dedicated-visual-pass.md) | Phases 1–3 stay functional HTML; **one dedicated visual pass ("Phase 3.5") after Phase 3, before Phase 4** converts every template to the Design System; Phases 4–6 built styled from the start. Deviates from Dev Spec §5.1's style-as-you-go | **Accepted** |
 | [0023](adr/0023-till-terminal-identification.md) | A till names itself once via a long-lived cookie (not at login, not server config); `sale.terminal_label` finally populated; shown on Sale Complete + both receipt renderers. Resolves O-8's labelling half; live terminal status stays open | **Accepted** |
+| [0024](adr/0024-shop-timezone.md) | Times stay stored UTC; everything a person reads (screens, receipts, the invoice year) is in one fixed shop timezone, `shop.timezone`, default Asia/Karachi — not each PC's Windows zone. `tzdata` added for Windows. Resolves O-21 | **Accepted** |
+| [0025](adr/0025-stock-limits-at-the-till.md) | The cart is capped at a *counted* product's stock (+ disables, refusals name the product, enforced server-side); a *never-counted* product is uncapped and its shortfall is booked "found at the till" at checkout. Fixes the latent ADR-0011 §2 bug (till-created items could never sell). Resolves O-22 | **Accepted** |
 
 (Historical rule, now satisfied: no ADR could move to **Accepted** until the Phase 0
 grill session had run. It ran on 2026-09-10; ADR-0017 onward are ordinary Phase-N
@@ -120,14 +122,14 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   separate APScheduler jobs against the same customer. A customer overdue and due a
   statement in the same week should not receive two uncoordinated WhatsApp messages.
   Not yet resolved; noted while writing ADR-0015 rather than discovered at Phase 5.
-- **O-21 — Every timestamp displays in UTC, including on receipts.** Stored UTC
+- ~~**O-21 — Every timestamp displays in UTC, including on receipts.**~~ **RESOLVED 2026-09-14** → [ADR-0024](adr/0024-shop-timezone.md): fixed shop timezone (client's choice), default Asia/Karachi; the invoice year follows it too. Stored UTC
   (correct — `models/base.py::utcnow`), but rendered with a bare `strftime`: stock
   movement history, the pending-refunds list, and the **printed/PDF receipt** all show
   UTC. Pakistan is UTC+5 with no DST, so a 6:54 pm sale prints as 13:54. Found
   session 21. Needs a decision before a fix: convert to the **shop PC's local time**,
   or to a **fixed `shop.timezone` setting** (default `Asia/Karachi`)? The setting is
   more predictable on a misconfigured PC clock-zone; local time needs no setting.
-- **O-22 — Should the till warn when an out-of-stock item goes into the cart?**
+- ~~**O-22 — Should the till warn when an out-of-stock item goes into the cart?**~~ **RESOLVED 2026-09-14** → [ADR-0025](adr/0025-stock-limits-at-the-till.md): + stops at a counted level (client's rule); never-counted items uncapped, booked as found (client's choice).
   Today the cart accepts it silently; `record_sale` refuses at checkout with
   "Only 0 bottle in stock." (books never go negative — the important half). But the
   refusal arrives after the customer has queued, and the message doesn't name the
@@ -206,6 +208,7 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   sale, adjusting a ledger entry, recording a Khata payment, exporting data.** When
   a decision lands, update `sukoon/services/permissions.py` (the seed is
   dict-driven — no code change there) and re-run `flask seed`.
+- **Stock screen can't yet tell "never counted" from "out of stock" (ADR-0025 follow-up).** A product nobody has stocked in shows 0 in coral with "restock", and counts in the Out of stock tile, though the till treats it as uncapped. Worth a small visual distinction (e.g. "not counted"); deferred, not blocking.
 - **`instance/` dev databases are gitignored.** `flask db upgrade` writes
   `instance/sukoon.db` (+ `-wal`/`-shm`); none of it is committed. The migration
   scripts under `migrations/` **are** committed.
@@ -936,6 +939,56 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-14 — Session 22: shop timezone and stock limits at the till
+
+The client answered session 21's two questions. **O-21:** asked for a
+recommendation, then chose it — one fixed shop timezone. **O-22:** "warn earlier —
+the moment an item goes out of stock, the + button should stop working."
+
+**A latent bug found before building O-22.** Checking how a stock cap would treat an
+item created mid-sale: such a product starts at 0, and checkout refused it —
+"Only 0 unit in stock." Proven by a throwaway test, then deleted. **Scan-as-you-go
+(ADR-0011 §2) has never worked end to end**; no test had ever sold a till-created
+item. Also found that `is_provisional` means "any Tier C field empty" (ADR-0012), not
+"created at the till" — it covers most bulk-entered products — so it could not be
+the exemption. Put the real question to the client with options; they chose
+"no cap for never-counted items, book them as found at checkout".
+
+**Built:**
+- [ADR-0024](adr/0024-shop-timezone.md) — `services/clock.py` (`convert` pure,
+  `to_shop_time`, `format_shop_time`), a `shop_time` Jinja filter; stock history,
+  pending refunds and **both receipt renderers** now read Pakistan time; the invoice
+  year is the shop-time year (a sale at 20:00 UTC on 31 Dec is `INV-<next year>-0001`).
+  `tzdata==2026.4` added to requirements — Windows has no IANA database, so the
+  packaged build would otherwise fail to find Asia/Karachi (it works on the Linux dev
+  box, which is how it would have shipped broken).
+- [ADR-0025](adr/0025-stock-limits-at-the-till.md) — `inventory_service.counted_product_ids`
+  (a stock_in/correction a person recorded; "found" bookings excluded), a
+  found-at-the-till shortfall booking inside `record_sale`'s transaction, route
+  checks on add / + / set-weight / set-amount with messages that name the product and
+  what's left, a disabled + with an amber "That's all of it — N in stock" caption,
+  the weigh box shows what's left and carries `max`. `InsufficientStockError` now
+  names the product (checkout's race case). `test_checkout_is_blocked_when_stock_is_short`
+  rewritten: the cart can't over-ask any more, so it now tests the race (stock taken
+  after the item is in the cart).
+- **B9 — htmx swaps silently dropped every till error message.** Same class as B2
+  (session 19's htmx pass): the toast list sat outside `#till-body` and was only
+  rendered when messages existed, so a message flashed during a swap was consumed
+  server-side and never shown — "Enter a weight.", "Nothing matched", and the new
+  refusals alike. Caught by the browser check, not by pytest. `#flashes` is now always
+  rendered and every till swap carries `hx-select-oob="#topbar-sub,#flashes"`.
+
+**Verification.** 267 tests pass (16 new), ruff clean, coverage 95%, `clock.py` and
+`sales_service.py` 100%. Real Chrome on a throwaway DB: + disables at the second of
+two bottles (opacity 0.35, not-allowed, caption shown, zero navigations); clicking it
+does nothing; scanning again is refused by name *and the toast is visible*; − brings
++ back; "Enter a weight." now appears after a swap; a till-created item goes to 3
+uncapped and the sale completes; its stock history reads 19:27 (Pakistan) at 14:27
+UTC, with the found booking then the sale, ending at 0.
+
+**Follow-up recorded (§4):** the Stock screen still shows never-counted products as
+coral out-of-stock.
 
 ### 2026-09-14 — Session 21: bug sweep from the developer's walkthrough
 

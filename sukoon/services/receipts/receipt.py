@@ -19,7 +19,7 @@ from reportlab.pdfgen import canvas
 
 from sukoon.extensions import db
 from sukoon.models import Sale, User
-from sukoon.services import settings_service
+from sukoon.services import clock, settings_service
 
 _WIDTH_CHARS = 42  # a common 80 mm / Font A column count
 _SHOP_NAME_DEFAULT = "Al-Rehman General Store"
@@ -69,7 +69,7 @@ def build_receipt(sale: Sale) -> ReceiptData:
         customer = c.name if c else None
     return ReceiptData(
         invoice_number=sale.invoice_number,
-        when=sale.created_at,
+        when=clock.to_shop_time(sale.created_at),  # ADR-0024: the shop's clock
         cashier_name=cashier.name if cashier else "—",
         lines=[
             ReceiptLine(

@@ -109,6 +109,37 @@ def _resolve(code: str) -> tuple[Product, int, int | None] | None:
     return None
 
 
+# --- stock limits (ADR-0025) -------------------------------------------------
+
+def _fmt_qty(milli: int, unit: str) -> str:
+    return f"{milli / 1000:g} {unit}"
+
+
+def _room_milli(cart: list[dict], product: Product, *, exclude: int | None = None) -> int | None:
+    """How much more of ``product`` the cart may take, or None when Sukoon has never
+    been told how many exist (never counted -> uncapped). ``exclude`` leaves one row
+    out of the sum, for re-setting that row's own quantity."""
+    if product.id not in inv.counted_product_ids([product.id]):
+        return None
+    in_cart = sum(
+        r["quantity_milli"] or 0
+        for i, r in enumerate(cart)
+        if r["product_id"] == product.id and i != exclude
+    )
+    return product.stock_quantity_milli - in_cart
+
+
+def _refuse_no_room(product: Product) -> None:
+    if product.stock_quantity_milli <= 0:
+        flash(f"{product.name} is out of stock.", "error")
+    else:
+        flash(
+            f"Only {_fmt_qty(product.stock_quantity_milli, product.unit_label)} of "
+            f"{product.name} in stock, and the cart already has all of it.",
+            "error",
+        )
+
+
 # --- the till screen ----------------------------------------------------
 
 
@@ -129,9 +160,32 @@ def index():
         _save(kept)
 
     summary = sales_service.summarize_cart(lines)
+
+    # ADR-0025: what the + button and the weigh box may still take, per row.
+    counted = inv.counted_product_ids(line.product.id for line in lines)
+    in_cart: dict[int, int] = {}
+    for row in kept:
+        pid = row["product_id"]
+        in_cart[pid] = in_cart.get(pid, 0) + (row["quantity_milli"] or 0)
+    stock = []
+    for row, line in zip(kept, lines, strict=True):
+        if line.product.id not in counted:
+            stock.append({"capped": False, "at_limit": False, "room_milli": None})
+            continue
+        room = line.product.stock_quantity_milli - in_cart[line.product.id]
+        stock.append({
+            "capped": True,
+            "at_limit": room < 1000 if row["quantity_source"] == "stepper" else room <= 0,
+            "room_milli": max(room, 0),
+            # what this row alone could be set to (the weigh box's ceiling)
+            "row_max_milli": max(room + (row["quantity_milli"] or 0), 0),
+            "level_milli": line.product.stock_quantity_milli,
+        })
+
     return render_template(
         "till/till.html",
         rows=kept,
+        stock=stock,
         lines=lines,
         summary=summary,
         line_totals=summary.line_totals_paisa,
@@ -184,6 +238,11 @@ def add():
         return redirect(url_for("till.index"))
 
     product, unit_price, barcode_id = resolved
+    room = _room_milli(_cart(), product)
+    # a sealed pack needs a whole unit of room; a loose item just needs some left
+    if room is not None and (room <= 0 or (not product.allows_fractional and room < 1000)):
+        _refuse_no_room(product)
+        return redirect(url_for("till.index"))
     _add_to_cart(product, unit_price, barcode_id)
     return redirect(url_for("till.index"))
 
@@ -242,6 +301,25 @@ def new_provisional():
     return redirect(url_for("till.index"))
 
 
+def _over_room(cart: list[dict], index: int, row: dict, milli: int) -> bool:
+    """Refuse a weight/amount that would take the cart past a counted stock level,
+    saying what's left. True means refused (the flash is already set)."""
+    product = db.session.get(Product, row["product_id"])
+    if product is None:
+        return False
+    room = _room_milli(cart, product, exclude=index)
+    if room is None or milli <= room:
+        return False
+    if room <= 0:
+        _refuse_no_room(product)
+    else:
+        flash(
+            f"Only {_fmt_qty(room, product.unit_label)} of {product.name} left to sell.",
+            "error",
+        )
+    return True
+
+
 @bp.route("/line/<int:index>", methods=["POST"])
 @login_required
 @permission_required("sale.ring")
@@ -260,6 +338,12 @@ def update_line(index: int):
     if op in {"inc", "dec"}:
         if row["quantity_source"] != "stepper":
             abort(400)
+        if op == "inc":
+            product = db.session.get(Product, row["product_id"])
+            room = _room_milli(cart, product) if product is not None else None
+            if room is not None and room < 1000:
+                _refuse_no_room(product)
+                return redirect(url_for("till.index"))
         row["quantity_milli"] += 1000 if op == "inc" else -1000
         if row["quantity_milli"] <= 0:
             cart.pop(index)
@@ -270,6 +354,8 @@ def update_line(index: int):
         milli = _weight_to_milli(request.form.get("weight"))
         if not milli or milli <= 0:
             flash("Enter a weight.", "error")
+            return redirect(url_for("till.index"))
+        if _over_room(cart, index, row, milli):
             return redirect(url_for("till.index"))
         row["quantity_source"] = "manual_weight"
         row["quantity_milli"] = milli
@@ -288,6 +374,8 @@ def update_line(index: int):
             )
         except ValueError:
             flash("That item has no price to work from.", "error")
+            return redirect(url_for("till.index"))
+        if _over_room(cart, index, row, milli):
             return redirect(url_for("till.index"))
         row["quantity_source"] = "manual_amount"
         row["typed_amount_paisa"] = amount
