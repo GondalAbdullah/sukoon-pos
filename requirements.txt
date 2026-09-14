@@ -24,3 +24,8 @@ python-escpos==3.1
 # Session 21 — shop timezone (ADR-0024). Windows ships no IANA zone database, so
 # zoneinfo cannot resolve Asia/Karachi in the packaged installer without this.
 tzdata==2026.4
+
+# Phase 5 — WhatsApp notifications (ADR-0001 background jobs, ADR-0031 scheduling).
+# The Meta adapter uses the standard library's urllib (no HTTP dependency to bundle),
+# and Windows DPAPI is reached through ctypes (ADR-0033) — no pywin32.
+APScheduler==3.11.3

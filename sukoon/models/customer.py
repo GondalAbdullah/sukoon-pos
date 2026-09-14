@@ -46,5 +46,13 @@ class Customer(TimestampMixin, db.Model):
     phone_verified_by_user_id: Mapped[int | None] = mapped_column(
         ForeignKey("user.id"), nullable=True
     )
+    # WhatsApp consent (ADR-0028): starts unticked; without it nothing is ever sent.
+    whatsapp_opt_in: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="0"
+    )
+    whatsapp_opt_in_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    whatsapp_opt_in_by_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("user.id"), nullable=True
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     notes: Mapped[str | None] = mapped_column(String(1000), nullable=True)

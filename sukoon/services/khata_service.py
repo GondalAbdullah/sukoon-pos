@@ -160,6 +160,7 @@ def create_customer(
     address: str | None = None,
     notes: str | None = None,
     verified_method: str | None = None,
+    whatsapp_opt_in: bool = False,
     confirm_duplicate: bool = False,
     now: datetime | None = None,
 ) -> Customer:
@@ -185,8 +186,47 @@ def create_customer(
     db.session.flush()
     if verified_method and normalised:
         _mark_verified(customer, verified_method, user_id, now)
+    if whatsapp_opt_in and normalised:
+        _mark_opted_in(customer, user_id, now)
     db.session.commit()
+    _after_consent_saved(customer)
     return customer
+
+
+def _mark_opted_in(customer: Customer, user_id: int, now: datetime | None) -> None:
+    customer.whatsapp_opt_in = True
+    customer.whatsapp_opt_in_at = now or datetime.now(UTC)
+    customer.whatsapp_opt_in_by_user_id = user_id
+
+
+def _clear_opt_in(customer: Customer) -> None:
+    customer.whatsapp_opt_in = False
+    customer.whatsapp_opt_in_at = None
+    customer.whatsapp_opt_in_by_user_id = None
+
+
+def _after_consent_saved(customer: Customer) -> None:
+    """ADR-0028 §3 / ADR-0031: a ticked, unconfirmed number gets the account notice.
+    After the commit, and never able to fail the save."""
+    from sukoon.services.notifications import queue
+
+    queue.safely(queue.on_customer_saved, customer)
+
+
+def set_whatsapp_opt_in(customer: Customer, *, opted_in: bool, user_id: int,
+                        now: datetime | None = None) -> None:
+    """Tick or untick "Send updates on WhatsApp" (ADR-0028 §1). A customer with no
+    number can't be ticked — there's nothing to send to."""
+    if opted_in and customer.phone_normalised is None:
+        raise CustomerValidationError("Add a phone number before ticking WhatsApp updates.",
+                                      field="whatsapp_opt_in")
+    if opted_in and not customer.whatsapp_opt_in:
+        _mark_opted_in(customer, user_id, now)
+    elif not opted_in and customer.whatsapp_opt_in:
+        _clear_opt_in(customer)
+    db.session.commit()
+    if opted_in:
+        _after_consent_saved(customer)
 
 
 def _mark_verified(customer: Customer, method: str, user_id: int, now: datetime | None) -> None:
@@ -224,7 +264,9 @@ def update_contact(
             dupes = find_duplicates(normalised, exclude_id=customer.id)
             if dupes:
                 raise DuplicatePhoneError(dupes)
-        # a different number is an unconfirmed number (ADR-0026 §9)
+        # a different number is an unconfirmed number (ADR-0026 §9), and agreement given
+        # for the old number never carries to it (ADR-0028 §6)
+        _clear_opt_in(customer)
         customer.phone_verified = False
         customer.phone_verified_method = None
         customer.phone_verified_by_user_id = None
@@ -330,6 +372,9 @@ def record_payment(
     except Exception:
         db.session.rollback()
         raise
+    from sukoon.services.notifications import queue  # after commit; can't fail the payment
+
+    queue.safely(queue.on_payment, payment)
     return payment
 
 

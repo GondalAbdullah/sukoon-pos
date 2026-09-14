@@ -351,4 +351,10 @@ def record_sale(
         db.session.rollback()
         raise
 
+    if payment_method == "credit":
+        # After the commit, through `safely`: a message can never undo or block a sale
+        # (ADR-0003 §6, the Phase 5 hard gate).
+        from sukoon.services.notifications import queue
+
+        queue.safely(queue.on_credit_sale, sale)
     return sale
