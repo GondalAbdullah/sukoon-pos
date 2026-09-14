@@ -12,8 +12,8 @@ work session, not just every phase.
 |---|---|
 | **Phase** | **Phase 4 — Credit Customer Management (Khata) — functionally complete** (session 23, [ADR-0026](adr/0026-phase-4-khata-policy.md)); Definition of Done checked in §4k. **Phase 5 — WhatsApp notifications — next, and it opens with a scheduled `grill-with-docs` session** (Development Spec Phase 5 step 1). Phases 3 and 3.5 closed earlier. |
 | **Status** | **Session 23:** Phase 4 built — customers with duplicate-number and in-person confirmation (ADR-0013), a single ledger writer that sales, refunds and payments all go through, full/partial/over-payments, credit limits with Admin approval at the till (ADR-0014), overdue flags (ADR-0015), month statements on shop time with an A4 PDF, the Khata screen, and a Khata picker replacing the till's raw customer ID. 363 tests pass; verified in real Chrome. **Session 22:** the client answered O-21/O-22 — shop timezone (ADR-0024) and stock limits at the till (ADR-0025) built; along the way found and fixed a latent bug (items created at the till could never be sold) and B9 (htmx swaps silently dropped every till error message). **Session 21:** a bug sweep driven by the developer's own walkthrough screenshots — 8 real bugs fixed and verified in a real browser (session 21 changelog), plus a plain-language field manual at `docs/field-manual.html` (untracked). Phase 3.5 built out sessions 13–19 (toolchain, Login, Till, Sale Complete, terminal ID, Stock, Refunds, landing page, htmx pass — §4i), then the Design System §13 DoD side-by-side (session 20, §4j) — fresh screenshots of every screen plus an actually-rendered receipt PDF against all 9 reference images, not a documentation exercise. Found and fixed three real issues (two undersized/no-hover buttons, a receipt footer line that ran off the page, fixed with real word-wrapping + regression tests) and restored two missing Login details. One genuine tension between ADR-0006 (prototype pixel-fidelity) and the Design System's written 44px touch-target rule was put to the client rather than picked unilaterally: **keep the prototype-exact stepper size, no change** — recorded with rationale. **Phase 3.5 is now formally closed.** `ruff` clean, **245 tests green, 95% coverage**. |
-| **Last session** | 2026-09-14 (session 23) |
-| **Next action** | **Phase 5 — WhatsApp Notification Module.** Its step 1 is a `grill-with-docs` session to settle the provider, message templates and retry policy, with an ADR **before any code** — and that skill is human-invoked (`disable-model-invocation`), so **the client/developer starts it**. Until then, nothing in Phase 5 is built. Open, not blocking: ledger adjustments and voiding a sale still have no decision (§4). |
+| **Last session** | 2026-09-14 (session 24) |
+| **Next action** | **The client/developer starts the Phase 5 grill:** type `/grill-with-docs docs/proposals/phase-5-notifications.md` in Claude Code. The skill is human-invoked (`disable-model-invocation`), so the agent cannot start it. The proposal it grills is written (session 24): what's already settled, and ten open decisions (provider, templates, retry/give-up, what 'sent' means, token storage, consent, statement timing, reminder cadence + O-20, the Messages screen, one-scheduler safety), each with a recommendation. **No Phase 5 code until its ADRs are Accepted.** Open, not blocking: ledger adjustments and voiding a sale (§4). |
 
 ## 2. Decisions made so far
 
@@ -1027,6 +1027,22 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-14 — Session 24: Phase 5 grill prepared, not started
+
+Asked to continue. The next step is Phase 5's mandatory `grill-with-docs` session, and
+the skill (`~/.claude/skills/grill-with-docs/`, a reconstruction — see B-1) is
+human-invoked, so the agent can't run it — and CLAUDE.md forbids skipping it. Its
+step 1 is "read the artefact being grilled"; for Phase 5 there was none. Wrote
+[`docs/proposals/phase-5-notifications.md`](proposals/phase-5-notifications.md):
+the spec's Phase 5 requirements, the constraints already fixed by ADR-0001/0003/0013/
+0015/0016/0024/0026, and ten decisions each with options and a recommendation (spec
+operating rule 10). Facts not confirmed against a current source (Meta requirements,
+limits, pricing) are marked **(verify)** rather than stated as settled. Raised two
+things no document had: webhooks need a public address a LAN shop PC doesn't have
+(so "sent" can only mean "accepted" in v1), and WhatsApp consent has no column today —
+a migration, so it's flagged for the hardest questions. **No code written, nothing
+decided.**
 
 ### 2026-09-14 — Session 23: Phase 4 — Khata
 
