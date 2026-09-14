@@ -51,6 +51,14 @@ class Config:
     DEBUG = False
     TESTING = False
 
+    # Phase 5 (ADR-0027, ADR-0033). The key and worker lock paths default into the
+    # instance folder (set in create_app, which knows where that is).
+    SCHEDULER_ENABLED = os.environ.get("SUKOON_SCHEDULER", "1") == "1"
+    WHATSAPP_PROVIDER = os.environ.get("WHATSAPP_PROVIDER", "meta")
+    WHATSAPP_API_VERSION = os.environ.get("WHATSAPP_API_VERSION")
+    WHATSAPP_KEY_PATH = os.environ.get("WHATSAPP_KEY_PATH")
+    WORKER_LOCK_PATH = os.environ.get("SUKOON_WORKER_LOCK_PATH")
+
 
 class DevelopmentConfig(Config):
     DEBUG = True
@@ -58,6 +66,8 @@ class DevelopmentConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
+    SCHEDULER_ENABLED = False
+    WHATSAPP_PROVIDER = "fake"
     WTF_CSRF_ENABLED = False
     # An isolated in-memory database per app instance. A StaticPool keeps every
     # connection pointed at the same in-memory database for the life of the app.

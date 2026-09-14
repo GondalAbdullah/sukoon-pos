@@ -6,6 +6,8 @@ belongs in services/, not here.
 """
 from __future__ import annotations
 
+import os
+
 import click
 from flask import Flask
 from sqlalchemy import event
@@ -46,6 +48,10 @@ def create_app(
     app.config.from_object(get_config(config_name))
     if config_overrides:
         app.config.update(config_overrides)
+    if not app.config.get("WHATSAPP_KEY_PATH"):
+        app.config["WHATSAPP_KEY_PATH"] = os.path.join(app.instance_path, "whatsapp.key")
+    if not app.config.get("WORKER_LOCK_PATH"):
+        app.config["WORKER_LOCK_PATH"] = os.path.join(app.instance_path, "sukoon-worker.lock")
 
     configure_logging(app)
 
