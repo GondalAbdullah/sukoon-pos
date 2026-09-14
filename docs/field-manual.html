@@ -1,0 +1,842 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sukoon Field Manual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --paper:#FAF9F6; --surface:#FFFFFF; --sunk:#F2F1EC;
+    --ink:#1C1C1E; --inkSoft:#48484D; --muted:#84837E; --faint:#B0AFAA;
+    --hairline:#E5E3DD; --rule:#D8D6CF;
+    --teal:#0E6B57; --teal-deep:#0A4F41; --teal-tint:#E7F3EF; --teal-edge:#CFE6DC;
+    --amber:#9E7226; --amber-tint:#FAF2E1; --amber-edge:#E8D8B4;
+    --coral:#B14A34; --coral-tint:#FBEDE9; --coral-edge:#EED2C8;
+    --sky:#35619F; --sky-tint:#EBF1FA;
+    --shadow: 0 1px 1px rgba(0,0,0,.02), 0 8px 22px rgba(0,0,0,.045);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:#141416; --surface:#1C1C20; --sunk:#232328;
+      --ink:#EFEEEA; --inkSoft:#C6C5C0; --muted:#96958F; --faint:#6D6C68;
+      --hairline:#2C2C31; --rule:#3A3A40;
+      --teal:#56BC9F; --teal-deep:#74D0B5; --teal-tint:#122F29; --teal-edge:#1D443A;
+      --amber:#D6A85C; --amber-tint:#2E2618; --amber-edge:#4A3D22;
+      --coral:#E28B73; --coral-tint:#2F1E1A; --coral-edge:#4C2E26;
+      --sky:#83A9E4; --sky-tint:#1A2130;
+      --shadow: 0 1px 1px rgba(0,0,0,.3), 0 8px 22px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:#141416; --surface:#1C1C20; --sunk:#232328;
+    --ink:#EFEEEA; --inkSoft:#C6C5C0; --muted:#96958F; --faint:#6D6C68;
+    --hairline:#2C2C31; --rule:#3A3A40;
+    --teal:#56BC9F; --teal-deep:#74D0B5; --teal-tint:#122F29; --teal-edge:#1D443A;
+    --amber:#D6A85C; --amber-tint:#2E2618; --amber-edge:#4A3D22;
+    --coral:#E28B73; --coral-tint:#2F1E1A; --coral-edge:#4C2E26;
+    --sky:#83A9E4; --sky-tint:#1A2130;
+    --shadow: 0 1px 1px rgba(0,0,0,.3), 0 8px 22px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: Newsreader, Georgia, 'Times New Roman', serif;
+    font-size: 17.5px;
+    line-height: 1.62;
+    padding-inline: 20px;
+    padding-block: 0 72px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1180px; margin: 0 auto; }
+  .layout { display: grid; grid-template-columns: 1fr; gap: 0; }
+  @media (min-width: 1100px) {
+    .layout { grid-template-columns: 200px minmax(0,1fr); gap: 56px; align-items: start; }
+  }
+  .col { max-width: 720px; min-width: 0; }
+
+  /* ---- masthead ---- */
+  header.mast {
+    border-bottom: 1px solid var(--rule);
+    padding-block: 54px 26px;
+    margin-bottom: 44px;
+  }
+  .kicker {
+    font-family: Inter, system-ui, sans-serif;
+    font-size: 11px; font-weight: 700; letter-spacing: .13em;
+    text-transform: uppercase; color: var(--teal);
+    display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
+  }
+  .kicker::after { content:""; flex:1; height:1px; background: var(--teal-edge); }
+  h1 {
+    font-size: clamp(38px, 7vw, 60px); font-weight: 500; line-height: 1.02;
+    letter-spacing: -.022em; margin: 0 0 18px; text-wrap: balance;
+  }
+  h1 em { font-style: italic; color: var(--teal); }
+  .standfirst {
+    font-size: 19px; color: var(--inkSoft); margin: 0; max-width: 62ch;
+  }
+  .mast-meta {
+    font-family: Inter, system-ui, sans-serif; font-size: 12px; color: var(--muted);
+    margin-top: 24px; display: flex; flex-wrap: wrap; gap: 8px 18px;
+  }
+  .mast-meta b { color: var(--inkSoft); font-weight: 600; }
+
+  /* ---- side index ---- */
+  nav.index { display: none; }
+  @media (min-width: 1100px) {
+    nav.index {
+      display: block; position: sticky; top: 40px;
+      font-family: Inter, system-ui, sans-serif; font-size: 12.5px;
+      padding-top: 54px;
+    }
+    nav.index ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+    nav.index a {
+      display: block; padding: 5px 10px; border-radius: 8px;
+      color: var(--muted); text-decoration: none; font-weight: 500;
+      border-left: 2px solid transparent;
+    }
+    nav.index a:hover { color: var(--teal); background: var(--teal-tint); border-left-color: var(--teal); }
+    nav.index .ix-head {
+      font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--faint); padding: 0 10px 8px;
+    }
+  }
+
+  /* ---- sections ---- */
+  section { margin-bottom: 64px; scroll-margin-top: 28px; }
+  h2 {
+    font-family: Inter, system-ui, sans-serif;
+    font-size: 13px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase;
+    color: var(--teal); margin: 0 0 6px;
+  }
+  .sec-title {
+    font-size: clamp(26px, 4.6vw, 33px); font-weight: 500; letter-spacing: -.018em;
+    margin: 0 0 14px; line-height: 1.15; text-wrap: balance;
+  }
+  .sec-intro { color: var(--inkSoft); margin: 0 0 30px; max-width: 60ch; }
+  h3 {
+    font-size: 21px; font-weight: 600; letter-spacing: -.01em;
+    margin: 38px 0 10px; text-wrap: balance;
+  }
+  p { margin: 0 0 14px; }
+  a { color: var(--teal); }
+
+  /* ---- glossary ---- */
+  .gloss-group { margin-bottom: 34px; }
+  .gloss-head {
+    font-family: Inter, system-ui, sans-serif; font-size: 11px; font-weight: 700;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
+    padding-bottom: 9px; border-bottom: 1px solid var(--hairline); margin-bottom: 18px;
+  }
+  dl { margin: 0; display: flex; flex-direction: column; gap: 17px; }
+  dt {
+    font-family: Inter, system-ui, sans-serif; font-size: 14px; font-weight: 700;
+    color: var(--ink); margin-bottom: 3px;
+  }
+  dt .native { font-weight: 500; color: var(--teal); font-style: normal; }
+  dd { margin: 0; color: var(--inkSoft); font-size: 16.5px; }
+  dd .eg {
+    display: block; margin-top: 5px; font-size: 15px; color: var(--muted);
+    padding-left: 13px; border-left: 2px solid var(--teal-edge);
+  }
+
+  /* ---- walkthrough steps ---- */
+  .step { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 0 20px; margin-bottom: 34px; }
+  .step-n {
+    font-family: Inter, system-ui, sans-serif; font-size: 12px; font-weight: 800;
+    width: 30px; height: 30px; border-radius: 9px; display: flex;
+    align-items: center; justify-content: center;
+    background: var(--teal); color: var(--paper); margin-top: 3px;
+  }
+  .step-body h3 { margin-top: 0; }
+  .screen-tag {
+    font-family: Inter, system-ui, sans-serif; font-size: 11px; font-weight: 600;
+    color: var(--muted); background: var(--sunk); border-radius: 999px;
+    padding: 3px 10px; display: inline-block; margin-bottom: 9px;
+  }
+
+  /* ---- docket ---- */
+  .docket { display: flex; flex-direction: column; gap: 16px; }
+  .find {
+    background: var(--surface); border: 1px solid var(--hairline);
+    border-left: 3px solid var(--rule); border-radius: 4px 14px 14px 4px;
+    padding: 20px 22px; box-shadow: var(--shadow);
+  }
+  .find.bug { border-left-color: var(--coral); }
+  .find.design { border-left-color: var(--amber); }
+  .find-top {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 10px;
+  }
+  .fid {
+    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; font-weight: 500;
+    color: var(--muted);
+  }
+  .tag {
+    font-family: Inter, system-ui, sans-serif; font-size: 10.5px; font-weight: 700;
+    letter-spacing: .05em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px;
+  }
+  .tag.bug { background: var(--coral-tint); color: var(--coral); border: 1px solid var(--coral-edge); }
+  .tag.design { background: var(--amber-tint); color: var(--amber); border: 1px solid var(--amber-edge); }
+  .tag.fixed { background: var(--teal-tint); color: var(--teal-deep); border: 1px solid var(--teal-edge); }
+  .find.fixed { border-left-color: var(--teal); }
+  .tag.sev { background: var(--sunk); color: var(--inkSoft); border: 1px solid var(--hairline); }
+  .find h4 {
+    font-family: Inter, system-ui, sans-serif; font-size: 16px; font-weight: 700;
+    margin: 0 0 10px; letter-spacing: -.01em; line-height: 1.35; flex-basis: 100%;
+  }
+  .find p { font-size: 16.5px; color: var(--inkSoft); margin: 0 0 10px; }
+  .find p:last-child { margin-bottom: 0; }
+  .find .lbl {
+    font-family: Inter, system-ui, sans-serif; font-size: 11px; font-weight: 700;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+    margin-right: 7px;
+  }
+  code, .path {
+    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px;
+    background: var(--sunk); padding: 1.5px 6px; border-radius: 5px; color: var(--inkSoft);
+    word-break: break-word;
+  }
+
+  /* ---- test script ---- */
+  .script { border-top: 1px solid var(--rule); }
+  .trow {
+    display: grid; grid-template-columns: 34px minmax(0,1fr); gap: 0 16px;
+    padding: 17px 0; border-bottom: 1px solid var(--hairline);
+  }
+  .tn {
+    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px;
+    color: var(--faint); padding-top: 3px;
+  }
+  .tdo { font-weight: 500; margin: 0 0 6px; }
+  .texp {
+    font-family: Inter, system-ui, sans-serif; font-size: 14px; color: var(--inkSoft);
+    margin: 0; display: flex; gap: 8px; align-items: baseline;
+  }
+  .texp::before {
+    content: "expect"; font-size: 10px; font-weight: 700; letter-spacing: .07em;
+    text-transform: uppercase; color: var(--teal); flex-shrink: 0; padding-top: 2px;
+  }
+
+  /* ---- callout ---- */
+  .note {
+    background: var(--teal-tint); border: 1px solid var(--teal-edge);
+    border-radius: 16px; padding: 20px 24px; margin: 26px 0;
+  }
+  .note p { margin: 0; color: var(--inkSoft); }
+  .note p + p { margin-top: 11px; }
+  .note .nh {
+    font-family: Inter, system-ui, sans-serif; font-size: 11px; font-weight: 700;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--teal-deep);
+    display: block; margin-bottom: 9px;
+  }
+
+  /* ---- not built table ---- */
+  .tablewrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-family: Inter, system-ui, sans-serif; font-size: 14.5px; }
+  th {
+    text-align: left; font-size: 11px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--muted); padding: 0 14px 10px 0;
+    border-bottom: 1px solid var(--rule); white-space: nowrap;
+  }
+  td { padding: 13px 14px 13px 0; border-bottom: 1px solid var(--hairline); vertical-align: top; color: var(--inkSoft); }
+  td:first-child { color: var(--ink); font-weight: 600; white-space: nowrap; }
+  .st { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+  .st.yes { background: var(--teal-tint); color: var(--teal-deep); }
+  .st.no { background: var(--sunk); color: var(--muted); }
+
+  footer {
+    border-top: 1px solid var(--rule); margin-top: 20px; padding-top: 24px;
+    font-family: Inter, system-ui, sans-serif; font-size: 13px; color: var(--muted);
+  }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+  :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; border-radius: 4px; }
+</style>
+<style>body{margin:0} img{max-width:100%}</style>
+</head>
+<body>
+
+
+<div class="wrap">
+<header class="mast">
+  <div class="kicker">Al-Rehman General Store &middot; Internal</div>
+  <h1>How Sukoon <em>actually</em> works</h1>
+  <p class="standfirst">The vocabulary of a Pakistani kiryana counter, translated into plain English — then every screen you've built, what a shopkeeper does on it, and an honest list of what's broken versus what only looks broken.</p>
+  <div class="mast-meta">
+    <span><b>Covers</b> Phases 1–4 (auth, catalogue &amp; stock, POS, refunds, Khata)</span>
+    <span><b>Findings</b> 10 bugs found and fixed &middot; 4 by-design surprises &middot; 2 client decisions, built</span>
+  </div>
+</header>
+
+<div class="layout">
+  <nav class="index" aria-label="Contents">
+    <div class="ix-head">Contents</div>
+    <ol>
+      <li><a href="#vocab">The vocabulary</a></li>
+      <li><a href="#day">A cashier's day</a></li>
+      <li><a href="#bugs">Bugs, fixed</a></li>
+      <li><a href="#design">Looks wrong, isn't</a></li>
+      <li><a href="#script">Test it yourself</a></li>
+      <li><a href="#scope">What isn't built</a></li>
+    </ol>
+  </nav>
+
+  <div class="col">
+
+  <section id="vocab">
+    <h2>Part one</h2>
+    <p class="sec-title">The vocabulary</p>
+    <p class="sec-intro">Every confusing word on your screens, in the order you'll meet them. None of this is software jargon — it's how shopkeepers have talked for a hundred years, which is exactly why the app uses it.</p>
+
+    <div class="gloss-group">
+      <div class="gloss-head">At the counter</div>
+      <dl>
+        <div>
+          <dt>Till</dt>
+          <dd>The checkout counter — historically the cash drawer, now the counter plus the PC sitting on it. A shop can have two or three. Sukoon asks each PC to name itself once (<span class="path">Till 1</span>) so that later, when Rs 400 is missing, you can tell which counter rang the sale.
+          <span class="eg">This is why a small "Till 1" chip sits above the scan box, and why it prints on the receipt.</span></dd>
+        </div>
+        <div>
+          <dt>Ring up <span class="native">— a sale</span></dt>
+          <dd>To enter a customer's items and take their money. The whole job of the <b>New sale</b> screen.</dd>
+        </div>
+        <div>
+          <dt>Cart</dt>
+          <dd>Items scanned so far but not yet paid for. Nothing has left your stock yet and no invoice exists — it's just a scratchpad. It lives in the browser session, so closing the browser mid-sale loses it.</dd>
+        </div>
+        <div>
+          <dt>Walk-in customer</dt>
+          <dd>Someone who pays now and leaves. No account, no name, no phone number. The overwhelming majority of a general store's sales, which is why it's the default and takes zero clicks.</dd>
+        </div>
+        <div>
+          <dt>Cash received <span class="native">(&ldquo;tendered&rdquo;)</span></dt>
+          <dd>The physical note the customer hands over. The bill is Rs 1,700; they give you a Rs 2,000 note; <b>cash received is 2,000</b>.</dd>
+        </div>
+        <div>
+          <dt>Change</dt>
+          <dd>Cash received minus the total — Rs 300 in that example. Sukoon works it out so the cashier doesn't do mental arithmetic with a queue watching.</dd>
+        </div>
+        <div>
+          <dt>Exact</dt>
+          <dd>A shortcut button meaning "they handed me the precise amount, no change needed." The two buttons beside it are the <b>next round Rs 100</b> and the <b>next round Rs 500</b> — because real customers hand over round notes, not exact change.
+          <span class="eg">Bill Rs 1,700 → the buttons offer 1,700 (exact), 1,700 (next hundred) and 2,000 (next five hundred).</span></dd>
+        </div>
+        <div>
+          <dt>Invoice number</dt>
+          <dd><span class="path">INV-2026-0001</span>. The permanent receipt number. Never reused, never skipped, even if two tills sell at the same instant — that gap-free sequence is what makes the books auditable.</dd>
+        </div>
+        <div>
+          <dt>Subtotal vs Total due</dt>
+          <dd>Subtotal is the goods added up. Total due is what they actually owe after discounts. Today they're always identical because discounts aren't built yet — the line is there so the layout doesn't jump when they are.</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="gloss-group">
+      <div class="gloss-head">The goods</div>
+      <dl>
+        <div>
+          <dt>Catalogue</dt>
+          <dd>The list of everything the shop <em>sells</em> — independent of whether any is on the shelf right now. Cooking Oil stays in the catalogue at zero stock; you haven't stopped selling it, you've just run out.</dd>
+        </div>
+        <div>
+          <dt>Sealed pack vs loose</dt>
+          <dd>A bottle of oil is a <b>sealed pack</b> — you sell 1, 2, 3, never 1.4. Atta scooped from a sack is <b>loose</b> (or "by weight") — 1.4 kg is perfectly normal. Sukoon refuses fractions on sealed packs and demands a weight on loose goods.</dd>
+        </div>
+        <div>
+          <dt>Unit label</dt>
+          <dd>What one of this item <em>is</em>: <span class="path">bottle</span>, <span class="path">kg</span>, <span class="path">packet</span>, <span class="path">unit</span>. Purely for reading — "0 bottle" is clearer than "0".</dd>
+        </div>
+        <div>
+          <dt>Stock in</dt>
+          <dd>Goods arriving — a delivery from the supplier. Raises the level.</dd>
+        </div>
+        <div>
+          <dt>Stock out</dt>
+          <dd>Goods leaving for any reason <em>other than</em> a sale: breakage, expiry, theft, the owner taking a bottle home. Lowers the level. A sale lowers it too, but is recorded as its own separate type — that's the whole point, so at month end you can see that you lost Rs 3,000 to expiry rather than assuming you sold it.</dd>
+        </div>
+        <div>
+          <dt>Stock level</dt>
+          <dd>How many are physically on the shelf right now. Sukoon will never let this go below zero.</dd>
+        </div>
+        <div>
+          <dt>Low-stock threshold</dt>
+          <dd>"Warn me when this drops to 6." Set per product, and optional — no threshold means no warning, which is the right default for a shop with 2,000 lines nobody has time to configure.</dd>
+        </div>
+        <div>
+          <dt>Stock value</dt>
+          <dd>What the shelf is worth at <b>cost price</b> — what you paid the supplier, not what you charge. That's the number that answers "how much of my money is sitting in this room?"</dd>
+        </div>
+        <div>
+          <dt>SKU vs barcode</dt>
+          <dd>The <b>SKU</b> (<span class="path">GRO-0001</span>) is your own internal code, generated by Sukoon. The <b>barcode</b> is the manufacturer's printed code on the packet. One product can carry several barcodes — a 1L bottle and its 6-pack carton scan differently but are the same product.</dd>
+        </div>
+        <div>
+          <dt>Needs completing</dt>
+          <dd>An amber badge meaning: this product was created in a hurry — at the till mid-sale, or through bulk entry — and is missing its cost price, category or threshold. <b>It sells perfectly well.</b> It's a to-do list for the Admin, not an error.</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="gloss-group">
+      <div class="gloss-head">Money, and why it looks odd in the code</div>
+      <dl>
+        <div>
+          <dt>Paisa</dt>
+          <dd>1 rupee = 100 paisa. Sukoon stores <em>every</em> amount as a whole number of paisa — Rs 170 is stored as <span class="path">17000</span>. Computers can't hold 0.1 exactly, so storing rupees as decimals makes a shop's books drift by a few rupees a month. Whole paisa can't drift. You never see paisa on screen.</dd>
+        </div>
+        <div>
+          <dt>Milli-unit</dt>
+          <dd>The same trick for quantity: 1 kg is stored as <span class="path">1000</span>, so 1.4 kg is <span class="path">1400</span>. Lets you weigh to the gram with no rounding error.</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="gloss-group">
+      <div class="gloss-head">Credit and refunds</div>
+      <dl>
+        <div>
+          <dt>Khata <span class="native">(کھاتا)</span></dt>
+          <dd>The shop's credit book. A trusted regular takes goods now and settles at the end of the month; the shopkeeper writes it in a ledger. In Sukoon, each regular has a Khata with a running balance, and every purchase and payment is a line in it.</dd>
+        </div>
+        <div>
+          <dt>Credit limit</dt>
+          <dd>The most a customer may owe. Every new Khata starts at <b>Rs 10,000</b>; an Admin can change it. A sale that would go past it is stopped at the till unless an Admin standing there approves it with their own password.</dd>
+        </div>
+        <div>
+          <dt>Credit terms &amp; overdue</dt>
+          <dd>&ldquo;Settle within 30 days.&rdquo; Optional per customer. If they owe money and haven't paid <em>anything</em> in that many days, their Khata is flagged <b>overdue</b>. Any payment, even a small one, restarts the count.</dd>
+        </div>
+        <div>
+          <dt>In credit</dt>
+          <dd>They paid more than they owed, so the shop owes <em>them</em>. Shown as &ldquo;Rs 200 in credit&rdquo; and used up by their next purchase. Sukoon always asks before accepting an overpayment.</dd>
+        </div>
+        <div>
+          <dt>Statement</dt>
+          <dd>A printable page for one customer and one month (or all time): what they owed at the start, every purchase and payment, what they owe at the end.</dd>
+        </div>
+        <div>
+          <dt>Refund</dt>
+          <dd>Money back for part or all of a past sale, found by its invoice number. You can refund 1 of the 3 bottles they bought; you don't have to undo the whole sale.</dd>
+        </div>
+        <div>
+          <dt>Restock <span class="native">(the tickbox)</span></dt>
+          <dd><b>Ticked:</b> the item came back sellable and goes onto the shelf again. <b>Unticked:</b> it came back broken or expired — the customer gets their money, the goods go in the bin, and your stock level correctly does <em>not</em> go up.</dd>
+        </div>
+        <div>
+          <dt>Pending approval</dt>
+          <dd>A cashier <em>records</em> a refund; an Admin <em>approves</em> it. Until approved, nothing moves — no money out, no stock back. This is the single most common way staff steal from a shop, so it's deliberately two people.
+          <span class="eg">Pending refunds are waiting at <span class="path">/refunds/pending</span>. There's no link to it in the sidebar — see finding D6.</span></dd>
+        </div>
+        <div>
+          <dt>Refundable</dt>
+          <dd>How much of that line is <em>still</em> available to refund: sold, minus already refunded, minus already requested but not yet approved. This is why your screen says "Sold 1.4, Refundable 0.1" — 1.3 is locked up in two pending requests.</dd>
+        </div>
+      </dl>
+    </div>
+  </section>
+
+  <section id="day">
+    <h2>Part two</h2>
+    <p class="sec-title">A cashier's day, screen by screen</p>
+    <p class="sec-intro">This is the order things actually happen in a shop — which is also the order to test them in. If you can walk this path without getting stuck, the prototype demos.</p>
+
+    <div class="step">
+      <div class="step-n">1</div>
+      <div class="step-body">
+        <span class="screen-tag">Sign in</span>
+        <h3>Pick a face, not a username</h3>
+        <p>Shop staff are two or three people who have known each other for years. Making them type <span class="path">sana.khan@</span> would be absurd, so Sukoon shows their faces and initials; you tap yours and type a short password. <b>Admin</b> can do everything; <b>Cashier</b> can ring sales, look at stock, and <em>request</em> refunds — but not approve them.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-n">2</div>
+      <div class="step-body">
+        <span class="screen-tag">Stock &rarr; New product / Bulk entry</span>
+        <h3>Get the shop into the computer</h3>
+        <p>Before you can sell anything it has to exist in the catalogue. <b>New product</b> is the careful one-at-a-time form. <b>Bulk entry</b> is for the first day of ownership: scan, type a name and a price, press Enter, and the cursor jumps straight back to the barcode box so you can do 400 items without touching the mouse.</p>
+        <p>Only name and selling price are required. Everything else can be filled later — which is exactly what the amber <b>Needs completing</b> badge tracks.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-n">3</div>
+      <div class="step-body">
+        <span class="screen-tag">Stock &rarr; product &rarr; Stock in</span>
+        <h3>Record the delivery</h3>
+        <p>The supplier's van arrives with 24 bottles of oil. You record a <b>stock in</b> of 24 with a reason. The product page's <b>Recent stock movements</b> table is the item's whole life story: every in, every out, every sale, who did it and why. This table is the audit trail — it's the reason the system is trustworthy, and it's worth showing your client explicitly.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-n">4</div>
+      <div class="step-body">
+        <span class="screen-tag">Till &rarr; New sale</span>
+        <h3>Ring up a customer</h3>
+        <p>Scan or type each item. Sealed packs get a <b>&minus; 3 +</b> stepper. Loose goods open a small weight box instead, because the assistant has to walk to the scale and come back — that's why the total shows an amber <b>"Waiting on 1 weight"</b> and the Complete button stays dead until every weight is in.</p>
+        <p>Then choose Cash, Card or Khata. For cash, tap the round-note button matching what they handed you, read out the change, and hit <b>Complete sale</b>. The receipt goes to the thermal printer; if there's no printer, Sukoon quietly makes a PDF instead rather than failing the sale.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-n">5</div>
+      <div class="step-body">
+        <span class="screen-tag">Refunds</span>
+        <h3>Take something back</h3>
+        <p>Customer returns with a receipt. Type the invoice number, pick the lines and quantities coming back, decide per line whether it's resellable (<b>restock</b>), and give a reason. The cashier's job ends there — it sits as <b>pending approval</b> until an Admin signs it off on the pending screen.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-n">6</div>
+      <div class="step-body">
+        <span class="screen-tag">Stock</span>
+        <h3>See what to reorder</h3>
+        <p>End of day, the Admin glances at the four tiles across the top and the coral bars down the list, and writes the supplier order. That's the loop. Everything else in the roadmap — khata, dashboards, reports — hangs off these six steps.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="bugs">
+    <h2>Part three</h2>
+    <p class="sec-title">Ten bugs, all fixed</p>
+    <p class="sec-intro">Each was traced to a specific line, not guessed from a screenshot, then fixed and checked — by an automated test where one can see it, and by driving real Chrome where only a browser can. The rest (B6–B10) turned up while verifying the first five, or while building your two decisions.</p>
+
+    <div class="docket">
+
+      <div class="find fixed">
+        <div class="find-top">
+          <span class="fid">B1</span>
+          <span class="tag fixed">Fixed</span>
+          <span class="tag sev">Could lose a sale</span>
+          <h4>A dead &ldquo;Complete sale&rdquo; button turns bright green when you hover it</h4>
+        </div>
+        <p><span class="lbl">You saw</span>In one screenshot the button is grey and disabled; in the next, with the same cart, it's dark green and looks perfectly clickable. Nothing about the sale changed — only the mouse position.</p>
+        <p><span class="lbl">Why</span>The stylesheet defines the hover colour <em>after</em> the disabled colour, and both are equally specific, so hover wins. The button is still genuinely disabled — clicking does nothing — but it lies about it.</p>
+        <p><span class="lbl">Cost</span>A cashier with a queue jabs a button that looks alive and gets no response. That's the single worst thing a till can do.</p>
+        <p><span class="lbl">Where</span><span class="path">sukoon/static/css/input.css:58</span> and <span class="path">:61</span> — needs an <code>enabled:</code> guard on the hover state.</p>
+        <p><span class="lbl">Fixed</span>Hover is now guarded with <code>:not(:disabled)</code>. A test fails the build if an unguarded button hover ever comes back.</p>
+      </div>
+
+      <div class="find fixed">
+        <div class="find-top">
+          <span class="fid">B2</span>
+          <span class="tag fixed">Fixed</span>
+          <span class="tag sev">Visible on every sale</span>
+          <h4>The header says &ldquo;0 items in the cart&rdquo; while the cart plainly shows two</h4>
+        </div>
+        <p><span class="lbl">You saw</span>Top-left reads <em>0 items in the cart</em>; the list below reads <em>Cart &middot; 2 items</em>. In the admin screenshot it's 2 against 3. It's always exactly one step behind.</p>
+        <p><span class="lbl">Why</span>This one is my fault, and it came from the htmx work. Adding an item now swaps only the <code>#till-body</code> region instead of reloading the page — but that little subtitle sits <em>outside</em> that region, so it never gets replaced. It's showing the count from whenever the page last fully loaded.</p>
+        <p><span class="lbl">Where</span><span class="path">templates/till/till.html:4</span> (the subtitle) vs <span class="path">:17</span> (where the swapped region starts).</p>
+        <p><span class="lbl">Fixed</span>Every cart update now refreshes the top bar too. Checked in Chrome: removing and weighing items keeps both counts in step, with no page reloads.</p>
+      </div>
+
+      <div class="find fixed">
+        <div class="find-top">
+          <span class="fid">B3</span>
+          <span class="tag fixed">Fixed</span>
+          <span class="tag sev">Wrong on refunds</span>
+          <h4>Atta sold by the kilo shows up as &ldquo;1.4 unit&rdquo; on the refund screen</h4>
+        </div>
+        <p><span class="lbl">You saw</span><em>Sold 1.4 unit</em> for a product whose unit is kg, and which says kg correctly everywhere else in the app.</p>
+        <p><span class="lbl">Why</span>When a sale is recorded, Sukoon deliberately freezes a copy of the product's name and price onto the sale line, so that renaming a product later never rewrites history. It just never froze the <em>unit label</em> alongside them — so the refund screen falls back to the generic word "unit".</p>
+        <p><span class="lbl">Cost</span>Cosmetic, but it's on the screen where someone is handing money back, so it reads as sloppiness.</p>
+        <p><span class="lbl">Where</span><span class="path">sukoon/app.py:103</span> (the fallback) and <span class="path">models/sales.py:63</span> (no unit is snapshotted).</p>
+        <p><span class="lbl">Fixed</span>Refund screens now read the product's real unit — &ldquo;1.4 kg&rdquo; — and the pending list shows the product name and who recorded it, instead of &ldquo;Sale item #12&rdquo; and &ldquo;user #2&rdquo;.</p>
+      </div>
+
+      <div class="find fixed">
+        <div class="find-top">
+          <span class="fid">B4</span>
+          <span class="tag fixed">Fixed</span>
+          <span class="tag sev">Cosmetic</span>
+          <h4>The cash shortcut buttons can offer the same amount twice</h4>
+        </div>
+        <p><span class="lbl">You saw</span><em>Exact &middot; Rs 3,500 &middot; Rs 3,500</em> on a Rs 3,470 bill. On an empty cart it's worse: <em>Exact &middot; Rs 0 &middot; Rs 0</em>.</p>
+        <p><span class="lbl">Why</span>The buttons compute "round up to the next 100" and "round up to the next 500" independently. For Rs 3,470 both land on Rs 3,500. And on a Rs 1,700 bill, "Exact" and "next 100" are both 1,700.</p>
+        <p><span class="lbl">Fix</span>Drop any shortcut that duplicates another, and hide the row entirely on an empty cart.</p>
+        <p><span class="lbl">Where</span><span class="path">templates/till/till.html</span>, the three quick-amount buttons in the cash panel.</p>
+        <p><span class="lbl">Fixed</span>Shortcuts are exact, then the next round 100 / 500 / 1,000 / 5,000 — the first three that differ. A Rs 255 bill offers Exact &middot; Rs 300 &middot; Rs 500. The green highlight follows what's actually in the box, and the row hides on an empty cart.</p>
+      </div>
+
+      <div class="find fixed">
+        <div class="find-top">
+          <span class="fid">B5</span>
+          <span class="tag fixed">Fixed</span>
+          <span class="tag sev">Misleading number</span>
+          <h4>&ldquo;Needs attention: 3&rdquo; and &ldquo;Out of stock: 3&rdquo; are the same three items</h4>
+        </div>
+        <p><span class="lbl">You saw</span>Two tiles both reading 3, on a catalogue of four products. It looks like six problems; there are three.</p>
+        <p><span class="lbl">Why</span><em>Needs attention</em> counts running-low <b>plus</b> out-of-stock, so everything in the second tile is also inside the first. The captions make it worse: your three items are fully out, not "running low", and an out-of-stock item needs reordering <em>now</em>, not "soon".</p>
+        <p><span class="lbl">Fix</span>Count only genuinely-low items in the first tile, and rewrite both captions to match what's under them.</p>
+        <p><span class="lbl">Where</span><span class="path">services/inventory_service.py:494</span>, captions at <span class="path">templates/stock/list.html:29,34</span>.</p>
+        <p><span class="lbl">Fixed</span>&ldquo;Needs attention&rdquo; now counts only running-low items, and the out-of-stock caption reads &ldquo;reorder now&rdquo;.</p>
+      </div>
+
+      <div class="find fixed">
+        <div class="find-top">
+          <span class="fid">B6</span>
+          <span class="tag fixed">Fixed</span>
+          <span class="tag sev">Worst of the lot</span>
+          <h4>&ldquo;Change to return&rdquo; showed Rs 24,500 when the change was Rs 245</h4>
+        </div>
+        <p><span class="lbl">Found</span>Not in your screenshots — every one had cash received equal to the total, so the change box never appeared. It surfaced when the browser check paid Rs 500 for a Rs 255 bill.</p>
+        <p><span class="lbl">Why</span>The preview works in paisa (1 rupee = 100 paisa) but printed that number as if it were rupees, so it was 100 times too big. My mistake, from the visual pass; the check I ran then never tried a sale with change.</p>
+        <p><span class="lbl">Reassurance</span>Only the preview was wrong. The saved sale, the Sale Complete screen and the receipt all use the server's own figure and were always correct.</p>
+        <p><span class="lbl">Fixed</span>Checked end to end: the preview reads Rs 245 and Sale Complete agrees.</p>
+      </div>
+
+      <div class="find fixed">
+        <div class="find-top">
+          <span class="fid">B7</span>
+          <span class="tag fixed">Fixed</span>
+          <span class="tag sev">The misalignment you saw</span>
+          <h4>&ldquo;Cash received&rdquo; sat flush against the edge of its panel</h4>
+        </div>
+        <p><span class="lbl">Why</span>Three panels asked for padding using a size (<code>px-4.5</code>) the styling tool doesn't have. It doesn't complain; it just produces nothing, so the padding silently vanished. The till's cash panel and two panels on the product page.</p>
+        <p><span class="lbl">Fixed</span>Real sizes now, plus a test that scans every template for sizes the tool can't produce.</p>
+      </div>
+
+      <div class="find fixed">
+        <div class="find-top">
+          <span class="fid">B8</span>
+          <span class="tag fixed">Fixed</span>
+          <span class="tag sev">Cosmetic</span>
+          <h4>The Refunds icon was a broken squiggle</h4>
+        </div>
+        <p><span class="lbl">You saw</span>A stray hook shape in the sidebar and on the Welcome tile, where an undo arrow should be.</p>
+        <p><span class="lbl">Fixed</span>The icon's drawing instructions were corrupted halfway through; restored to the standard undo arrow.</p>
+      </div>
+
+      <div class="find fixed">
+        <div class="find-top">
+          <span class="fid">B9</span>
+          <span class="tag fixed">Fixed</span>
+          <span class="tag sev">Silent failures</span>
+          <h4>Error messages at the till never appeared</h4>
+        </div>
+        <p><span class="lbl">You'd have seen</span>Pressing Set on an empty weight box, or scanning something that didn't match: nothing happened, and no message said why.</p>
+        <p><span class="lbl">Why</span>The same mistake as B2, from my htmx work. Updating the cart replaces only the cart area of the page, and the message pop-ups live outside it, so the server's message was handed over and thrown away.</p>
+        <p><span class="lbl">Fixed</span>Every cart update now refreshes the message area too. Checked in Chrome: &ldquo;Enter a weight.&rdquo; appears.</p>
+      </div>
+
+      <div class="find fixed">
+        <div class="find-top">
+          <span class="fid">B10</span>
+          <span class="tag fixed">Fixed</span>
+          <span class="tag sev">A feature that never worked</span>
+          <h4>An item created at the till could never be sold</h4>
+        </div>
+        <p><span class="lbl">Why</span>Scanning something not in the catalogue lets a cashier create it on the spot. But it was created with zero stock, and checkout refuses anything with zero stock, so every such sale failed with &ldquo;Only 0 unit in stock.&rdquo; No test had ever tried to finish that sale.</p>
+        <p><span class="lbl">Fixed</span>As part of your stock-limit decision (D5 below): items Sukoon has never counted aren't limited, and the sale records them as &ldquo;found at the till&rdquo;. Checked end to end in Chrome.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <section id="design">
+    <h2>Part four</h2>
+    <p class="sec-title">Looks wrong. Isn't.</p>
+    <p class="sec-intro">Things in your screenshots that made you stop. D1–D4 are deliberate, and knowing <em>why</em> is what will make the demo land. D5 and D7 were questions for your client; both are now decided and built. D6 was a real gap, now fixed.</p>
+
+    <div class="docket">
+
+      <div class="find design">
+        <div class="find-top">
+          <span class="fid">D1</span>
+          <span class="tag design">By design</span>
+          <h4>Stock value says Rs 0 even though the shelves are full</h4>
+        </div>
+        <p>Stock value is measured at <b>cost price</b>, and none of your four test products has a cost price entered — that's what their <em>Needs completing</em> badges are for. The project's standing rule is to show nothing rather than a plausible-looking guess, so it shows Rs 0 rather than quietly valuing the shelf at retail and overstating the shop's worth.</p>
+        <p>Enter a cost price on any product and the tile will move. Worth doing before you demo.</p>
+      </div>
+
+      <div class="find design">
+        <div class="find-top">
+          <span class="fid">D2</span>
+          <span class="tag design">By design</span>
+          <h4>&ldquo;Atta (loose)&rdquo; appears twice in the same cart</h4>
+        </div>
+        <p>Each scoop is its own weighing. A customer buying 10 kg of atta for the house and 2 kg of a different grade gets two separate lines with two separate weights — so a second scan of a loose product deliberately opens a <em>new</em> weigh-line instead of bumping a counter. Sealed packs do the opposite and increment a stepper, which is why oil shows &ldquo;3&rdquo; rather than three rows.</p>
+      </div>
+
+      <div class="find design">
+        <div class="find-top">
+          <span class="fid">D3</span>
+          <span class="tag design">By design</span>
+          <h4>Only 0.1 kg is refundable out of 1.4 kg sold</h4>
+        </div>
+        <p>You have two refunds on that invoice sitting unapproved, for 1.3 kg between them. Pending requests reserve the quantity so the same goods can't be refunded twice while an Admin is still deciding. Approve or reject them at <span class="path">/refunds/pending</span> and the number frees up.</p>
+      </div>
+
+      <div class="find design">
+        <div class="find-top">
+          <span class="fid">D4</span>
+          <span class="tag design">By design</span>
+          <h4>Atta shows 99,997.6 kg in stock</h4>
+        </div>
+        <p>Nothing is wrong — at some point you recorded a stock-in of 100,000 kg while testing. Before any demo, clear the database and seed it with believable numbers; a hundred tonnes of flour in a corner shop will be the only thing your client remembers.</p>
+      </div>
+
+      <div class="find fixed">
+        <div class="find-top">
+          <span class="fid">D5</span>
+          <span class="tag fixed">Decided &amp; built</span>
+          <h4>The till stops you before you run out, not at checkout</h4>
+        </div>
+        <p><span class="lbl">Your rule</span>The moment the cart holds all the stock there is, the <b>+</b> button stops working, with a small amber note: &ldquo;That's all of it — 2 bottle in stock.&rdquo; Scanning it again, or typing a weight that's more than what's left, is refused with a message naming the product and how much remains.</p>
+        <p><span class="lbl">Your choice</span>Items Sukoon has <em>never been told a quantity for</em> (nobody has recorded a delivery or a count) aren't limited, because &ldquo;0&rdquo; there means &ldquo;unknown&rdquo;, not &ldquo;none&rdquo;. At checkout the sold amount is recorded as &ldquo;Found at the till&rdquo;, so the stock history stays honest. Record one delivery and the normal limit applies from then on.</p>
+        <p><span class="lbl">Still possible</span>Another till selling the last one after it's in your cart. Checkout still catches that, and now says which product.</p>
+      </div>
+
+      <div class="find fixed">
+        <div class="find-top">
+          <span class="fid">D6</span>
+          <span class="tag fixed">Fixed</span>
+          <h4>There was no link to the pending-refunds screen</h4>
+        </div>
+        <p>The approval queue worked, but nothing pointed to it, which is why two refunds sat there unnoticed. Now an Admin sees a small count on the Refunds icon in the sidebar, and a &ldquo;1 refund waiting for your approval &rarr; Review&rdquo; card at the top of the Refunds screen. Cashiers see neither, because they can't approve.</p>
+      </div>
+
+      <div class="find fixed">
+        <div class="find-top">
+          <span class="fid">D7</span>
+          <span class="tag fixed">Decided &amp; built</span>
+          <h4>Every time now reads Pakistan time, receipts included</h4>
+        </div>
+        <p><span class="lbl">Your choice</span>One fixed shop timezone (Asia/Karachi), whatever each PC's Windows setting is. Times are still stored in UTC; only what people read changed: stock history, pending refunds, and both kinds of receipt. The year on invoice numbers now changes at Pakistan's midnight, not five hours later.</p>
+        <p><span class="lbl">One thing only you can do</span>On the shop PC, turn on Windows' <b>&ldquo;Set time automatically&rdquo;</b>. A timezone setting can't fix a clock that's simply wrong.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <section id="script">
+    <h2>Part five</h2>
+    <p class="sec-title">Test it yourself in ten minutes</p>
+    <p class="sec-intro">Run this end to end before you show anyone. Start from a clean database so the numbers look like a real shop. Anything that doesn't match the expected result is worth sending to me.</p>
+
+    <div class="script">
+      <div class="trow"><div class="tn">01</div><div>
+        <p class="tdo">Sign in as the cashier.</p>
+        <p class="texp">Lands on Welcome with three tiles: Till, Stock, Refunds.</p></div></div>
+      <div class="trow"><div class="tn">02</div><div>
+        <p class="tdo">Open Till. If it asks, name the till <span class="path">Till 1</span>.</p>
+        <p class="texp">A small &ldquo;Till 1&rdquo; chip above the scan box; it survives a refresh.</p></div></div>
+      <div class="trow"><div class="tn">03</div><div>
+        <p class="tdo">Create a sealed product with a cost price — say Cooking Oil, sell Rs 590, cost Rs 520 — and stock in 24.</p>
+        <p class="texp">Stock value tile stops reading Rs 0. No &ldquo;Needs completing&rdquo; badge.</p></div></div>
+      <div class="trow"><div class="tn">04</div><div>
+        <p class="tdo">Set its low-stock threshold to 6, then stock out 20 with the reason &ldquo;damaged&rdquo;.</p>
+        <p class="texp">4 left, an amber &ldquo;low&rdquo; bar, and the movement logged as Stock Out.</p></div></div>
+      <div class="trow"><div class="tn">05</div><div>
+        <p class="tdo">Add 2 bottles to the cart with the <b>+</b> stepper.</p>
+        <p class="texp">One row reading 2, total Rs 1,180 — <em>and the header count matches (B2).</em></p></div></div>
+      <div class="trow"><div class="tn">06</div><div>
+        <p class="tdo">Add a loose product but don't set the weight. Hover the Complete button.</p>
+        <p class="texp">Stays grey and unclickable — <em>it must not turn green (B1).</em></p></div></div>
+      <div class="trow"><div class="tn">07</div><div>
+        <p class="tdo">Set the weight to 1.5 kg, choose Cash, tap the round-note button.</p>
+        <p class="texp">Change appears in blue and is the right size: a Rs 1,435 bill paid with Rs 2,000 shows Rs 565, not Rs 56,500 (B6). No two shortcut buttons match (B4).</p></div></div>
+      <div class="trow"><div class="tn">08</div><div>
+        <p class="tdo">Complete the sale.</p>
+        <p class="texp">Sale complete screen, an invoice number, and a PDF receipt offered because no printer is attached.</p></div></div>
+      <div class="trow"><div class="tn">09</div><div>
+        <p class="tdo">Open the PDF. Check the shop name, the lines, the change, the footer.</p>
+        <p class="texp">Nothing runs off the edge of the 80 mm paper.</p></div></div>
+      <div class="trow"><div class="tn">10</div><div>
+        <p class="tdo">Go back to the product. Confirm stock dropped by exactly what you sold.</p>
+        <p class="texp">A Sale movement naming that invoice number.</p></div></div>
+      <div class="trow"><div class="tn">11</div><div>
+        <p class="tdo">Refunds &rarr; enter the invoice &rarr; return 1 bottle, restock ticked, reason &ldquo;wrong item&rdquo;.</p>
+        <p class="texp">Saved as <b>pending approval</b>. Stock has <em>not</em> moved yet.</p></div></div>
+      <div class="trow"><div class="tn">12</div><div>
+        <p class="tdo">Sign out, sign in as Admin. The Refunds icon shows a <b>1</b>; open Refunds, press <b>Review</b>, and approve it.</p>
+        <p class="texp">Only now does the bottle return to stock and the sale read <em>partially refunded</em>.</p></div></div>
+      <div class="trow"><div class="tn">13</div><div>
+        <p class="tdo">As the cashier, look for the badge and the Review card, then type <span class="path">/refunds/pending</span> into the address bar.</p>
+        <p class="texp">No badge, no card, and the address is refused. A cashier requests refunds; only an Admin approves them.</p></div></div>
+    </div>
+
+    <p class="sec-intro" style="margin-top:34px">Then the Khata, as Admin unless it says otherwise.</p>
+    <div class="script">
+      <div class="trow"><div class="tn">14</div><div>
+        <p class="tdo">As the cashier: Khata &rarr; <b>+ Open a Khata</b> for &ldquo;Haji Usman&rdquo;, number 0300 5541298, &ldquo;They showed it on their phone&rdquo;.</p>
+        <p class="texp">Opens with a Rs 10,000 limit and a green &ldquo;confirmed&rdquo; tag.</p></div></div>
+      <div class="trow"><div class="tn">15</div><div>
+        <p class="tdo">Open a second Khata with the same number written as +92 300 5541298.</p>
+        <p class="texp">It asks &ldquo;already on Haji Usman's Khata. Same person?&rdquo; before saving anything.</p></div></div>
+      <div class="trow"><div class="tn">16</div><div>
+        <p class="tdo">Till: add Rs 3,000 of goods, press <b>Khata</b>, type &ldquo;usman&rdquo;, pick him, complete.</p>
+        <p class="texp">His name replaces &ldquo;Walk-in customer&rdquo;; his Khata now shows Rs 3,000 owed.</p></div></div>
+      <div class="trow"><div class="tn">17</div><div>
+        <p class="tdo">Ring up Rs 8,000 more on his Khata.</p>
+        <p class="texp">A coral box: &ldquo;Rs 1,000 over their limit&rdquo;. Completing as the cashier is refused; an Admin's name and password in the box lets it through.</p></div></div>
+      <div class="trow"><div class="tn">18</div><div>
+        <p class="tdo">Khata &rarr; Record payment Rs 5,000 by JazzCash with a transaction ID, then Rs 7,000 in cash.</p>
+        <p class="texp">The second asks &ldquo;Rs 1,000 more than they owe. Keep it as credit?&rdquo;; confirming shows <b>Rs 1,000 in credit</b>, never a minus sign.</p></div></div>
+      <div class="trow"><div class="tn">19</div><div>
+        <p class="tdo">Open <b>Statement</b>, then <b>Download PDF</b>.</p>
+        <p class="texp">Check it with a calculator: opening + purchases − payments = closing.</p></div></div>
+      <div class="trow"><div class="tn">20</div><div>
+        <p class="tdo">As Admin: Edit &rarr; Archive Khata while he's in credit.</p>
+        <p class="texp">Refused. It only works at a zero balance, and even then his history is kept.</p></div></div>
+    </div>
+
+    <div class="note">
+      <span class="nh">Before the client sees it</span>
+      <p>Wipe the test database and reseed. Six to ten products with believable Pakistani names and prices, cost prices filled in, one deliberately low and one deliberately out of stock, and three or four completed sales so the movement history has something in it.</p>
+      <p>A demo lives or dies on whether the data looks like a real shop. 99,997.6 kg of atta undoes an awful lot of good engineering.</p>
+    </div>
+  </section>
+
+  <section id="scope">
+    <h2>Part six</h2>
+    <p class="sec-title">What isn't built yet</p>
+    <p class="sec-intro">You have nine design reference screenshots, and four of them are for screens that don't exist. That's schedule, not breakage — but know which is which before a client asks.</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Area</th><th>Status</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Sign in &amp; roles</td><td><span class="st yes">Built</span></td><td>Phase 1. Permissions, step-up for destructive actions.</td></tr>
+          <tr><td>Catalogue &amp; stock</td><td><span class="st yes">Built</span></td><td>Phase 2. Products, barcodes, movements, bulk entry, categories.</td></tr>
+          <tr><td>Till &amp; receipts</td><td><span class="st yes">Built</span></td><td>Phase 3. Cash and card, weighed goods, thermal printing with PDF fallback.</td></tr>
+          <tr><td>Refunds</td><td><span class="st yes">Built</span></td><td>Phase 3. Two-person approval, with a badge when something awaits an Admin.</td></tr>
+          <tr><td>Khata / credit</td><td><span class="st yes">Built</span></td><td>Phase 4. Customers, limits, payments, overdue flags, statements with PDF, and a Khata search at the till.</td></tr>
+          <tr><td>WhatsApp messages</td><td><span class="st no">Phase 5</span></td><td>Purchase notices, overdue reminders, monthly statements. Starts with a planning session that you run.</td></tr>
+          <tr><td>Dashboard</td><td><span class="st no">Later</span></td><td>Reference screenshot exists; screen doesn't.</td></tr>
+          <tr><td>Settings</td><td><span class="st no">Later</span></td><td>Shop name and printer are configurable, but only from the database today.</td></tr>
+          <tr><td>Reports</td><td><span class="st no">Later</span></td><td>Day-end totals, sales by product.</td></tr>
+          <tr><td>Windows installer</td><td><span class="st no">Later</span></td><td>Final phase. Runs from the terminal for now.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <span class="nh">One thing worth saying out loud</span>
+      <p>Khata works end to end now, so demo it. But nothing is sent over WhatsApp yet. If the client asks about the reminder they saw in the design, say &ldquo;messages are the next block of work&rdquo;; it's already planned in the decision records.</p>
+    </div>
+  </section>
+
+  <footer>
+    Sukoon &middot; Al-Rehman General Store &middot; Findings verified against the codebase, not inferred from screenshots. Fixes checked by 363 automated tests and in a real browser.
+  </footer>
+
+  </div>
+</div>
+</div>
+
+</body>
+</html>

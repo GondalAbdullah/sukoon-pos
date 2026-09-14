@@ -1,6 +1,6 @@
 # Phase 5 — WhatsApp Notifications: Proposal for the grill session
 
-Status: **PROPOSAL — nothing here is decided.** Written 2026-09-14 (session 24) as the
+Status: **GRILLED 2026-09-14 (session 25) — superseded by [ADR-0027](../adr/0027-whatsapp-provider-and-account.md) to [ADR-0033](../adr/0033-whatsapp-operational-safety.md).** Kept unedited below as the starting point; where it differs from those ADRs, the ADRs win. Originally: **PROPOSAL — nothing here is decided.** Written 2026-09-14 (session 24) as the
 artefact for the `grill-with-docs` session the Development Specification requires
 before any Phase 5 code (Phase 5 step 1; the 🛑 gate "confirm the provider, message
 template wording, and retry/backoff limits before implementation"). Per the spec's

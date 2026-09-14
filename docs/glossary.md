@@ -268,6 +268,66 @@ refunds = closing.
 checked in person — the customer showed it on their phone, or the cashier rang it.
 An unconfirmed number never receives anything about money (Phase 5).
 
+**WhatsApp consent (the tick)** *(Settled — ADR-0028)* — "Send updates on WhatsApp",
+ticked on a customer when they agree to messages. Starts unticked. Without it Sukoon
+sends that customer nothing at all. Changing their number clears it.
+
+**Account notice** *(Settled — ADR-0013, ADR-0028)* — The one neutral message a ticked
+customer with an **unconfirmed** number may receive: an account was opened in their name
+at the shop, contact us if this isn't you. No amounts, ever. Sent once per number.
+
+**Message eligibility** *(Settled — ADR-0028)* — Whether a customer may receive a given
+kind of message right now, decided from their tick, number, confirmation and whether the
+Khata is archived. Checked when a message is queued and again just before it is sent.
+
+**Abandoned message** *(Settled — ADR-0016, ADR-0028)* — A queued message Sukoon gave up
+on for good, with the reason recorded (for example, the customer was unticked before it
+went out). Different from **failed**, which means sending kept not working.
+
+**Sent (message)** *(Settled — ADR-0029)* — WhatsApp's API accepted the message. It does
+not prove the customer's phone received it; Sukoon has no delivery reports in v1.
+
+**Failed message** *(Settled — ADR-0029)* — A message that kept hitting errors worth
+retrying and used all five attempts. Shown to the Admin with the last error; can be
+retried by hand.
+
+**Age limit** *(Settled — ADR-0029)* — How old a queued message may get before Sukoon
+gives up on it, so a balance never arrives days out of date: 48 hours for a credit-sale
+notice, 24 hours for an overdue reminder, 7 days for statements and account notices.
+
+**Paused sending** *(Settled — ADR-0029)* — The state when the WhatsApp account itself
+can't send (expired key, card declined, account restricted). All messages wait, an Admin
+sees a banner, and sending resumes by itself once a check succeeds.
+
+**Message template** *(Settled — ADR-0030)* — The fixed wording of a WhatsApp message,
+with blanks for the customer's details, that Meta must approve before it can be sent.
+Changing the wording, or the shop's name inside it, means approving it again.
+
+**Reply-to number** *(Settled — ADR-0030)* — The shop's everyday phone number, printed in
+every WhatsApp message, because the number that sends the messages can't read replies.
+Sending can't be switched on until it is set.
+
+**Dedupe key** *(Settled — ADR-0016, ADR-0031)* — A label that names one message event,
+such as "the statement for customer 12, September 2026". The database accepts each label
+only once, so a restart, a double click or a second worker can never send the same
+message twice.
+
+**Statement catch-up** *(Settled — ADR-0031)* — If Sukoon was switched off at 9 am on the
+1st, it queues last month's WhatsApp statements when it next starts, but only until 9 am
+on the 8th. After that the month is skipped rather than sent late.
+
+**Daily cap** *(Settled — ADR-0033)* — The most WhatsApp messages Sukoon will send in one
+day (default 200). Reaching it pauses sending until the next day, so a bug can never run
+up the owner's bill.
+
+**Sending switched off** *(Settled — ADR-0033)* — WhatsApp is turned off in Sukoon:
+nothing is queued at all. Not the same as **paused**, where messages keep waiting because
+the shop means to be sending.
+
+**Outcome unknown** *(Settled — ADR-0033)* — A message Sukoon was in the middle of sending
+when it stopped (a crash or power cut). It may or may not have reached WhatsApp, so it is
+never resent by itself; an Admin can press Send again.
+
 **Archived Khata** *(Settled — ADR-0026)* — A customer removed from the Khata list and
 the till's picker, with all their purchases and payments kept. Only possible at a
 zero balance; a customer with no history at all is deleted instead.

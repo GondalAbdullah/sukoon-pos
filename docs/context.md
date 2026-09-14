@@ -10,10 +10,10 @@ work session, not just every phase.
 
 | | |
 |---|---|
-| **Phase** | **Phase 4 — Credit Customer Management (Khata) — functionally complete** (session 23, [ADR-0026](adr/0026-phase-4-khata-policy.md)); Definition of Done checked in §4k. **Phase 5 — WhatsApp notifications — next, and it opens with a scheduled `grill-with-docs` session** (Development Spec Phase 5 step 1). Phases 3 and 3.5 closed earlier. |
-| **Status** | **Session 23:** Phase 4 built — customers with duplicate-number and in-person confirmation (ADR-0013), a single ledger writer that sales, refunds and payments all go through, full/partial/over-payments, credit limits with Admin approval at the till (ADR-0014), overdue flags (ADR-0015), month statements on shop time with an A4 PDF, the Khata screen, and a Khata picker replacing the till's raw customer ID. 363 tests pass; verified in real Chrome. **Session 22:** the client answered O-21/O-22 — shop timezone (ADR-0024) and stock limits at the till (ADR-0025) built; along the way found and fixed a latent bug (items created at the till could never be sold) and B9 (htmx swaps silently dropped every till error message). **Session 21:** a bug sweep driven by the developer's own walkthrough screenshots — 8 real bugs fixed and verified in a real browser (session 21 changelog), plus a plain-language field manual at `docs/field-manual.html` (untracked). Phase 3.5 built out sessions 13–19 (toolchain, Login, Till, Sale Complete, terminal ID, Stock, Refunds, landing page, htmx pass — §4i), then the Design System §13 DoD side-by-side (session 20, §4j) — fresh screenshots of every screen plus an actually-rendered receipt PDF against all 9 reference images, not a documentation exercise. Found and fixed three real issues (two undersized/no-hover buttons, a receipt footer line that ran off the page, fixed with real word-wrapping + regression tests) and restored two missing Login details. One genuine tension between ADR-0006 (prototype pixel-fidelity) and the Design System's written 44px touch-target rule was put to the client rather than picked unilaterally: **keep the prototype-exact stepper size, no change** — recorded with rationale. **Phase 3.5 is now formally closed.** `ruff` clean, **245 tests green, 95% coverage**. |
-| **Last session** | 2026-09-14 (session 24) |
-| **Next action** | **The client/developer starts the Phase 5 grill:** type `/grill-with-docs docs/proposals/phase-5-notifications.md` in Claude Code. The skill is human-invoked (`disable-model-invocation`), so the agent cannot start it. The proposal it grills is written (session 24): what's already settled, and ten open decisions (provider, templates, retry/give-up, what 'sent' means, token storage, consent, statement timing, reminder cadence + O-20, the Messages screen, one-scheduler safety), each with a recommendation. **No Phase 5 code until its ADRs are Accepted.** Open, not blocking: ledger adjustments and voiding a sale (§4). |
+| **Phase** | **Phase 5 — WhatsApp Notification Module — grill complete (session 25), build next.** Decisions ADR-0027 to ADR-0033. The spec's 🛑 gate items — provider, message wording, retry/backoff limits — are confirmed in ADR-0027, ADR-0030/0032 and ADR-0029. Phase 4 (Khata) functionally complete (§4k). |
+| **Status** | **Session 25:** the Phase 5 `grill-with-docs` session ran on the session-24 proposal — 26 questions, 7 ADRs (0027–0033), O-20 resolved, O-18's trigger sharpened, O-23 opened for Meta facts that must be checked when the account exists. **Session 23:** Phase 4 built — customers with duplicate-number and in-person confirmation (ADR-0013), a single ledger writer that sales, refunds and payments all go through, full/partial/over-payments, credit limits with Admin approval at the till (ADR-0014), overdue flags (ADR-0015), month statements on shop time with an A4 PDF, the Khata screen, and a Khata picker replacing the till's raw customer ID. 363 tests pass; verified in real Chrome. **Session 22:** the client answered O-21/O-22 — shop timezone (ADR-0024) and stock limits at the till (ADR-0025) built; along the way found and fixed a latent bug (items created at the till could never be sold) and B9 (htmx swaps silently dropped every till error message). **Session 21:** a bug sweep driven by the developer's own walkthrough screenshots — 8 real bugs fixed and verified in a real browser (session 21 changelog), plus a plain-language field manual at `docs/field-manual.html` (untracked). Phase 3.5 built out sessions 13–19 (toolchain, Login, Till, Sale Complete, terminal ID, Stock, Refunds, landing page, htmx pass — §4i), then the Design System §13 DoD side-by-side (session 20, §4j) — fresh screenshots of every screen plus an actually-rendered receipt PDF against all 9 reference images, not a documentation exercise. Found and fixed three real issues (two undersized/no-hover buttons, a receipt footer line that ran off the page, fixed with real word-wrapping + regression tests) and restored two missing Login details. One genuine tension between ADR-0006 (prototype pixel-fidelity) and the Design System's written 44px touch-target rule was put to the client rather than picked unilaterally: **keep the prototype-exact stepper size, no change** — recorded with rationale. **Phase 3.5 is now formally closed.** `ruff` clean, **245 tests green, 95% coverage**. |
+| **Last session** | 2026-09-14 (session 25) |
+| **Next action** | **Build Phase 5** against ADR-0027…0033, in the order the proposal's §5 lists: the migration (consent columns, `message_daily_count`, `statement_run`), provider interface + fake provider, queue (eligibility, claim, classify, retry/age/pause, daily cap), jobs (worker with lock, statements with catch-up, overdue check), the five templates, Messages screen + Khata status line + Send reminder + Send test, and the required tests with the provider down as a hard gate. The real Meta adapter is written against Meta's documentation; **a real send waits on the client** creating the Meta Business account, card, new SIM and template approval (ADR-0027), and on O-23's checks. |
 
 ## 2. Decisions made so far
 
@@ -45,6 +45,13 @@ work session, not just every phase.
 | [0024](adr/0024-shop-timezone.md) | Times stay stored UTC; everything a person reads (screens, receipts, the invoice year) is in one fixed shop timezone, `shop.timezone`, default Asia/Karachi — not each PC's Windows zone. `tzdata` added for Windows. Resolves O-21 | **Accepted** |
 | [0025](adr/0025-stock-limits-at-the-till.md) | The cart is capped at a *counted* product's stock (+ disables, refusals name the product, enforced server-side); a *never-counted* product is uncapped and its shortfall is booked "found at the till" at checkout. Fixes the latent ADR-0011 §2 bug (till-created items could never sell). Resolves O-22 | **Accepted** |
 | [0026](adr/0026-phase-4-khata-policy.md) | Phase 4 Khata policy — client: Cashier+Admin record payments; new Khatas start at a Rs 10,000 default limit; cash/bank transfer/JazzCash-Easypaisa/card; A4 PDF statements for any staff. Proposed defaults recorded: five permission codes, over-limit approval by an Admin's name+password at the till, overpayment kept as explicit credit, delete blocked unless zero and archive-not-delete with history | **Accepted** |
+| [0027](adr/0027-whatsapp-provider-and-account.md) | Meta WhatsApp Cloud API directly; the owner's Meta Business account in the shop's name; a new SIM; the owner's international card; fake provider behind the adapter | **Accepted** |
+| [0028](adr/0028-whatsapp-consent-and-eligibility.md) | "Send updates on WhatsApp" tick (starts unticked; migration); no tick = nothing sent; ticked+unconfirmed = account notice only; eligibility re-checked before sending; a changed number clears the tick. Narrows ADR-0013 §4 | **Accepted** |
+| [0029](adr/0029-message-delivery-retry-and-pause.md) | 'Sent' = accepted by the API (no webhooks); five outcome classes; backoff 1m/5m/30m/2h/6h then failed; no-connection doesn't use an attempt; age limits 48h/7d/7d/24h; account-level errors pause the queue with an Admin banner and auto-resume | **Accepted** |
+| [0030](adr/0030-whatsapp-message-content.md) | English; credit-sale notice shows item count, never names (**deliberate spec deviation**); statement = summary + PDF; every message names the shop's reply-to number (required); approved wording for four templates | **Accepted** |
+| [0031](adr/0031-message-scheduling-and-cadence.md) | Triggers and dedupe keys; statements 09:00 on the 1st with catch-up until the 8th; overdue check 11:00, at most weekly, none within 3 days of a statement (**resolves O-20**); Send reminder is Admin-only under the same limits | **Accepted** |
+| [0032](adr/0032-payment-receipt-message.md) | **Scope addition:** a payment receipt message (48h age limit, approved wording); refunds send nothing | **Accepted** |
+| [0033](adr/0033-whatsapp-operational-safety.md) | Access key DPAPI-encrypted, set by an Admin in Sukoon, never in the DB (first answer — a developer config file — reversed over the ADR-0027 conflict); starts off, off = nothing queued; daily cap 200 pauses; Admin Messages screen + one status line per Khata; one-worker lock + atomic claim; a crash mid-send is never resent ('outcome unknown'); Admin Send test | **Accepted** |
 
 (Historical rule, now satisfied: no ADR could move to **Accepted** until the Phase 0
 grill session had run. It ran on 2026-09-10; ADR-0017 onward are ordinary Phase-N
@@ -102,7 +109,7 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   matching. New client requirement added: a number must be confirmed as the
   customer's own, and an unverified number receives no balances or amounts. See
   [ADR-0013](adr/0013-customer-phone-identity.md), Accepted.
-- **O-18 — OTP phone verification.** Reserved as `phone_verified_method = 'otp'` but
+- **O-18 — OTP phone verification.** *(Trigger sharpened 2026-09-14, Phase 5 grill: stays deferred; revisit when a wrong-number incident is reported — a notice or balance reached someone other than the customer — or the client asks for it. Phase 5 completing is no longer a trigger by itself.)* Reserved as `phone_verified_method = 'otp'` but
   not built in v1: it needs internet when a Khata is opened, costs a provider message,
   and the WhatsApp adapter does not exist until Phase 5. **Trigger:** Phase 5
   completing plus the client wanting stronger proof than in-person confirmation.
@@ -119,10 +126,25 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   most recent genuine `payment` (or, failing that, their first `credit_sale`) is
   older than `credit_terms_days`. A refund or an adjustment does not reset the clock.
   See [ADR-0015](adr/0015-credit-terms-and-overdue-tracking.md), Accepted.
-- **O-20 — Overdue reminder and monthly statement scheduling may collide.** Both are
+- ~~**O-20 — Overdue reminder and monthly statement scheduling may collide.**~~ **RESOLVED 2026-09-14** → [ADR-0031](adr/0031-message-scheduling-and-cadence.md): no reminder within 3 days of a statement, and at most one reminder per 7 days. Both are
   separate APScheduler jobs against the same customer. A customer overdue and due a
   statement in the same week should not receive two uncoordinated WhatsApp messages.
   Not yet resolved; noted while writing ADR-0015 rather than discovered at Phase 5.
+- **O-23 — Meta platform facts the Phase 5 decisions rely on but nobody has confirmed.**
+  Owner: the developer, with the client. **Trigger: when the owner's Meta Business account
+  is created — before the real adapter's first send.** Each was marked **(verify)** in
+  ADR-0027…0033: per-message pricing for Pakistan (and whether a statement's PDF costs
+  extra); messaging limits for a new account — **if a new account can only message a small
+  number of customers per day, the statements on the 1st could exceed it** (they'd show as
+  rate-limit errors and retry, but check the tier against the Khata count); business
+  verification requirements; that a number registered to the API can't also be used in the
+  WhatsApp app; template category and approval turnaround; the message body length limit;
+  that a free, send-nothing call exists for the resume check (ADR-0029 §9); that a send's
+  outcome can't be queried after a crash (ADR-0033 §9 — if it can, "outcome unknown" could
+  become resolvable); the WhatsApp policy's current consent wording (ADR-0028); the mobile
+  operator's SIM inactivity rule (ADR-0027). Any fact that turns out false reopens the ADR
+  that relied on it.
+
 - ~~**O-21 — Every timestamp displays in UTC, including on receipts.**~~ **RESOLVED 2026-09-14** → [ADR-0024](adr/0024-shop-timezone.md): fixed shop timezone (client's choice), default Asia/Karachi; the invoice year follows it too. Stored UTC
   (correct — `models/base.py::utcnow`), but rendered with a bare `strftime`: stock
   movement history, the pending-refunds list, and the **printed/PDF receipt** all show
@@ -209,6 +231,9 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   sale, adjusting a ledger entry, recording a Khata payment, exporting data.** When
   a decision lands, update `sukoon/services/permissions.py` (the seed is
   dict-driven — no code change there) and re-run `flask seed`.
+- **ADR-0016's test case "notification_type rejects a fourth value" was never written**,
+  and there is no database constraint on that column. Found in the Phase 5 grill. Phase 5
+  adds validation in the queue service with a real test (ADR-0028 §4).
 - **Ledger adjustments and paying out a credit are not built (ADR-0026).** A mistaken
   Khata payment can't yet be corrected, and a customer's credit can't be handed back as
   cash — both are "adjusting a ledger entry", whose permission still has no decision.
@@ -1027,6 +1052,40 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-14 — Session 25: the Phase 5 grill
+
+The developer started `/grill-with-docs docs/proposals/phase-5-notifications.md` (the
+developer answered for the client). 26 questions, one at a time; **7 ADRs, 0027–0033**,
+all Accepted; 16 glossary terms.
+
+**What got sharper than the proposal:**
+- **Account ownership and billing decided the provider**, not technical merit: the
+  owner's Meta account, a new SIM, the owner's card (ADR-0027).
+- **Consent became a migration** (ADR-0028), and it **contradicted ADR-0013 §4**'s neutral
+  notice — named and resolved: the tick comes first, confirmation decides what is sent.
+  Eligibility is re-checked just before sending, not only when queued.
+- **Customers will reply and nobody can read replies** — found by combining two earlier
+  answers; every message now names the shop's reply-to number (ADR-0030).
+- **Lock screens and staff-typed names** → credit-sale notices carry an item count, not
+  names — a **recorded deviation** from the specification's "items".
+- **A whole-account failure** (expired key, declined card) would have become hundreds of
+  identical per-message failures → the queue pauses with one Admin banner (ADR-0029).
+- **Stale balances**: age limits per message type and "as of" in every money message.
+- **A payment receipt** added deliberately — the spec never asked what a customer holds
+  after paying (ADR-0032).
+- **A bill with no ceiling** → a daily cap of 200 that pauses (ADR-0033).
+- **A crash mid-send** → never resent automatically; shown as outcome unknown.
+- **The access key**: the first answer (a developer-edited config file) **contradicted
+  ADR-0027**'s "nothing to transfer at handover"; the grill named it and the client switched
+  to a DPAPI-encrypted key set in-app (ADR-0033 records the reversal).
+- **O-20 resolved** (ADR-0031); **O-18's trigger sharpened**; **O-23 opened**.
+- Found: ADR-0016's promised "rejects a fourth notification_type" test was never written.
+
+**Believed, not proven** — every Meta platform fact the decisions lean on is in O-23 with
+an owner and a trigger; none is encoded as settled. **Deferred with triggers:** delivery
+reports and reply reading (ADR-0029 §1), OTP (O-18), the key's exact Windows account
+(Phase 7 grill), SIM inactivity (O-23). **No code written.**
 
 ### 2026-09-14 — Session 24: Phase 5 grill prepared, not started
 
