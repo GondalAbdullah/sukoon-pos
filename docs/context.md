@@ -1057,7 +1057,7 @@ This list grows as new cases are found.
 
 The developer started `/grill-with-docs docs/proposals/phase-5-notifications.md` (the
 developer answered for the client). 26 questions, one at a time; **7 ADRs, 0027–0033**,
-all Accepted; 16 glossary terms.
+all Accepted; 15 glossary terms.
 
 **What got sharper than the proposal:**
 - **Account ownership and billing decided the provider**, not technical merit: the
