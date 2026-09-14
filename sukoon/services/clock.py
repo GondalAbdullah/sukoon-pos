@@ -43,3 +43,16 @@ def to_shop_time(dt: datetime) -> datetime:
 
 def format_shop_time(dt: datetime | None, fmt: str = DISPLAY_FORMAT) -> str:
     return "—" if dt is None else to_shop_time(dt).strftime(fmt)
+
+
+def shop_month_bounds(year: int, month: int) -> tuple[datetime, datetime]:
+    """[start, end) of a calendar month on the shop's clock, as UTC instants — so a
+    purchase at 01:00 on the 1st in Pakistan belongs to the new month, not the old
+    one (Development Spec edge case: statements across month/timezone boundaries)."""
+    try:
+        zone = ZoneInfo(shop_zone_name())
+    except (ZoneInfoNotFoundError, ValueError):
+        zone = ZoneInfo(DEFAULT_TIMEZONE)
+    start = datetime(year, month, 1, tzinfo=zone)
+    end = datetime(year + (month == 12), month % 12 + 1, 1, tzinfo=zone)
+    return start.astimezone(UTC), end.astimezone(UTC)

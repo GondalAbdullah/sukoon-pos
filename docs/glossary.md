@@ -19,14 +19,16 @@ the Urdu term throughout the shipped UI by explicit design decision (Design Syst
 **Credit sale** *(Settled)* — A sale where no money changes hands at the till; the
 invoice total is added to a customer's Khata balance instead.
 
-**Credit limit** *(Proposed)* — A per-customer ceiling on outstanding balance.
-Referenced by the design (a customer "near credit limit" is flagged coral) but not
-present in the Development Specification's feature list. Needs a decision at grill:
-does it block a sale, or only warn?
+**Credit limit** *(Settled — ADR-0014, ADR-0026)* — A per-customer ceiling on what
+they may owe. A credit sale that would take the balance past it is blocked for a
+Cashier and needs an Admin's approval at the till. A new Khata starts at the shop
+default, Rs 10,000 (`khata.default_credit_limit_paisa`); an Admin may change it or
+remove it (no limit). "Near credit limit" in the list means 80% or more used.
 
-**Credit terms** *(Proposed)* — The agreed settlement window for a Khata customer
-(the design mock shows "Credit terms: 30 days"). Currently display-only; whether it
-drives any behaviour (overdue flags, statement timing) is undecided.
+**Credit terms** *(Settled — ADR-0015)* — The agreed settlement window in days. With
+terms set, a Khata with a balance is flagged **overdue** once that many days pass
+since their last payment (or their first credit purchase, if they've never paid).
+Only a payment resets the clock. No terms means never flagged.
 
 **Stock-in** *(Settled)* — Inventory arriving and being added to the counted stock
 level, typically a supplier delivery. One of the three adjustment types.
@@ -250,8 +252,25 @@ ADR-0002 itself is kept, unedited, as the historical starting point.
 **Statement** *(Settled)* — A per-customer summary of Khata activity over a period
 (purchases, payments, closing balance), viewable, exportable, and sent monthly.
 
-**Statement cycle** *(Proposed)* — The period a statement covers. Calendar month is
-assumed; the exact boundary and its timezone is a grill question.
+**Statement cycle** *(Settled — ADR-0024, ADR-0026)* — A calendar month on the
+shop's clock (Pakistan time), or "all time". A purchase at 01:00 on the 1st belongs
+to the new month even though it is still the previous day in UTC.
+
+**In credit** *(Settled — ADR-0026)* — A Khata whose customer has paid more than they
+owed: the shop owes them. Stored as a negative balance, but always shown as
+"Rs 200 in credit", never "Rs -200". Used up by their next credit purchase.
+
+**Opening / closing balance** *(Settled)* — On a statement, what the customer owed (or
+was in credit) at the start and end of the period. Opening + purchases − payments −
+refunds = closing.
+
+**Confirmed number** *(Settled — ADR-0013)* — A customer phone number the cashier
+checked in person — the customer showed it on their phone, or the cashier rang it.
+An unconfirmed number never receives anything about money (Phase 5).
+
+**Archived Khata** *(Settled — ADR-0026)* — A customer removed from the Khata list and
+the till's picker, with all their purchases and payments kept. Only possible at a
+zero balance; a customer with no history at all is deleted instead.
 
 ## Technical terms
 

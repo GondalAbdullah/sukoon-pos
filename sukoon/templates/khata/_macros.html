@@ -1,0 +1,24 @@
+{% macro initials(name) -%}
+  {#- words that start with a letter or digit: "Farooq & Sons" is FS, not F& -#}
+  {%- set parts = name.split() | select('match_initial') | list -%}
+  {{- ((parts[0][0] ~ (parts[1][0] if parts|length > 1 else parts[0][1:2])) if parts else '?') | upper -}}
+{%- endmacro %}
+
+{# The one place a balance becomes coloured text (ADR-0026 §7): owed is coral only
+   when it needs attention, credit is teal, settled is quiet. Never a bare minus. #}
+{% macro balance_amount(state, urgent=false) -%}
+  {%- if state.kind == 'owes' -%}
+    <span class="{{ 'text-coral' if urgent else 'text-ink' }}">Rs {{ '{:,}'.format(state.amount_paisa // 100) }}</span>
+  {%- elif state.kind == 'in_credit' -%}
+    <span class="text-teal">Rs {{ '{:,}'.format(state.amount_paisa // 100) }} credit</span>
+  {%- else -%}
+    <span class="text-faint">Rs 0</span>
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro entry_pill(entry_type) -%}
+  {%- if entry_type == 'credit_sale' -%}<span class="pill-coral">Purchase</span>
+  {%- elif entry_type == 'payment' -%}<span class="pill-teal">Payment</span>
+  {%- elif entry_type == 'refund' -%}<span class="pill-sky">Refund</span>
+  {%- else -%}<span class="pill-amber">Adjustment</span>{%- endif -%}
+{%- endmacro %}

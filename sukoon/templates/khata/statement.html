@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Statement — {{ customer.name }} — Sukoon{% endblock %}
+{% block heading %}Statement{% endblock %}
+{% block subheading %}{{ customer.name }} · {{ doc.period_label }}{% endblock %}
+{% block content %}
+<div class="max-w-3xl flex flex-col gap-5">
+  <a href="{{ url_for('khata.index', c=customer.id) }}" class="text-sm font-semibold">&larr; {{ customer.name }}</a>
+
+  <div class="flex flex-wrap items-center gap-2">
+    {% for p in periods %}
+      <a href="{{ url_for('khata.statement', customer_id=customer.id, period=p.key) }}"
+         class="pill {{ 'bg-teal-tint text-teal-deep' if p.key == period.key else 'bg-sunk text-muted hover:text-ink' }}">{{ p.label }}</a>
+    {% endfor %}
+    <a href="{{ url_for('khata.statement_pdf', customer_id=customer.id, period=period.key) }}" target="_blank" rel="noopener"
+       class="btn-primary !py-2 ml-auto">Download PDF</a>
+  </div>
+
+  {% if not doc.reconciles %}
+    <div class="panel px-5 py-3.5 bg-coral-tint text-coral text-sm font-semibold">Some balances in this period don't add up. Tell the owner before handing this over.</div>
+  {% endif %}
+
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div class="stat-card"><div class="stat-label">Opening</div><div class="text-[17px] font-extrabold">{{ doc.opening }}</div></div>
+    <div class="stat-card"><div class="stat-label">Purchases</div><div class="text-[17px] font-extrabold">{{ doc.purchased }}</div></div>
+    <div class="stat-card"><div class="stat-label">Payments{{ ' & refunds' if doc.refunded }}</div><div class="text-[17px] font-extrabold text-teal">{{ doc.paid }}{% if doc.refunded %}<span class="text-xs text-muted font-semibold"> + {{ doc.refunded }}</span>{% endif %}</div></div>
+    <div class="stat-card {{ 'bg-coral-tint' if doc.closing_paisa > 0 else 'bg-teal-tint' }}"><div class="stat-label">Closing</div><div class="text-[17px] font-extrabold {{ 'text-coral' if doc.closing_paisa > 0 else 'text-teal-deep' }}">{{ doc.closing }}</div></div>
+  </div>
+
+  <div class="panel overflow-x-auto">
+    {% if not doc.lines %}
+      <div class="p-6 text-sm text-muted">No purchases or payments in {{ doc.period_label }}.</div>
+    {% else %}
+    <table class="table">
+      <thead><tr><th class="!pl-5">Date</th><th>Type</th><th>Details</th><th class="text-right">Amount</th><th class="text-right !pr-5">Balance</th></tr></thead>
+      <tbody>
+      {% for ln in doc.lines %}
+        <tr>
+          <td class="!pl-5 whitespace-nowrap">{{ ln.when }}</td>
+          <td>{{ ln.kind }}</td>
+          <td class="text-muted">{{ ln.details }}</td>
+          <td class="text-right font-semibold whitespace-nowrap {{ 'text-coral' if ln.amount_paisa > 0 else 'text-teal' }}">{{ ln.amount }}</td>
+          <td class="text-right font-bold whitespace-nowrap !pr-5">{{ ln.balance }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

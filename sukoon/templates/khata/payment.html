@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Record payment — {{ customer.name }} — Sukoon{% endblock %}
+{% block heading %}Record a payment{% endblock %}
+{% block subheading %}{{ customer.name }} · {{ customer.balance_paisa | balance_words }}{% endblock %}
+{% block content %}
+{% set v = form if form else {} %}
+<div class="max-w-lg flex flex-col gap-5">
+  <a href="{{ url_for('khata.index', c=customer.id) }}" class="text-sm font-semibold">&larr; {{ customer.name }}</a>
+
+  <form method="post" action="{{ url_for('khata.payment', customer_id=customer.id) }}" class="panel p-7"
+        x-data="{ method: '{{ v.get('method', 'cash') }}', amount: '{{ v.get('amount', '') }}' }">
+
+    {% if excess_paisa %}
+    {# ADR-0026 §7: never silently kept, never silently refused. #}
+    <div class="rounded-md bg-amber-tint px-5 py-4 mb-6">
+      <div class="text-sm font-bold text-amber mb-1">That's Rs {{ '{:,}'.format(excess_paisa // 100) }} more than they owe.</div>
+      <div class="text-xs text-inkSoft mb-3">Keep it as credit on {{ customer.name }}'s Khata? It's used up by their next credit purchase. Otherwise, change the amount.</div>
+      {# the yes lives on this button only: editing the amount and pressing the main
+         button asks again rather than carrying this confirmation over #}
+      <button type="submit" name="allow_overpayment" value="1" class="btn-primary !py-2">Yes, keep Rs {{ '{:,}'.format(excess_paisa // 100) }} as credit</button>
+    </div>
+    {% endif %}
+
+    <div class="text-center mb-6">
+      <div class="text-[13px] text-muted font-semibold mb-1.5">
+        {% if balance.kind == 'owes' %}They owe{% elif balance.kind == 'in_credit' %}Already in credit{% else %}Balance{% endif %}
+      </div>
+      <div class="text-[40px] font-extrabold tracking-[-0.02em] leading-none {{ 'text-coral' if balance.kind == 'owes' else ('text-teal' if balance.kind == 'in_credit' else 'text-faint') }}">
+        {{ 'Rs ' ~ '{:,}'.format(balance.amount_paisa // 100) if balance.kind != 'settled' else 'Settled' }}
+      </div>
+    </div>
+
+    <label class="block mb-2">
+      <span class="label">Amount paid, Rs</span>
+      <input type="number" name="amount" min="1" step="1" required autofocus x-model="amount"
+             class="field !text-[22px] !font-bold" placeholder="0">
+    </label>
+    {% if balance.kind == 'owes' %}
+    <div class="flex gap-2 mb-5">
+      <button type="button" @click="amount = '{{ balance.amount_paisa // 100 }}'"
+              class="pill bg-sunk text-inkSoft hover:bg-teal-tint">The full Rs {{ '{:,}'.format(balance.amount_paisa // 100) }}</button>
+    </div>
+    {% else %}<div class="mb-5"></div>{% endif %}
+
+    <div class="label mb-2.5">How did they pay?</div>
+    <div class="grid grid-cols-2 gap-2.5 mb-5">
+      {% for key, label in methods.items() %}
+      <label class="text-center rounded-md py-3 px-2 cursor-pointer transition-colors text-[13px] font-bold"
+             :class="method === '{{ key }}' ? 'bg-teal text-white shadow-teal' : 'bg-sunk text-inkSoft'">
+        <input type="radio" name="method" value="{{ key }}" x-model="method" class="sr-only">
+        {{ label }}
+      </label>
+      {% endfor %}
+    </div>
+
+    <label class="block mb-6" x-show="method !== 'cash'" x-cloak>
+      <span class="label" x-text="method === 'mobile_wallet' ? 'Transaction ID (optional)' : (method === 'bank_transfer' ? 'Bank reference (optional)' : 'Card slip number (optional)')">Reference (optional)</span>
+      <input type="text" name="reference" maxlength="120" class="field" value="{{ v.get('reference', '') }}">
+    </label>
+
+    <button type="submit" class="btn-primary btn-lg w-full">Record payment</button>
+  </form>
+</div>
+{% endblock %}

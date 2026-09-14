@@ -10,10 +10,10 @@ work session, not just every phase.
 
 | | |
 |---|---|
-| **Phase** | **Phase 3.5 — Visual Pass ([ADR-0022](adr/0022-dedicated-visual-pass.md)) — CLOSED.** Phase 3 (POS & Billing) and Phase 3.5 (visual pass) are both complete. **Phase 4 — Credit Customer Management (Khata) — next.** |
-| **Status** | **Session 22:** the client answered O-21/O-22 — shop timezone (ADR-0024) and stock limits at the till (ADR-0025) built; along the way found and fixed a latent bug (items created at the till could never be sold) and B9 (htmx swaps silently dropped every till error message). **Session 21:** a bug sweep driven by the developer's own walkthrough screenshots — 8 real bugs fixed and verified in a real browser (session 21 changelog), plus a plain-language field manual at `docs/field-manual.html` (untracked). Phase 3.5 built out sessions 13–19 (toolchain, Login, Till, Sale Complete, terminal ID, Stock, Refunds, landing page, htmx pass — §4i), then the Design System §13 DoD side-by-side (session 20, §4j) — fresh screenshots of every screen plus an actually-rendered receipt PDF against all 9 reference images, not a documentation exercise. Found and fixed three real issues (two undersized/no-hover buttons, a receipt footer line that ran off the page, fixed with real word-wrapping + regression tests) and restored two missing Login details. One genuine tension between ADR-0006 (prototype pixel-fidelity) and the Design System's written 44px touch-target rule was put to the client rather than picked unilaterally: **keep the prototype-exact stepper size, no change** — recorded with rationale. **Phase 3.5 is now formally closed.** `ruff` clean, **245 tests green, 95% coverage**. |
-| **Last session** | 2026-09-14 (session 22) |
-| **Next action** | Begin **Phase 4 — Credit Customer Management (Khata)**. (O-21 and O-22 answered and built in session 22 — ADR-0024, ADR-0025.) No STOP AND ASK gate in the spec (same shape as Phase 2). Steps: customer CRUD with duplicate-phone handling (ADR-0013 already settled the policy), credit ledger entries tied to sales/payments, full/partial payment application, per-customer statement view/export. Required tests: ledger balance correctness across mixed sale/payment sequences, blocked deletion of a customer with an outstanding balance, overpayment produces an explicit credit-balance state. Policy groundwork is already laid from the Phase 0 grill session — ADR-0013 (phone identity), ADR-0014 (credit-limit enforcement + step-up override), ADR-0015 (overdue aging) — so this phase is mostly build, not new decisions. |
+| **Phase** | **Phase 4 — Credit Customer Management (Khata) — functionally complete** (session 23, [ADR-0026](adr/0026-phase-4-khata-policy.md)); Definition of Done checked in §4k. **Phase 5 — WhatsApp notifications — next, and it opens with a scheduled `grill-with-docs` session** (Development Spec Phase 5 step 1). Phases 3 and 3.5 closed earlier. |
+| **Status** | **Session 23:** Phase 4 built — customers with duplicate-number and in-person confirmation (ADR-0013), a single ledger writer that sales, refunds and payments all go through, full/partial/over-payments, credit limits with Admin approval at the till (ADR-0014), overdue flags (ADR-0015), month statements on shop time with an A4 PDF, the Khata screen, and a Khata picker replacing the till's raw customer ID. 363 tests pass; verified in real Chrome. **Session 22:** the client answered O-21/O-22 — shop timezone (ADR-0024) and stock limits at the till (ADR-0025) built; along the way found and fixed a latent bug (items created at the till could never be sold) and B9 (htmx swaps silently dropped every till error message). **Session 21:** a bug sweep driven by the developer's own walkthrough screenshots — 8 real bugs fixed and verified in a real browser (session 21 changelog), plus a plain-language field manual at `docs/field-manual.html` (untracked). Phase 3.5 built out sessions 13–19 (toolchain, Login, Till, Sale Complete, terminal ID, Stock, Refunds, landing page, htmx pass — §4i), then the Design System §13 DoD side-by-side (session 20, §4j) — fresh screenshots of every screen plus an actually-rendered receipt PDF against all 9 reference images, not a documentation exercise. Found and fixed three real issues (two undersized/no-hover buttons, a receipt footer line that ran off the page, fixed with real word-wrapping + regression tests) and restored two missing Login details. One genuine tension between ADR-0006 (prototype pixel-fidelity) and the Design System's written 44px touch-target rule was put to the client rather than picked unilaterally: **keep the prototype-exact stepper size, no change** — recorded with rationale. **Phase 3.5 is now formally closed.** `ruff` clean, **245 tests green, 95% coverage**. |
+| **Last session** | 2026-09-14 (session 23) |
+| **Next action** | **Phase 5 — WhatsApp Notification Module.** Its step 1 is a `grill-with-docs` session to settle the provider, message templates and retry policy, with an ADR **before any code** — and that skill is human-invoked (`disable-model-invocation`), so **the client/developer starts it**. Until then, nothing in Phase 5 is built. Open, not blocking: ledger adjustments and voiding a sale still have no decision (§4). |
 
 ## 2. Decisions made so far
 
@@ -44,6 +44,7 @@ work session, not just every phase.
 | [0023](adr/0023-till-terminal-identification.md) | A till names itself once via a long-lived cookie (not at login, not server config); `sale.terminal_label` finally populated; shown on Sale Complete + both receipt renderers. Resolves O-8's labelling half; live terminal status stays open | **Accepted** |
 | [0024](adr/0024-shop-timezone.md) | Times stay stored UTC; everything a person reads (screens, receipts, the invoice year) is in one fixed shop timezone, `shop.timezone`, default Asia/Karachi — not each PC's Windows zone. `tzdata` added for Windows. Resolves O-21 | **Accepted** |
 | [0025](adr/0025-stock-limits-at-the-till.md) | The cart is capped at a *counted* product's stock (+ disables, refusals name the product, enforced server-side); a *never-counted* product is uncapped and its shortfall is booked "found at the till" at checkout. Fixes the latent ADR-0011 §2 bug (till-created items could never sell). Resolves O-22 | **Accepted** |
+| [0026](adr/0026-phase-4-khata-policy.md) | Phase 4 Khata policy — client: Cashier+Admin record payments; new Khatas start at a Rs 10,000 default limit; cash/bank transfer/JazzCash-Easypaisa/card; A4 PDF statements for any staff. Proposed defaults recorded: five permission codes, over-limit approval by an Admin's name+password at the till, overpayment kept as explicit credit, delete blocked unless zero and archive-not-delete with history | **Accepted** |
 
 (Historical rule, now satisfied: no ADR could move to **Accepted** until the Phase 0
 grill session had run. It ran on 2026-09-10; ADR-0017 onward are ordinary Phase-N
@@ -208,6 +209,14 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   sale, adjusting a ledger entry, recording a Khata payment, exporting data.** When
   a decision lands, update `sukoon/services/permissions.py` (the seed is
   dict-driven — no code change there) and re-run `flask seed`.
+- **Ledger adjustments and paying out a credit are not built (ADR-0026).** A mistaken
+  Khata payment can't yet be corrected, and a customer's credit can't be handed back as
+  cash — both are "adjusting a ledger entry", whose permission still has no decision.
+  Workaround today: none in the app. Needs a client decision before building.
+- **"Send reminder" and the WhatsApp banner on the Khata screen are Phase 5.** Omitted
+  rather than shown dead (§4b).
+- **`flask seed --sample` creates no Khata customers.** Fake ledger history without
+  real sales would be untrue data; a demo needs a few credit sales rung up by hand.
 - **Stock screen can't yet tell "never counted" from "out of stock" (ADR-0025 follow-up).** A product nobody has stocked in shows 0 in coral with "restock", and counts in the Out of stock tile, though the till treats it as uncapped. Worth a small visual distinction (e.g. "not counted"); deferred, not blocking.
 - **`instance/` dev databases are gitignored.** `flask db upgrade` writes
   `instance/sukoon.db` (+ `-wal`/`-shm`); none of it is committed. The migration
@@ -238,6 +247,19 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
 Design System 13 requires every intentional departure from a reference screenshot to
 be recorded here.
 
+- **Khata (Figure 4) — built on the mock, with these departures (session 23).**
+  No **Send reminder** button and no "WhatsApp update was sent" banner — WhatsApp is
+  Phase 5, and a button that does nothing would lie. An **In credit** tab beside
+  All/Owing/Settled (shown only when someone is), because overpayment is an explicit
+  state (Development Spec Phase 4). A **phone line** under the name with
+  confirmed / not confirmed and one-tap confirmation (ADR-0013 §3). An **Edit** button
+  beside Record payment. The mock's list-row `#089`-style numbers are omitted — they
+  aren't anything a shopkeeper knows a customer by. "Export statement" became
+  **Statement**, which opens a month-by-month view with the PDF download.
+- **Till (Figure 2) — the customer chip is real.** Choosing Khata shows a search by
+  name or number; the chosen customer replaces "Walk-in customer" in the chip, with
+  their balance, the balance after this sale, their limit, and — when over — an Admin
+  approval box. The prototype showed the chip static.
 - **Stock (Figure 3) — "Out of stock" caption reads *reorder now*, not *reorder
   soon*; "Needs attention" counts only running-low items.** The prototype's tiles sat
   side by side with an out-of-stock item counted in both, so 3 out-of-stock items read
@@ -688,6 +710,52 @@ shop later runs Sukoon on a touchscreen till, revisit this specific control.
 above), the one open question is resolved, and every screen in the §4i
 tracker is built and reviewed. Phase 4 (Khata / credit customers) begins next.
 
+## 4k. Phase 4 Definition of Done — checked 2026-09-14
+
+Development Specification, Phase 4:
+
+- [x] **Ledger reconciles to zero across a full scripted scenario (sales + partial + full
+  payments).** `test_khata::test_ledger_balance_is_correct_across_mixed_sales_and_payments`
+  asserts the cached balance equals the ledger sum after every step and ends at zero;
+  `::test_overpayment_is_explicit_credit_not_a_silent_negative` and
+  `::test_a_credit_refund_goes_through_the_same_ledger_writer` reconcile after credit
+  and refunds too.
+- [x] **Statement output matches an expected fixture for a known scenario.**
+  `test_statements::test_statement_matches_the_hand_written_fixture` — two month
+  fixtures in `tests/fixtures/`, **written by hand from the scenario before the code was
+  run against them**, including a purchase at 01:00 Pakistan time on 1 October (still
+  30 September in UTC), a refund, and an overpayment ending in credit. Both matched on
+  the first run.
+- [x] **Required tests:** mixed-sequence balance maths (above); deletion blocked with
+  an outstanding balance (`test_a_customer_who_owes_cannot_be_removed`, plus in credit);
+  overpayment is explicit credit (above, and on screen — `test_recording_a_payment_and_an_overpayment_through_the_screen` asserts "Rs 400 in credit" and no "Rs -").
+- [x] **Manually verify one statement export against hand-calculated values.** The
+  browser check downloaded Haji Muhammad Usman's all-time PDF, rendered it, and it was
+  read line by line: purchases 7,080 + 4,720 + 2,950 = Rs 14,750; payments 3,000 +
+  2,000 + 10,000 = Rs 15,000; closing Rs 250 in credit.
+- [x] **Credit-management suite green:** 363 tests total, ruff clean, coverage 95%
+  (Khata routes 97%, service 98%, ledger 98%, statements 96%).
+
+**Real browser (Chrome, throwaway database, 12 checks):** Khata in the rail for a
+cashier; tab counts All 4 / Owing 2 / Settled 1 / In credit 1; "30 days overdue" in
+the list; credit never shown negative; detail totals; an overpayment asks first and
+lands as credit; at the till a search-and-choose swaps in the customer with no reload
+and keeps Khata selected (and Complete is disabled until someone is chosen); Rs 30 over
+the limit shows the approval box; the cashier alone is refused by name and amount; an
+Admin's name and password at the counter approves it; the statement PDF downloads.
+One run timed out: the request log showed the script clicked a search result
+milliseconds after it appeared, before htmx wired it — the click never reached the
+server. Script given a human-paced wait; a clean rerun passed all 12.
+
+**Design (Design System §13), against Figure 4:** found and fixed two real defects on
+the screenshot — right-aligned number columns under left-aligned headings (the
+table heading rule beat `text-right`; **the same bug as Stock's Price column** from the
+developer's walkthrough, fixed once in the shared style, with a stylesheet test), and
+"Farooq & Sons" showing initials "F&". Departures from the mock are in §4b.
+
+**Not in Phase 4, by the spec's own plan:** anything WhatsApp (neutral notice to an
+unconfirmed number, overdue reminders, monthly statement sending) — Phase 5.
+
 ## 5. Edge case and test matrix
 
 Every case below must have a passing automated test before its owning phase can
@@ -829,34 +897,51 @@ This list grows as new cases are found.
 - [ ] Margin reporting reports unknown-cost products as unknown, never as zero cost *(Phase 6)*
 
 ### Customer phone identity (Phase 4)
-- [ ] All four spellings of one number normalise to the same canonical form
-- [ ] An unparseable number is rejected or stored null, never guessed
-- [ ] Saving a customer with an existing normalised number prompts for confirmation
-- [ ] Two customers may share a number once confirmed
-- [ ] An unverified number receives the neutral notice and never an amount
-- [ ] A verified number receives full notifications
-- [ ] A customer with no phone number can still hold a Khata and be sold to
-- [ ] Verification records who confirmed it, when, and by which method
+- [x] All four spellings of one number normalise to the same canonical form
+      — `tests/pure/test_phone.py::test_every_spelling_of_one_mobile_is_the_same_number` (nine spellings)
+- [x] An unparseable number is rejected or stored null, never guessed
+      — `test_phone::test_unreadable_numbers_are_none_never_guessed`, `test_khata::test_an_unreadable_number_is_refused_not_guessed`
+- [x] Saving a customer with an existing normalised number prompts for confirmation
+      — `test_khata::test_a_duplicate_number_asks_first_then_is_allowed`, `test_khata_routes::test_the_form_asks_before_a_duplicate_number`
+- [x] Two customers may share a number once confirmed — same tests
+- [ ] An unverified number receives the neutral notice and never an amount — Phase 5
+- [ ] A verified number receives full notifications — Phase 5
+- [x] A customer with no phone number can still hold a Khata and be sold to
+      — `test_khata::test_a_customer_with_no_phone_can_hold_a_khata_and_buy`
+- [x] Verification records who confirmed it, when, and by which method
+      — `test_khata::test_verification_records_who_when_and_how`, `test_khata_routes::test_confirming_a_number_later`
 
 ### Credit limit enforcement (Phase 4)
-- [ ] A credit sale that would stay within the limit succeeds normally for a Cashier
-- [ ] A credit sale that would exceed the limit is blocked for a Cashier
-- [ ] The same sale succeeds for an Admin only after step-up re-authentication
-- [ ] An override records both the authorising Admin and the ringing Cashier distinctly
-- [ ] A customer with a null credit limit is never blocked
-- [ ] The check compares balance after the prospective sale, not before it
+- [x] A credit sale that would stay within the limit succeeds normally for a Cashier
+      — `test_khata::test_a_sale_within_the_limit_succeeds_for_a_cashier`
+- [x] A credit sale that would exceed the limit is blocked for a Cashier
+      — `test_khata::test_a_sale_past_the_limit_is_blocked_and_nothing_is_written`, `test_khata_routes::test_over_limit_is_blocked_at_the_till_for_a_cashier`
+- [x] The same sale succeeds for an Admin only after step-up re-authentication
+      — `test_khata_routes::test_an_admin_at_the_counter_approves_and_both_are_recorded`, `::test_a_wrong_admin_password_is_refused_and_counted`, `::test_a_cashier_cannot_approve_their_own_over_limit_sale`
+- [x] An override records both the authorising Admin and the ringing Cashier distinctly
+      — `test_khata::test_an_admin_override_records_both_people`
+- [x] A customer with a null credit limit is never blocked
+      — `test_ledger::test_a_null_limit_is_never_enforced`, `test_khata::test_a_null_limit_is_never_blocked`
+- [x] The check compares balance after the prospective sale, not before it
+      — `test_ledger::test_the_check_is_after_the_sale_not_before`, `::test_landing_exactly_on_the_limit_is_allowed_one_paisa_past_is_not`
 
 ### Credit terms and overdue tracking (Phase 4)
-- [ ] A customer past their credit terms with an outstanding balance is flagged
-- [ ] A customer with a null `credit_terms_days` is never flagged, regardless of balance
-- [ ] A fully paid customer, even if once overdue, is not flagged
-- [ ] A customer with a balance and no payment yet is aged from their first credit sale
-- [ ] A payment resets the reference date to that payment's own timestamp
-- [ ] A refund does not reset the reference date, even though it reduces the balance
-- [ ] An adjustment does not reset the reference date, even though it changes the balance
-- [ ] `days_overdue` matches a hand-calculated value for a known fixture
-- [ ] An overdue reminder goes only to a verified number; an unverified one gets nothing
-- [ ] The overdue sweep completes normally when the WhatsApp provider is unreachable
+- [x] A customer past their credit terms with an outstanding balance is flagged
+      — `test_ledger::test_aged_from_the_first_credit_sale_when_no_payment_yet`; on screen in the browser check ("30 days overdue")
+- [x] A customer with a null `credit_terms_days` is never flagged, regardless of balance
+      — `test_ledger::test_null_terms_are_never_overdue`
+- [x] A fully paid customer, even if once overdue, is not flagged
+      — `test_ledger::test_a_fully_paid_customer_is_not_overdue_even_if_once_overdue`
+- [x] A customer with a balance and no payment yet is aged from their first credit sale — as above
+- [x] A payment resets the reference date to that payment's own timestamp
+      — `test_ledger::test_a_payment_resets_the_clock_to_its_own_date`
+- [x] A refund does not reset the reference date, even though it reduces the balance
+      — `test_ledger::test_refunds_and_adjustments_do_not_reset_the_clock`
+- [x] An adjustment does not reset the reference date, even though it changes the balance — same test
+- [x] `days_overdue` matches a hand-calculated value for a known fixture
+      — `test_ledger::test_aged_from_the_first_credit_sale_when_no_payment_yet` (60 days, 30-day terms → 30)
+- [ ] An overdue reminder goes only to a verified number; an unverified one gets nothing — Phase 5
+- [ ] The overdue sweep completes normally when the WhatsApp provider is unreachable — Phase 5
 
 ### POS / Billing (Phase 3)
 - [n/a] Discount cannot exceed the item or cart total — no discount mechanism exists in v1 (ADR-0008 / ADR-0020); `record_sale` has no path that sets a non-zero discount
@@ -890,10 +975,13 @@ This list grows as new cases are found.
       — `test_receipts::test_the_till_name_appears_when_the_sale_carries_one`
 
 ### Credit customers / Khata (Phase 4)
-- [ ] Ledger balance maths is correct across mixed sequences of sales and partial payments
-- [ ] A customer with an outstanding balance cannot be deleted
-- [ ] Duplicate customers sharing a phone number are prevented or flagged (see O-4)
-- [ ] Overpayment produces an explicit credit balance, not a silent or confusing negative
+- [x] Ledger balance maths is correct across mixed sequences of sales and partial payments
+      — `test_khata::test_ledger_balance_is_correct_across_mixed_sales_and_payments`
+- [x] A customer with an outstanding balance cannot be deleted
+      — `test_khata::test_a_customer_who_owes_cannot_be_removed`, `::test_a_customer_in_credit_cannot_be_removed_either`
+- [x] Duplicate customers sharing a phone number are prevented or flagged (see O-4) — flagged, ADR-0013; tests above
+- [x] Overpayment produces an explicit credit balance, not a silent or confusing negative
+      — `test_khata::test_overpayment_is_explicit_credit_not_a_silent_negative`, `test_ledger::test_a_negative_balance_is_described_as_credit_never_negative`
 
 ### WhatsApp notifications (Phase 5)
 - [ ] Provider timeout or outage never blocks or delays sale completion
@@ -939,6 +1027,61 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-14 — Session 23: Phase 4 — Khata
+
+Read the Phase 4 spec, ADR-0013/0014/0015, the existing credit code (credit sales and
+credit refunds already wrote ledger rows) and Figure 4. Four things had no decision —
+the permission catalogue had deliberately left "recording a Khata payment" and
+"exporting data" uncoded, and nothing said what limit a new Khata starts at, which
+matters because a NULL limit means unlimited. Asked the client; answers and the
+smaller proposed defaults are in [ADR-0026](adr/0026-phase-4-khata-policy.md), written
+before code.
+
+**Built (services first, each with tests alongside):**
+- `services/phone.py` — normalisation to E.164, boundary-tested (24 cases). The tests
+  caught a real bug before anything used it: "0000000000" was accepted as a foreign
+  number (the `00` prefix was stripped, then 8 zeros passed the length check).
+- `services/ledger.py` — pure: balance wording (never a bare negative), the over-limit
+  check (after the sale), ADR-0015's overdue rule exactly, and statements recomputed
+  from amounts with any stored `balance_after` that disagrees surfaced, not trusted.
+- `services/khata_service.py` — `post_entry` is now the **only** writer of ledger rows
+  and the balance cache; `record_sale` and `approve_refund` were changed to use it.
+  Customers, duplicate prompt, confirmation, contact edits (a changed number is
+  unconfirmed again), limits/terms, archive-not-delete, payments (whole rupees, one
+  transaction, overpayment confirmable), the list with filter counts and overdue.
+  The "near limit" 80% was first written with a float (`* 0.8`) and changed to integer
+  maths before commit — money rule.
+- `record_sale` enforces the limit and records an Admin override on the ledger entry.
+- `services/clock.shop_month_bounds` and `services/statements.py` — a statement
+  document, its plain-text form (what the fixture compares), and an A4 PDF that lays out
+  the same document and paginates.
+- Routes and screens: the Khata list/detail (Figure 4), open/edit with the duplicate
+  prompt and in-person confirmation, the Admin credit section and archive, record
+  payment with the overpayment question, the statement view with month pills and PDF.
+  Khata in the rail and on the landing page for anyone with `khata.view`.
+- The till: the raw "Customer ID" field is gone. A Khata search (htmx, by name or any
+  spelling of the number) swaps the chosen customer into the chip; Complete stays
+  disabled on Khata until someone is chosen; over the limit, an approval box takes an
+  Admin's name and password, verified through `auth_service.authenticate` so failures
+  count toward lockout. The customer clears after checkout and with the cart.
+- Permissions: five new codes seeded (ADR-0026 §5). **Existing databases need
+  `flask seed` re-run** to receive them.
+
+**Found on the screenshot and fixed:** table headings ignored `text-right` (a
+component rule outranked the utility) — which was also the Stock "Price" misalignment
+from the developer's walkthrough; fixed once with a zero-specificity `:where()` rule
+and a stylesheet test. Initials for "Farooq & Sons" read "F&".
+
+**Test-side mistakes, stated:** two assertions expected HTML-escaped apostrophes where
+the text was literal template copy (and one the reverse); a copied attribute name was
+wrong (`failed_login_count`). The app was right each time; the tests were corrected.
+The first browser runs reused a database a crashed run had already changed — every
+"failure" matched the changed data — so the scenario is now rebuilt clean before each
+run.
+
+**Verification:** 363 tests, ruff clean, coverage 95%; 12 real-browser checks; the PDF
+rendered and checked by hand. Phase 4 DoD in §4k.
 
 ### 2026-09-14 — Session 22: shop timezone and stock limits at the till
 

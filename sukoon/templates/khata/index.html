@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% from "khata/_macros.html" import initials, balance_amount, entry_pill %}
+{% block title %}Khata — Sukoon{% endblock %}
+{% block heading %}Khata{% endblock %}
+{% block subheading %}Who owes what, and since when{% endblock %}
+{% block content %}
+{#
+  Phase 4 (ADR-0026), Figure 4. Built on the established vocabulary from the start.
+  Deliberate departures from the mock (recorded in context.md §4b): no "Send
+  reminder" button (WhatsApp is Phase 5 — a dead button would lie); "In credit" is
+  a fourth tab, because overpayment is an explicit state (Development Spec Phase 4);
+  a phone-confirmation line under the name (ADR-0013 §3).
+#}
+<div class="grid lg:grid-cols-[360px_1fr] gap-6 items-start">
+
+  <!-- LEFT: search, tabs, customers -->
+  <div class="min-w-0">
+    <form method="get" action="{{ url_for('khata.index') }}" class="flex items-center gap-2.5 card px-4 py-3 mb-3">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B9B9BE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+      <input type="hidden" name="filter" value="{{ filter_ }}">
+      <input type="text" name="q" value="{{ q }}" autocomplete="off" placeholder="Search a name or number…"
+             class="flex-1 bg-transparent text-[15px] placeholder:text-faint focus:outline-none">
+    </form>
+
+    <div class="flex flex-wrap items-center gap-2 mb-4">
+      {% for key, label in [('all', 'All'), ('owing', 'Owing'), ('settled', 'Settled'), ('in_credit', 'In credit')] %}
+        {% if key != 'in_credit' or counts.in_credit %}
+        <a href="{{ url_for('khata.index', filter=key, q=q or None) }}"
+           class="pill {{ 'bg-teal-tint text-teal-deep' if filter_ == key else 'bg-sunk text-muted hover:text-ink' }}">
+          {{ label }} · {{ counts[key] }}
+        </a>
+        {% endif %}
+      {% endfor %}
+      {% if can_create %}
+        <a href="{{ url_for('khata.new') }}" class="btn-ghost !py-1.5 !px-3 text-xs ml-auto">+ Open a Khata</a>
+      {% endif %}
+    </div>
+
+    {% if not rows %}
+      <div class="card p-6 text-sm text-muted">
+        {% if q or filter_ != 'all' %}
+          Nobody matches that. <a href="{{ url_for('khata.index') }}" class="font-semibold">Show everyone</a>
+        {% else %}
+          No Khatas yet. Open one when a regular asks to put it on the book.
+        {% endif %}
+      </div>
+    {% else %}
+    <div class="flex flex-col gap-2.5">
+      {% for r in rows %}
+        {% set c = r.customer %}
+        {% set is_sel = selected and selected.id == c.id %}
+        <a href="{{ url_for('khata.index', c=c.id, filter=filter_ if filter_ != 'all' else None, q=q or None) }}"
+           class="card flex items-center gap-3.5 px-4 py-3.5 border-[1.5px] transition-colors {{ 'border-teal-tint2' if is_sel else 'border-transparent hover:border-hairline' }}"
+           {{ 'aria-current="true"' if is_sel }}>
+          <div class="avatar w-11 h-11 text-[14px] shrink-0">{{ initials(c.name) }}</div>
+          <div class="flex-1 min-w-0">
+            <div class="text-[14.5px] font-bold truncate text-ink">{{ c.name }}</div>
+            {% if c.phone_raw %}<div class="text-[12px] text-muted truncate">{{ c.phone_raw }}</div>{% endif %}
+            <div class="text-[11.5px] mt-0.5 truncate">
+              {% if r.overdue.is_overdue %}<span class="text-coral font-semibold">{{ r.overdue.days_overdue }} day{{ '' if r.overdue.days_overdue == 1 else 's' }} overdue</span>
+              {% elif r.near_limit and r.balance.kind == 'owes' %}<span class="text-amber font-semibold">Near credit limit</span>
+              {% elif r.balance.kind == 'settled' %}<span class="text-faint">Settled · zero balance</span>
+              {% elif r.balance.kind == 'in_credit' %}<span class="text-teal font-semibold">In credit</span>
+              {% else %}<span class="text-faint">Owing{{ ' · updated ' ~ (r.last_activity | shop_time('%d %b')) if r.last_activity }}</span>{% endif %}
+            </div>
+          </div>
+          <div class="text-right shrink-0 text-[14.5px] font-semibold">
+            {{ balance_amount(r.balance, urgent=r.overdue.is_overdue or r.near_limit) }}
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- RIGHT: the selected customer -->
+  <div class="min-w-0">
+  {% if selected %}
+    {% set d = detail %}
+    {% set c = selected %}
+    <div class="flex flex-wrap items-start gap-4 mb-5">
+      <div class="avatar w-16 h-16 text-[21px] shrink-0">{{ initials(c.name) }}</div>
+      <div class="flex-1 min-w-[220px]">
+        <div class="text-[21px] font-extrabold tracking-[-0.02em] leading-tight">{{ c.name }}</div>
+        <div class="text-[13px] text-muted mt-1">
+          {{ c.address ~ ' · ' if c.address }}{{ 'Credit terms: ' ~ c.credit_terms_days ~ ' days' if c.credit_terms_days else 'No credit terms set' }}
+        </div>
+        <div class="text-[12.5px] mt-1.5 flex flex-wrap items-center gap-2">
+          {% if not c.phone_raw %}
+            <span class="text-faint">No phone number</span>
+          {% elif c.phone_verified %}
+            <span class="text-inkSoft">{{ c.phone_raw }}</span>
+            <span class="pill-teal">confirmed</span>
+            <span class="text-faint">{{ 'shown on their phone' if c.phone_verified_method == 'shown' else 'number rung' }}{{ ', by ' ~ d.verifier.name if d.verifier }}</span>
+          {% else %}
+            <span class="text-inkSoft">{{ c.phone_raw }}</span>
+            <span class="pill-amber">not confirmed</span>
+            {% if can_create %}
+            <form method="post" action="{{ url_for('khata.verify', customer_id=c.id) }}" class="flex items-center gap-1.5">
+              <button name="verify" value="shown" class="text-xs font-semibold text-teal hover:text-teal-deep">They showed it</button>
+              <span class="text-faint">·</span>
+              <button name="verify" value="called" class="text-xs font-semibold text-teal hover:text-teal-deep">I rang it</button>
+            </form>
+            {% endif %}
+          {% endif %}
+        </div>
+      </div>
+      <div class="flex items-center gap-2.5">
+        {% if can_create %}<a href="{{ url_for('khata.edit', customer_id=c.id) }}" class="btn-ghost">Edit</a>{% endif %}
+        {% if can_pay %}
+        <a href="{{ url_for('khata.payment', customer_id=c.id) }}" class="btn-primary">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          Record payment
+        </a>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if not d.reconciles %}
+      <div class="panel px-5 py-3.5 mb-5 bg-coral-tint text-coral text-sm font-semibold">
+        This Khata's balance doesn't match its history. Nothing is lost, but tell the owner before taking more credit.
+      </div>
+    {% endif %}
+
+    <div class="grid sm:grid-cols-3 gap-4 mb-3">
+      <div class="stat-card">
+        <div class="stat-label">Total purchased</div>
+        <div class="stat-value">Rs {{ '{:,}'.format(d.purchased_paisa // 100) }}</div>
+        {% if d.refunded_paisa %}<div class="stat-sub">Rs {{ '{:,}'.format(d.refunded_paisa // 100) }} refunded</div>{% endif %}
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total paid</div>
+        <div class="stat-value text-teal">Rs {{ '{:,}'.format(d.paid_paisa // 100) }}</div>
+      </div>
+      {% if d.balance.kind == 'owes' %}
+      <div class="stat-card bg-coral-tint">
+        <div class="stat-label !text-coral">Currently owed</div>
+        <div class="stat-value text-coral">Rs {{ '{:,}'.format(d.balance.amount_paisa // 100) }}</div>
+        {% if d.overdue.is_overdue %}<div class="stat-sub !text-coral">{{ d.overdue.days_overdue }} days past terms</div>{% endif %}
+      </div>
+      {% elif d.balance.kind == 'in_credit' %}
+      <div class="stat-card bg-teal-tint">
+        <div class="stat-label !text-teal-deep">In credit</div>
+        <div class="stat-value text-teal-deep">Rs {{ '{:,}'.format(d.balance.amount_paisa // 100) }}</div>
+        <div class="stat-sub">Used up by their next purchase</div>
+      </div>
+      {% else %}
+      <div class="stat-card">
+        <div class="stat-label">Balance</div>
+        <div class="stat-value text-faint">Settled</div>
+      </div>
+      {% endif %}
+    </div>
+    <div class="text-xs text-muted mb-7">
+      {% if c.credit_limit_paisa is none %}No credit limit.
+      {% elif d.limit_room_paisa > 0 %}Credit limit Rs {{ '{:,}'.format(c.credit_limit_paisa // 100) }} · Rs {{ '{:,}'.format(d.limit_room_paisa // 100) }} still available.
+      {% else %}<span class="text-coral font-semibold">Credit limit Rs {{ '{:,}'.format(c.credit_limit_paisa // 100) }} reached</span> — a further credit sale needs an Admin.{% endif %}
+    </div>
+
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-[15px] font-bold">Recent activity</h2>
+      <a href="{{ url_for('khata.statement', customer_id=c.id) }}" class="text-[13px] font-semibold">Statement</a>
+    </div>
+    {% if not d.recent %}
+      <div class="panel p-6 text-sm text-muted">Nothing on this Khata yet. Credit sales and payments will appear here.</div>
+    {% else %}
+    <div class="panel overflow-x-auto">
+      <table class="table">
+        <thead><tr><th class="!pl-5">Date</th><th>Type</th><th class="text-right">Amount</th><th class="text-right !pr-5">Balance</th></tr></thead>
+        <tbody>
+        {% for row, line in d.recent %}
+          <tr>
+            <td class="!pl-5 whitespace-nowrap">
+              <div class="font-medium">{{ row.entry.created_at | shop_time('%d %b, %I:%M %p') }}</div>
+              {% if line.details %}<div class="text-[11.5px] text-faint mt-0.5">{{ line.details }}</div>{% endif %}
+            </td>
+            <td class="align-middle">{{ entry_pill(row.entry.entry_type) }}</td>
+            <td class="text-right font-semibold whitespace-nowrap align-middle {{ 'text-coral' if row.amount_paisa > 0 else 'text-teal' }}">
+              {{ line.amount }}
+            </td>
+            <td class="text-right font-bold whitespace-nowrap align-middle !pr-5">{{ row.running_paisa | balance_words }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% if d.entry_count > d.recent|length %}
+        <div class="px-5 py-3 text-xs text-muted border-t border-hairline">
+          Showing the latest {{ d.recent|length }} of {{ d.entry_count }}. <a href="{{ url_for('khata.statement', customer_id=c.id, period='all') }}" class="font-semibold">See everything</a>
+        </div>
+      {% endif %}
+    </div>
+    {% endif %}
+  {% elif rows %}
+    <div class="panel p-8 text-sm text-muted">Choose a customer to see their Khata.</div>
+  {% endif %}
+  </div>
+</div>
+{% endblock %}

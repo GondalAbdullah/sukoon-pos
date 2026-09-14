@@ -33,6 +33,16 @@
       <div class="text-sm text-muted">Catalogue, stock levels, barcodes, labels</div>
     </a>
 
+    {% if khata_enabled %}
+    <a href="{{ url_for('khata.index') }}" class="panel p-6 border border-transparent hover:border-teal-tint2 transition-colors">
+      <div class="w-11 h-11 rounded-[13px] bg-coral-tint flex items-center justify-center mb-4">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#C15B45" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/><path d="M9 7h6"/><path d="M9 11h4"/></svg>
+      </div>
+      <div class="text-[15px] font-bold mb-1">Khata</div>
+      <div class="text-sm text-muted">Credit customers, payments, statements</div>
+    </a>
+    {% endif %}
+
     <a href="{{ url_for('refunds.find') }}" class="panel p-6 border border-transparent hover:border-teal-tint2 transition-colors">
       <div class="w-11 h-11 rounded-[13px] bg-amber-tint flex items-center justify-center mb-4">
         <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#B8873B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>

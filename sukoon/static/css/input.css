@@ -102,7 +102,11 @@
 
   /* --- data tables --- */
   .table { @apply w-full text-sm border-collapse; }
-  .table th { @apply text-left text-xs font-bold text-muted tracking-[0.02em] px-3 py-2 border-b border-hairline; }
+  /* Alignment lives in a zero-specificity :where() so a column's own text-right
+     wins — `.table th` (0,1,1) used to beat `.text-right` (0,1,0), leaving
+     right-aligned numbers under left-aligned headings (Stock's Price column). */
+  :where(.table th) { text-align: left; }
+  .table th { @apply text-xs font-bold text-muted tracking-[0.02em] px-3 py-2 border-b border-hairline; }
   .table td { @apply px-3 py-2.5 border-b border-hairline align-top; }
 
   .avatar {

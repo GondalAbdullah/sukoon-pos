@@ -19,14 +19,13 @@ from sqlalchemy import case, update
 
 from sukoon.extensions import db
 from sukoon.models import (
-    CreditLedgerEntry,
     Customer,
     InvoiceCounter,
     Product,
     Sale,
     SaleItem,
 )
-from sukoon.services import clock, inventory_service, invoicing, money, pricing
+from sukoon.services import clock, inventory_service, invoicing, khata_service, money, pricing
 from sukoon.services.inventory_service import (
     FractionalQuantityError,
     validate_quantity_milli,
@@ -220,6 +219,7 @@ def record_sale(
     payment_method: str,
     user_id: int,
     customer_id: int | None = None,
+    override_authorised_by_user_id: int | None = None,
     amount_tendered_paisa: int | None = None,
     terminal_label: str | None = None,
     now: datetime | None = None,
@@ -235,12 +235,22 @@ def record_sale(
         if customer_id is None:
             raise PaymentError("A credit sale needs a customer (Khata).")
         customer = db.session.get(Customer, customer_id)
-        if customer is None:
+        if customer is None or not customer.is_active:
             raise PaymentError("That customer no longer exists.")
 
     priced = _price_lines(lines)
     subtotal = pricing.cart_subtotal_paisa([total for _, total in priced])
     total = subtotal  # no discount, no tax (ADR-0008 / ADR-0020)
+
+    # ADR-0014 / ADR-0026 §6: blocked past the limit unless an Admin approved it.
+    override_by = None
+    if customer is not None:
+        if override_authorised_by_user_id is not None:
+            override_by = khata_service.require_override_authority(
+                override_authorised_by_user_id
+            )
+        else:
+            khata_service.check_credit_limit(customer, total)
 
     change_paisa: int | None = None
     if payment_method == "cash":
@@ -326,18 +336,15 @@ def record_sale(
             )
 
         if payment_method == "credit":
-            new_balance = customer.balance_paisa + total
-            db.session.add(
-                CreditLedgerEntry(
-                    customer_id=customer.id,
-                    entry_type="credit_sale",
-                    amount_paisa=total,
-                    balance_after_paisa=new_balance,
-                    sale_id=sale.id,
-                    created_by_user_id=user_id,
-                )
+            khata_service.post_entry(
+                customer,
+                entry_type="credit_sale",
+                amount_paisa=total,
+                user_id=user_id,
+                sale_id=sale.id,
+                override_authorised_by_user_id=override_by.id if override_by else None,
+                note=f"Over-limit, approved by {override_by.name}" if override_by else None,
             )
-            customer.balance_paisa = new_balance
 
         db.session.commit()
     except Exception:

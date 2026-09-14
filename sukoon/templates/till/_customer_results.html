@@ -1,0 +1,23 @@
+{% from "khata/_macros.html" import initials %}
+{# Fragment for the till's Khata search. Buttons, not forms: this sits inside the
+   checkout form, and a form can't nest. Choosing swaps #till-body like any cart change. #}
+{% if not q %}
+{% elif not customers %}
+  <div class="text-xs text-muted px-1 py-2">No Khata matches &ldquo;{{ q }}&rdquo;.</div>
+{% else %}
+  <div class="flex flex-col gap-1.5">
+  {% for c in customers %}
+    <button type="button"
+            hx-post="{{ url_for('till.choose_customer') }}" hx-vals='{"customer_id": {{ c.id }}}'
+            hx-select="#till-body" hx-select-oob="#topbar-sub,#flashes" hx-target="#till-body" hx-swap="outerHTML"
+            class="flex items-center gap-2.5 w-full text-left bg-surface border border-hairline rounded-[12px] px-3 py-2 hover:border-teal-tint2 transition-colors">
+      <span class="avatar w-8 h-8 text-[11px] shrink-0">{{ initials(c.name) }}</span>
+      <span class="flex-1 min-w-0">
+        <span class="block text-[13px] font-bold truncate">{{ c.name }}</span>
+        <span class="block text-[11px] text-muted truncate">{{ c.phone_raw or 'No phone' }}</span>
+      </span>
+      <span class="text-[11.5px] font-semibold whitespace-nowrap {{ 'text-coral' if c.balance_paisa > 0 else 'text-teal' }}">{{ c.balance_paisa | balance_words }}</span>
+    </button>
+  {% endfor %}
+  </div>
+{% endif %}

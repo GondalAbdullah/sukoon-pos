@@ -1,0 +1,13 @@
+Al-Rehman General Store
+Khata statement
+Customer: Haji Muhammad Usman (0300 5541298)
+Period: October 2026
+Opening balance: Rs 4,000 owed
+Purchases: Rs 3,000
+Payments: Rs 7,000
+Refunds: Rs 600
+Closing balance: Rs 600 in credit
+---
+01 Oct 2026 01:30 | Purchase | INV-2026-0002 | + Rs 3,000 | Rs 7,000 owed
+05 Oct 2026 11:00 | Refund | INV-2026-0002 · Refund #1 | - Rs 600 | Rs 6,400 owed
+20 Oct 2026 14:45 | Payment | JazzCash / Easypaisa · TX-5521 | - Rs 7,000 | Rs 600 in credit

@@ -1,0 +1,11 @@
+Al-Rehman General Store
+Khata statement
+Customer: Haji Muhammad Usman (0300 5541298)
+Period: September 2026
+Opening balance: Settled
+Purchases: Rs 6,000
+Payments: Rs 2,000
+Closing balance: Rs 4,000 owed
+---
+02 Sep 2026 12:15 | Purchase | INV-2026-0001 | + Rs 6,000 | Rs 6,000 owed
+10 Sep 2026 16:00 | Payment | Cash | - Rs 2,000 | Rs 4,000 owed

@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit ' ~ customer.name if customer else 'Open a Khata' }} — Sukoon{% endblock %}
+{% block heading %}{{ customer.name if customer else 'Open a Khata' }}{% endblock %}
+{% block subheading %}{{ 'Contact details and credit' if customer else 'A regular who wants to put it on the book' }}{% endblock %}
+{% block content %}
+{% set v = form if form else {} %}
+{% macro val(key, fallback) -%}{{ v.get(key) if v.get(key) is not none else fallback }}{%- endmacro %}
+<div class="max-w-xl flex flex-col gap-5">
+
+  <a href="{{ url_for('till.index') if return_to == 'till' else (url_for('khata.index', c=customer.id) if customer else url_for('khata.index')) }}" class="text-sm font-semibold">&larr; {{ 'Back to the till' if return_to == 'till' else 'Khata' }}</a>
+
+  <form method="post" class="panel p-7"
+        action="{{ url_for('khata.edit', customer_id=customer.id) if customer else url_for('khata.new') }}">
+    {% if return_to %}<input type="hidden" name="return" value="{{ return_to }}">{% endif %}
+
+    {% if duplicates %}
+    {# ADR-0013 §1: flagged, not forbidden — the cashier decides, deliberately. #}
+    <div class="rounded-md bg-amber-tint px-5 py-4 mb-6">
+      <div class="text-sm font-bold text-amber mb-1">
+        This number is already on {{ duplicates | map(attribute='name') | join(', ') }}'s Khata. Same person?
+      </div>
+      <div class="text-xs text-inkSoft mb-3">Family members and shop partners sometimes share a number. If it's the same person, use the existing Khata instead.</div>
+      <div class="flex flex-wrap gap-2.5">
+        <a href="{{ url_for('khata.index', c=duplicates[0].id) }}" class="btn-ghost !py-2 bg-surface">Go to {{ duplicates[0].name }}</a>
+        <button type="submit" name="confirm_duplicate" value="1" class="btn-ghost !py-2 bg-surface">No — {{ 'save' if customer else 'open' }} a separate Khata</button>
+      </div>
+    </div>
+    {% endif %}
+
+    <label class="block mb-4">
+      <span class="label">Name</span>
+      <input type="text" name="name" required maxlength="120" autofocus class="field"
+             value="{{ val('name', customer.name if customer else '') }}" placeholder="e.g. Haji Muhammad Usman">
+    </label>
+
+    <label class="block mb-1.5">
+      <span class="label">Phone number (optional)</span>
+      <input type="tel" name="phone" maxlength="32" class="field" inputmode="tel"
+             value="{{ val('phone', customer.phone_raw or '' if customer else '') }}" placeholder="0300 1234567">
+    </label>
+    <p class="text-xs text-muted mb-4">Any way it's written works — 0300 1234567, +92 300 1234567.
+      {% if customer and customer.phone_verified %}Changing it means confirming the new number again.{% endif %}</p>
+
+    {% if not customer %}
+    {# ADR-0013 §3: confirmed in person at the counter, or left unconfirmed. #}
+    <fieldset class="mb-5" x-data="{ verify: '{{ v.get('verify', '') }}' }">
+      <legend class="label">Is this really their number?</legend>
+      <div class="flex flex-col gap-2">
+        {% for key, label, hint in [('shown', 'They showed it on their phone', ''), ('called', 'I rang it and their phone rang', ''), ('', 'Not confirmed yet', 'They can still buy on credit; nothing about money is ever sent to an unconfirmed number.')] %}
+        <label class="flex items-start gap-2.5 text-sm cursor-pointer">
+          <input type="radio" name="verify" value="{{ key }}" x-model="verify" class="accent-teal mt-1" {{ 'checked' if v.get('verify', '') == key }}>
+          <span><span class="font-semibold">{{ label }}</span>{% if hint %}<br><span class="text-xs text-muted">{{ hint }}</span>{% endif %}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </fieldset>
+    {% endif %}
+
+    <label class="block mb-4">
+      <span class="label">Address (optional)</span>
+      <input type="text" name="address" maxlength="255" class="field"
+             value="{{ val('address', customer.address or '' if customer else '') }}" placeholder="Main Bazaar, Shop #14">
+    </label>
+
+    <label class="block mb-5">
+      <span class="label">Notes (optional)</span>
+      <textarea name="notes" rows="2" maxlength="1000" class="field">{{ val('notes', customer.notes or '' if customer else '') }}</textarea>
+    </label>
+
+    {% if not customer %}
+      <p class="text-xs text-muted mb-5">Starts with the shop's credit limit of <b class="text-inkSoft">Rs {{ '{:,}'.format(default_limit // 100) }}</b>. An Admin can change it.</p>
+    {% endif %}
+
+    <button type="submit" class="btn-primary w-full">{{ 'Save' if customer else 'Open Khata' }}</button>
+  </form>
+
+  {% if customer and can_manage %}
+  <form method="post" action="{{ url_for('khata.credit', customer_id=customer.id) }}" class="panel p-7"
+        x-data="{ noLimit: {{ 'true' if customer.credit_limit_paisa is none else 'false' }} }">
+    <div class="text-[15px] font-bold mb-1">Credit (Admin)</div>
+    <p class="text-xs text-muted mb-5">A credit sale past the limit is stopped at the till unless an Admin approves it there.</p>
+    <div class="grid sm:grid-cols-2 gap-4 mb-3">
+      <label class="block">
+        <span class="label">Credit limit, Rs</span>
+        <input type="number" name="credit_limit" min="0" step="1" class="field" :disabled="noLimit"
+               value="{{ (customer.credit_limit_paisa // 100) if customer.credit_limit_paisa is not none else '' }}">
+      </label>
+      <label class="block">
+        <span class="label">Credit terms, days (optional)</span>
+        <input type="number" name="credit_terms_days" min="1" step="1" class="field" placeholder="e.g. 30"
+               value="{{ customer.credit_terms_days or '' }}">
+      </label>
+    </div>
+    <label class="flex items-center gap-2.5 text-sm font-semibold cursor-pointer mb-2">
+      <input type="checkbox" name="no_limit" value="1" x-model="noLimit" class="accent-teal">
+      No limit for this customer
+    </label>
+    <p class="text-xs text-muted mb-5">With credit terms set, the Khata is flagged overdue once that many days pass without a payment.</p>
+    <button type="submit" class="btn-primary">Save credit</button>
+  </form>
+
+  <form method="post" action="{{ url_for('khata.remove', customer_id=customer.id) }}" class="panel p-7"
+        x-data data-confirm="Archive {{ customer.name }}'s Khata? Their history is kept."
+        @submit="if (!confirm($el.dataset.confirm)) $event.preventDefault()">
+    <div class="text-[15px] font-bold mb-1">Archive this Khata</div>
+    <p class="text-xs text-muted mb-4">Only possible at a zero balance. Their purchases and payments stay in the records; they just leave the list and the till.</p>
+    <button type="submit" class="btn-ghost !text-coral">Archive Khata</button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

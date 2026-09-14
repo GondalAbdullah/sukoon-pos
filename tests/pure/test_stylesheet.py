@@ -35,3 +35,11 @@ def test_templates_use_no_spacing_class_tailwind_cannot_generate():
         for m in _PHANTOM_SPACING.finditer(path.read_text())
     ]
     assert offenders == []
+
+
+def test_a_table_column_can_right_align_its_heading():
+    # a numbers column's heading must follow its own text-right; the table's default
+    # left alignment has to lose to it (Stock's Price heading sat left of its prices)
+    css = CSS.read_text()
+    assert ":where(.table th){text-align:left}" in css
+    assert ".table th{text-align:left" not in css

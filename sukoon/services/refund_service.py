@@ -20,7 +20,6 @@ from datetime import UTC, datetime
 
 from sukoon.extensions import db
 from sukoon.models import (
-    CreditLedgerEntry,
     Customer,
     Product,
     Refund,
@@ -28,7 +27,7 @@ from sukoon.models import (
     Sale,
     SaleItem,
 )
-from sukoon.services import inventory_service, pricing
+from sukoon.services import inventory_service, khata_service, pricing
 
 
 class RefundError(Exception):
@@ -194,18 +193,14 @@ def approve_refund(*, refund_id: int, approved_by_user_id: int) -> Refund:
 
         if refund.method == "credit_ledger":
             customer = db.session.get(Customer, sale.customer_id)
-            new_balance = customer.balance_paisa - refund.total_paisa
-            db.session.add(
-                CreditLedgerEntry(
-                    customer_id=customer.id,
-                    entry_type="refund",
-                    amount_paisa=-refund.total_paisa,
-                    balance_after_paisa=new_balance,
-                    sale_id=sale.id,
-                    created_by_user_id=approved_by_user_id,
-                )
+            khata_service.post_entry(
+                customer,
+                entry_type="refund",
+                amount_paisa=-refund.total_paisa,
+                user_id=approved_by_user_id,
+                sale_id=sale.id,
+                note=f"Refund #{refund.id}",
             )
-            customer.balance_paisa = new_balance
 
         refund.status = "approved"
         refund.approved_by_user_id = approved_by_user_id

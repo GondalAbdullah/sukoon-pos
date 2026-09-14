@@ -70,6 +70,7 @@ def create_app(
 
     from sukoon.routes.admin import bp as admin_bp
     from sukoon.routes.auth import bp as auth_bp
+    from sukoon.routes.khata import bp as khata_bp
     from sukoon.routes.main import bp as main_bp
     from sukoon.routes.refunds import bp as refunds_bp
     from sukoon.routes.stock import bp as stock_bp
@@ -81,6 +82,7 @@ def create_app(
     app.register_blueprint(stock_bp)
     app.register_blueprint(till_bp)
     app.register_blueprint(refunds_bp)
+    app.register_blueprint(khata_bp)
 
     _register_template_helpers(app)
     _register_cli(app)
@@ -102,11 +104,23 @@ def _register_template_helpers(app: Flask) -> None:
         from sukoon.services import refund_service
         from sukoon.services.auth_service import role_has_permission
 
-        if current_user.is_authenticated and role_has_permission(
-            current_user.role, "sale.refund"
-        ):
-            return {"pending_refund_count": refund_service.count_pending()}
-        return {"pending_refund_count": 0}
+        ctx = {"pending_refund_count": 0, "khata_enabled": False}
+        if current_user.is_authenticated:
+            ctx["khata_enabled"] = role_has_permission(current_user.role, "khata.view")
+            if role_has_permission(current_user.role, "sale.refund"):
+                ctx["pending_refund_count"] = refund_service.count_pending()
+        return ctx
+
+    @app.template_test("match_initial")
+    def match_initial(word: str) -> bool:
+        return bool(word) and word[0].isalnum()
+
+    @app.template_filter("balance_words")
+    def balance_words(paisa: int) -> str:
+        """A Khata balance as a person reads it — never a bare negative (ADR-0026 §7)."""
+        from sukoon.services.statements import balance_words as words
+
+        return words(paisa)
 
     @app.template_filter("shop_time")
     def shop_time(dt, fmt: str | None = None) -> str:

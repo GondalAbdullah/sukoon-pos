@@ -15,10 +15,12 @@ unweighed.
 from __future__ import annotations
 
 import io
+from datetime import UTC, datetime
 
 from flask import (
     Blueprint,
     abort,
+    current_app,
     flash,
     redirect,
     render_template,
@@ -30,10 +32,10 @@ from flask import (
 from flask_login import current_user, login_required
 
 from sukoon.extensions import db
-from sukoon.models import Product, Sale
+from sukoon.models import Customer, Product, Sale
 from sukoon.routes.guards import permission_required
+from sukoon.services import auth_service, khata_service, ledger, pricing, sales_service
 from sukoon.services import inventory_service as inv
-from sukoon.services import pricing, sales_service
 from sukoon.services.auth_service import role_has_permission
 from sukoon.services.receipts import service as receipts
 from sukoon.services.sales_service import CartLine
@@ -109,6 +111,22 @@ def _resolve(code: str) -> tuple[Product, int, int | None] | None:
     return None
 
 
+# --- whose Khata (Phase 4, ADR-0026) ------------------------------------------
+
+_CUSTOMER_KEY = "till_customer_id"  # also set by khata.new(return=till)
+
+
+def _till_customer() -> Customer | None:
+    cid = session.get(_CUSTOMER_KEY)
+    if cid is None:
+        return None
+    customer = db.session.get(Customer, cid)
+    if customer is None or not customer.is_active:
+        session.pop(_CUSTOMER_KEY, None)
+        return None
+    return customer
+
+
 # --- stock limits (ADR-0025) -------------------------------------------------
 
 def _fmt_qty(milli: int, unit: str) -> str:
@@ -182,8 +200,23 @@ def index():
             "level_milli": line.product.stock_quantity_milli,
         })
 
+    customer = _till_customer()
+    credit = None
+    if customer is not None:
+        credit = {
+            "balance": ledger.describe_balance(customer.balance_paisa),
+            "after_paisa": customer.balance_paisa + summary.total_paisa,
+            "over_by_paisa": ledger.compute_over_limit(
+                customer.balance_paisa, summary.total_paisa, customer.credit_limit_paisa
+            ),
+        }
+
     return render_template(
         "till/till.html",
+        till_customer=customer,
+        credit=credit,
+        can_open_khata=role_has_permission(current_user.role, "customer.create"),
+        is_admin_approver=role_has_permission(current_user.role, "khata.override_limit"),
         rows=kept,
         stock=stock,
         lines=lines,
@@ -386,11 +419,37 @@ def update_line(index: int):
     abort(400)
 
 
+@bp.route("/customers")
+@login_required
+@permission_required("khata.view")
+def customer_search():
+    """The Khata picker's results — a fragment, fetched as the cashier types."""
+    q = (request.args.get("q") or "").strip()
+    customers = khata_service.search_for_till(q) if q else []
+    return render_template("till/_customer_results.html", customers=customers, q=q)
+
+
+@bp.route("/customer", methods=["POST"])
+@login_required
+@permission_required("sale.take_payment")
+def choose_customer():
+    if request.form.get("op") == "clear":
+        session.pop(_CUSTOMER_KEY, None)
+        return redirect(url_for("till.index"))
+    customer = db.session.get(Customer, request.form.get("customer_id", type=int) or 0)
+    if customer is None or not customer.is_active:
+        flash("That Khata could not be found.", "error")
+    else:
+        session[_CUSTOMER_KEY] = customer.id
+    return redirect(url_for("till.index"))
+
+
 @bp.route("/clear", methods=["POST"])
 @login_required
 @permission_required("sale.ring")
 def clear():
     session.pop(_CART_KEY, None)
+    session.pop(_CUSTOMER_KEY, None)  # a cleared cart is a new customer
     return redirect(url_for("till.index"))
 
 
@@ -419,22 +478,47 @@ def checkout():
 
     payment_method = request.form.get("payment_method", "")
     tendered = _rupees_to_paisa(request.form.get("amount_tendered"))
-    customer_id = request.form.get("customer_id")
+    customer = _till_customer() if payment_method == "credit" else None
+    if payment_method == "credit" and customer is None:
+        flash("Choose whose Khata this goes on.", "error")
+        return redirect(url_for("till.index"))
+
+    # ADR-0014 / ADR-0026 §6: an Admin at the counter approves an over-limit sale
+    # with their own name and password; wrong passwords count toward lockout.
+    override_by = None
+    approver = (request.form.get("approver") or "").strip()
+    if customer is not None and approver:
+        try:
+            admin = auth_service.authenticate(
+                approver, request.form.get("approver_password", ""), datetime.now(UTC),
+                max_attempts=current_app.config["LOGIN_MAX_ATTEMPTS"],
+                lockout_minutes=current_app.config["LOGIN_LOCKOUT_MINUTES"],
+            )
+        except auth_service.AuthError:
+            db.session.commit()  # keep the failed-attempt count
+            flash("That Admin name or password didn't match.", "error")
+            return redirect(url_for("till.index"))
+        if not role_has_permission(admin.role, "khata.override_limit"):
+            flash("Only an Admin can approve going over a credit limit.", "error")
+            return redirect(url_for("till.index"))
+        override_by = admin.id
 
     try:
         sale = sales_service.record_sale(
             lines=lines,
             payment_method=payment_method,
             user_id=current_user.id,
-            customer_id=int(customer_id) if customer_id else None,
+            customer_id=customer.id if customer else None,
+            override_authorised_by_user_id=override_by,
             amount_tendered_paisa=tendered,
             terminal_label=_terminal_label(),
         )
-    except (sales_service.SaleError, inv.InventoryError) as exc:
+    except (sales_service.SaleError, inv.InventoryError, khata_service.KhataError) as exc:
         flash(str(exc), "error")
         return redirect(url_for("till.index"))
 
     session.pop(_CART_KEY, None)
+    session.pop(_CUSTOMER_KEY, None)
     # The sale is committed; the receipt is a secondary action that must not
     # raise into this request (ADR-0003 §6). A dead printer -> PDF offered.
     outcome = receipts.issue_receipt(sale)

@@ -206,13 +206,24 @@ def test_an_empty_cart_cannot_be_checked_out(till):
     assert db.session.query(Sale).count() == 0
 
 
-def test_a_credit_sale_needs_a_customer_id(till, milk):
+def test_a_credit_sale_needs_a_customer(till, milk):
     _add(till, product_id=milk.id)
     resp = till.post(
         "/till/checkout", data={"payment_method": "credit"}, follow_redirects=True
     )
-    assert b"needs a customer" in resp.data
+    assert b"Choose whose Khata this goes on." in resp.data
     assert db.session.query(Sale).count() == 0
+
+
+def test_a_raw_customer_id_in_the_form_is_ignored(till, milk):
+    # Phase 4: the Khata comes from the picker (session), never a typed ID
+    cust = Customer(name="Bilal", balance_paisa=0)
+    db.session.add(cust)
+    db.session.commit()
+    _add(till, product_id=milk.id)
+    resp = till.post("/till/checkout", data={"payment_method": "credit", "customer_id": cust.id},
+                     follow_redirects=True)
+    assert b"Choose whose Khata" in resp.data and db.session.query(Sale).count() == 0
 
 
 def test_a_credit_sale_to_a_real_customer_completes(till, milk):
@@ -220,9 +231,10 @@ def test_a_credit_sale_to_a_real_customer_completes(till, milk):
     db.session.add(cust)
     db.session.commit()
     _add(till, product_id=milk.id)
+    till.post("/till/customer", data={"customer_id": cust.id})
     resp = till.post(
         "/till/checkout",
-        data={"payment_method": "credit", "customer_id": str(cust.id)},
+        data={"payment_method": "credit"},
         follow_redirects=True,
     )
     assert b"Sale complete" in resp.data

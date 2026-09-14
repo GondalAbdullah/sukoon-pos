@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "khata/_macros.html" import initials %}
 {% block title %}Till — Sukoon{% endblock %}
 {% block heading %}New sale{% endblock %}
 {% block subheading %}{{ rows|length }} item{{ '' if rows|length == 1 else 's' }} in the cart{% endblock %}
@@ -220,7 +221,9 @@
   <!-- RIGHT: summary + payment -->
   <div class="w-full lg:w-[380px] shrink-0 panel p-6"
        x-data="{
-         method: 'cash',
+         method: '{{ 'credit' if till_customer else 'cash' }}',
+         hasCustomer: {{ 'true' if till_customer else 'false' }},
+         ready: {{ 'true' if summary.ready else 'false' }},
          total: {{ summary.total_paisa }},
          tendered: {{ (summary.total_paisa / 100) | round(0, 'ceil') | int if summary.total_paisa else 0 }},
          get change() { return Math.max(0, Math.round(this.tendered * 100) - this.total) },
@@ -235,6 +238,23 @@
            return out;
          }
        }">
+    {% if till_customer %}
+    {# Phase 4 (ADR-0026): the prototype's customer chip, now real — whose Khata. #}
+    <div class="flex items-center gap-3 bg-teal-tint rounded-[16px] px-4 py-3.5 mb-5">
+      <div class="avatar w-9 h-9 text-[12px] !bg-surface">{{ initials(till_customer.name) }}</div>
+      <div class="flex-1 min-w-0">
+        <div class="text-[13.5px] font-bold truncate">{{ till_customer.name }}</div>
+        <div class="text-[11.5px] {{ 'text-coral font-semibold' if credit.balance.kind == 'owes' else 'text-teal-deep' }}">
+          {{ till_customer.balance_paisa | balance_words }} on their Khata
+        </div>
+      </div>
+      <form method="post" action="{{ url_for('till.choose_customer') }}"
+            hx-post="{{ url_for('till.choose_customer') }}" hx-select="#till-body" hx-select-oob="#topbar-sub,#flashes"
+            hx-target="#till-body" hx-swap="outerHTML">
+        <button name="op" value="clear" class="text-faint hover:text-ink px-1 text-lg leading-none" title="Back to a walk-in customer">&times;</button>
+      </form>
+    </div>
+    {% else %}
     <div class="flex items-center gap-3 bg-sunk rounded-[16px] px-4 py-3.5 mb-5">
       <div class="avatar w-9 h-9 text-[12px]">WI</div>
       <div class="flex-1">
@@ -242,6 +262,7 @@
         <div class="text-[11.5px] text-muted">No account needed for cash sales</div>
       </div>
     </div>
+    {% endif %}
 
     <div class="flex justify-between text-sm font-semibold text-inkSoft mb-3">
       <span>Subtotal</span><span>{{ summary.subtotal_paisa | rupees }}</span>
@@ -303,8 +324,40 @@
       </div>
 
       <div x-show="method === 'credit'" x-cloak class="mb-5">
-        <label class="label">Customer ID (Khata)</label>
-        <input type="number" name="customer_id" step="1" min="1" class="field">
+        {% if not till_customer %}
+          {# Search by name or number; results arrive as the cashier types. Enter
+             must not submit the sale from inside this box. #}
+          <label class="label" for="khata-search">Whose Khata?</label>
+          <input type="search" id="khata-search" name="q" autocomplete="off" class="field"
+                 placeholder="Name or phone number"
+                 hx-get="{{ url_for('till.customer_search') }}" hx-trigger="input changed delay:250ms"
+                 hx-target="#khata-results" hx-swap="innerHTML"
+                 @keydown.enter.prevent>
+          <div id="khata-results" class="mt-2"></div>
+          {% if can_open_khata %}
+            <a href="{{ url_for('khata.new', **{'return': 'till'}) }}" class="inline-block text-xs font-semibold mt-2">+ Open a new Khata</a>
+          {% endif %}
+        {% else %}
+          <div class="bg-sunk rounded-md px-[18px] py-3.5 text-[13px]">
+            <div class="flex justify-between"><span class="text-muted">Balance after this sale</span>
+              <span class="font-bold">{{ credit.after_paisa | balance_words }}</span></div>
+            <div class="flex justify-between mt-1"><span class="text-muted">Credit limit</span>
+              <span class="font-semibold">{{ 'None' if till_customer.credit_limit_paisa is none else till_customer.credit_limit_paisa | rupees }}</span></div>
+          </div>
+          {% if credit.over_by_paisa %}
+          {# ADR-0014: blocked for a cashier; an Admin standing here can approve. #}
+          <div class="rounded-md bg-coral-tint px-[18px] py-4 mt-3">
+            <div class="text-[13px] font-bold text-coral mb-1">Rs {{ '{:,}'.format(credit.over_by_paisa // 100) }} over their limit</div>
+            <div class="text-xs text-inkSoft mb-3">An Admin can approve this sale here with their own password. Otherwise take cash or card.</div>
+            <div class="grid grid-cols-2 gap-2">
+              <input type="text" name="approver" autocomplete="off" class="field !py-2 !text-sm"
+                     placeholder="Admin name" value="{{ current_user.name if is_admin_approver else '' }}">
+              <input type="password" name="approver_password" autocomplete="off" class="field !py-2 !text-sm"
+                     placeholder="Password">
+            </div>
+          </div>
+          {% endif %}
+        {% endif %}
       </div>
 
       <div x-show="method === 'cash' && change > 0" x-cloak
@@ -316,7 +369,8 @@
       </div>
 
       <button type="submit" class="btn-primary btn-lg w-full justify-between px-6"
-              {{ 'disabled' if not summary.ready }}>
+              {{ 'disabled' if not summary.ready }}
+              :disabled="!ready || (method === 'credit' && !hasCustomer)">
         <span>Complete sale</span>
         <span>{{ summary.total_paisa | rupees }}</span>
       </button>
