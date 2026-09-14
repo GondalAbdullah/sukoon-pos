@@ -10,10 +10,10 @@ work session, not just every phase.
 
 | | |
 |---|---|
-| **Phase** | **Phase 5 — WhatsApp Notification Module — grill complete (session 25), build next.** Decisions ADR-0027 to ADR-0033. The spec's 🛑 gate items — provider, message wording, retry/backoff limits — are confirmed in ADR-0027, ADR-0030/0032 and ADR-0029. Phase 4 (Khata) functionally complete (§4k). |
-| **Status** | **Session 25:** the Phase 5 `grill-with-docs` session ran on the session-24 proposal — 26 questions, 7 ADRs (0027–0033), O-20 resolved, O-18's trigger sharpened, O-23 opened for Meta facts that must be checked when the account exists. **Session 23:** Phase 4 built — customers with duplicate-number and in-person confirmation (ADR-0013), a single ledger writer that sales, refunds and payments all go through, full/partial/over-payments, credit limits with Admin approval at the till (ADR-0014), overdue flags (ADR-0015), month statements on shop time with an A4 PDF, the Khata screen, and a Khata picker replacing the till's raw customer ID. 363 tests pass; verified in real Chrome. **Session 22:** the client answered O-21/O-22 — shop timezone (ADR-0024) and stock limits at the till (ADR-0025) built; along the way found and fixed a latent bug (items created at the till could never be sold) and B9 (htmx swaps silently dropped every till error message). **Session 21:** a bug sweep driven by the developer's own walkthrough screenshots — 8 real bugs fixed and verified in a real browser (session 21 changelog), plus a plain-language field manual at `docs/field-manual.html` (untracked). Phase 3.5 built out sessions 13–19 (toolchain, Login, Till, Sale Complete, terminal ID, Stock, Refunds, landing page, htmx pass — §4i), then the Design System §13 DoD side-by-side (session 20, §4j) — fresh screenshots of every screen plus an actually-rendered receipt PDF against all 9 reference images, not a documentation exercise. Found and fixed three real issues (two undersized/no-hover buttons, a receipt footer line that ran off the page, fixed with real word-wrapping + regression tests) and restored two missing Login details. One genuine tension between ADR-0006 (prototype pixel-fidelity) and the Design System's written 44px touch-target rule was put to the client rather than picked unilaterally: **keep the prototype-exact stepper size, no change** — recorded with rationale. **Phase 3.5 is now formally closed.** `ruff` clean, **245 tests green, 95% coverage**. |
-| **Last session** | 2026-09-14 (session 25) |
-| **Next action** | **Build Phase 5** against ADR-0027…0033, in the order the proposal's §5 lists: the migration (consent columns, `message_daily_count`, `statement_run`), provider interface + fake provider, queue (eligibility, claim, classify, retry/age/pause, daily cap), jobs (worker with lock, statements with catch-up, overdue check), the five templates, Messages screen + Khata status line + Send reminder + Send test, and the required tests with the provider down as a hard gate. The real Meta adapter is written against Meta's documentation; **a real send waits on the client** creating the Meta Business account, card, new SIM and template approval (ADR-0027), and on O-23's checks. |
+| **Phase** | **Phase 5 — WhatsApp Notification Module — built (session 26); 🛑 closing gate awaits the client** (§4l). Phase 4 functionally complete (§4k). |
+| **Status** | **Session 26:** Phase 5 built against ADR-0027…0033 in three parts — queue/consent/rules, Meta adapter/key store/scheduler, screens — 475 tests, and an end-to-end browser run where the real background worker in `python -m sukoon.run` sent a credit-sale notice by itself (fake provider). Three real bugs found by the tests and fixed (§6). **Session 25:** the Phase 5 `grill-with-docs` session ran on the session-24 proposal — 26 questions, 7 ADRs (0027–0033), O-20 resolved, O-18's trigger sharpened, O-23 opened for Meta facts that must be checked when the account exists. **Session 23:** Phase 4 built — customers with duplicate-number and in-person confirmation (ADR-0013), a single ledger writer that sales, refunds and payments all go through, full/partial/over-payments, credit limits with Admin approval at the till (ADR-0014), overdue flags (ADR-0015), month statements on shop time with an A4 PDF, the Khata screen, and a Khata picker replacing the till's raw customer ID. 363 tests pass; verified in real Chrome. **Session 22:** the client answered O-21/O-22 — shop timezone (ADR-0024) and stock limits at the till (ADR-0025) built; along the way found and fixed a latent bug (items created at the till could never be sold) and B9 (htmx swaps silently dropped every till error message). **Session 21:** a bug sweep driven by the developer's own walkthrough screenshots — 8 real bugs fixed and verified in a real browser (session 21 changelog), plus a plain-language field manual at `docs/field-manual.html` (untracked). Phase 3.5 built out sessions 13–19 (toolchain, Login, Till, Sale Complete, terminal ID, Stock, Refunds, landing page, htmx pass — §4i), then the Design System §13 DoD side-by-side (session 20, §4j) — fresh screenshots of every screen plus an actually-rendered receipt PDF against all 9 reference images, not a documentation exercise. Found and fixed three real issues (two undersized/no-hover buttons, a receipt footer line that ran off the page, fixed with real word-wrapping + regression tests) and restored two missing Login details. One genuine tension between ADR-0006 (prototype pixel-fidelity) and the Design System's written 44px touch-target rule was put to the client rather than picked unilaterally: **keep the prototype-exact stepper size, no change** — recorded with rationale. **Phase 3.5 is now formally closed.** `ruff` clean, **245 tests green, 95% coverage**. |
+| **Last session** | 2026-09-15 (session 26) |
+| **Next action** | **Phase 5's 🛑 closing gate (§4l) — the client's call.** Everything testable without a Meta account is done and verified. The spec's last verification step — *manually trigger one real send* — needs the owner's Meta Business account, card, new SIM, approved templates and O-23's checks. Options: close Phase 5 now with the real send tracked under O-23, or hold it open until that send. After the gate: **Phase 6 — Reports & Dashboard**. On any existing database run `flask db upgrade` and `flask seed`. |
 
 ## 2. Decisions made so far
 
@@ -139,7 +139,7 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   rate-limit errors and retry, but check the tier against the Khata count); business
   verification requirements; that a number registered to the API can't also be used in the
   WhatsApp app; template category and approval turnaround; the message body length limit;
-  that a free, send-nothing call exists for the resume check (ADR-0029 §9); that a send's
+  that a free, send-nothing call exists for the resume check (ADR-0029 §9) — the adapter uses `GET /{phone-number-id}?fields=display_phone_number`; **the Graph API version** (`v23.0` default, `WHATSAPP_API_VERSION`); **every Meta error code in `providers/meta.py`'s classification table** (written from memory — a wrong mapping could mark a broken account as merely retryable, or the reverse); the template payload shape for a document header; the media-upload endpoint and whether a PDF costs extra; that a send's
   outcome can't be queried after a crash (ADR-0033 §9 — if it can, "outcome unknown" could
   become resolvable); the WhatsApp policy's current consent wording (ADR-0028); the mobile
   operator's SIM inactivity rule (ADR-0027). Any fact that turns out false reopens the ADR
@@ -231,7 +231,18 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   sale, adjusting a ledger entry, recording a Khata payment, exporting data.** When
   a decision lands, update `sukoon/services/permissions.py` (the seed is
   dict-driven — no code change there) and re-run `flask seed`.
-- **ADR-0016's test case "notification_type rejects a fourth value" was never written**,
+- **`flask run` runs no background jobs** — no WhatsApp worker, statements or reminders.
+  Use `python -m sukoon.run` (README). Deliberate: jobs start only from an explicit
+  launcher, so `flask db upgrade`/`flask seed` never send (ADR-0033 §7). Phase 7's
+  Windows launcher calls the same `start_scheduler`.
+- **Windows-only code paths are untested on this Linux machine:** DPAPI key encryption
+  (`secret_store._dpapi`) and the `msvcrt` worker lock. Both are marked `pragma: no cover`
+  and **must be exercised in Phase 7's Windows testing** before the installer ships. The
+  Messages screen says "not encrypted" when not on Windows, so it never overstates it.
+- **Existing databases need `flask db upgrade` and `flask seed`** for Phase 5's migration
+  (consent columns, message counter, statement runs) and two new permissions
+  (`khata.send_reminder`, `whatsapp.manage`).
+- **ADR-0016's test case "notification_type rejects a fourth value" was never written**, — *now written in Phase 5:* `test_notifications::test_an_unknown_message_type_is_refused`.
   and there is no database constraint on that column. Found in the Phase 5 grill. Phase 5
   adds validation in the queue service with a real test (ADR-0028 §4).
 - **Ledger adjustments and paying out a credit are not built (ADR-0026).** A mistaken
@@ -272,6 +283,14 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
 Design System 13 requires every intentional departure from a reference screenshot to
 be recorded here.
 
+- **Messages screen (Phase 5) — no reference screenshot exists.** Built on the established
+  vocabulary: a state panel (off / paused / on, with today's count against the cap), key,
+  settings and test-send cards, and a filterable log. A Messages rail item for Admins, with
+  a coral "!" while sending is paused.
+- **Khata (Figure 4) — the mock's "A WhatsApp update was sent automatically after the last
+  credit sale" banner is now a real one-line status** for every member of staff (sent,
+  waiting, not sent with the reason, or updates off), with **Send reminder** on the same
+  line for Admins — disabled with its reason ("Reminded 3 days ago") inside ADR-0031's limits.
 - **Khata (Figure 4) — built on the mock, with these departures (session 23).**
   No **Send reminder** button and no "WhatsApp update was sent" banner — WhatsApp is
   Phase 5, and a button that does nothing would lie. An **In credit** tab beside
@@ -781,6 +800,55 @@ developer's walkthrough, fixed once in the shared style, with a stylesheet test)
 **Not in Phase 4, by the spec's own plan:** anything WhatsApp (neutral notice to an
 unconfirmed number, overdue reminders, monthly statement sending) — Phase 5.
 
+## 4l. Phase 5 Definition of Done — built 2026-09-15; 🛑 closing gate open
+
+Development Specification, Phase 5:
+
+- [x] **Step 1 — grill-with-docs, ADRs before code.** Session 25: ADR-0027…0033, Accepted.
+- [x] **Step 2 — provider adapter interface.** `providers/base.py` (`Provider`,
+  `FakeProvider`), `providers/meta.py` behind it; nothing else imports the Meta adapter.
+- [x] **Step 3 — async queue a credit sale enqueues into.** `queue.py`; hooks run after the
+  sale/payment commits, through `safely`.
+- [x] **Step 4 — capped, backed-off retries and a visible failure log.** ADR-0029's policy;
+  the Messages screen log with Retry now / Send again.
+- [x] **Step 5 — monthly statement generation job.** 09:00 on the 1st + start-up catch-up
+  to the 8th (ADR-0031), sent with the A4 PDF.
+- [x] **Required: mocked-provider success, failure, retry cap.**
+  `test_notifications::test_ok_sends_the_exact_wording_to_the_customer`,
+  `::test_retryable_backs_off_then_fails_after_five_and_is_shown`, `::test_permanent_abandons_on_the_first_attempt`,
+  `::test_account_broken_pauses_the_queue_then_a_good_check_resumes_it`, `::test_no_connection_uses_no_attempt_and_gives_up_at_the_age_limit`.
+- [x] **Required: a sale completes with the provider disabled/unreachable — the hard gate.**
+  `::test_a_sale_completes_even_when_queueing_blows_up`,
+  `::test_a_sale_completes_with_the_provider_down_in_every_way`; and in the browser run the
+  credit sale completed in 0.9 s while the message went out ~15 s later from the worker.
+- [x] **Required: duplicate-send prevention.** Dedupe keys
+  (`::test_a_credit_sale_queues_one_notice_with_a_count_never_names`,
+  `::test_a_manual_reminder_obeys_the_same_rules_and_cannot_double`) and four racing workers
+  (`test_notification_concurrency::test_four_workers_send_every_message_exactly_once`,
+  `::test_racing_workers_never_pass_the_daily_cap`) — repeated 10/10.
+- [x] **Required: month-boundary/timezone test for statements.**
+  `::test_statement_window_is_9am_on_the_1st_to_9am_on_the_8th_shop_time` (08:59 vs 09:00
+  Pakistan time) plus Phase 4's `test_statements` boundary fixture.
+- [x] **Retry and failure logging verified against the ADR's capped policy.** As above;
+  pure policy tests pin the exact delays and limits.
+- [x] **ADR for provider adapter and templates exists and is Accepted.** ADR-0027, 0030, 0032.
+- [ ] **Manually trigger one real send and confirm delivery and logging.** **Not possible yet:**
+  no Meta account exists. Everything up to the HTTP call is proven against a local Graph API
+  stub (`test_meta_provider.py`), and a real send is O-23's trigger.
+
+**Suite:** 475 tests, ruff clean, coverage 95% (policy/templates 100%, queue 93%, Meta
+adapter 95%). **Real browser, real scheduler (fake provider, throwaway DB, 11 checks):** the
+Messages screen refuses to switch on without key and reply-to number; the key is saved and
+never shown; a test send reports its outcome; switching on shows "1 of 200 sent today"; the
+Khata tick starts unticked; a credit sale completes in 0.9 s; the Khata shows "Credit sale
+waiting to send"; **the background worker inside `python -m sukoon.run` sent it unaided**
+and the line became "Last WhatsApp update: credit sale, sent…"; no Send reminder for a
+cashier; the log shows both messages sent.
+
+**🛑 STOP AND ASK — before closing Phase 5.** The gate's content (provider, wording,
+retry limits) was confirmed in the grill. What remains is the client's decision whether to
+close Phase 5 with the real send deferred to O-23's trigger, or hold it open until then.
+
 ## 5. Edge case and test matrix
 
 Every case below must have a passing automated test before its owning phase can
@@ -929,8 +997,9 @@ This list grows as new cases are found.
 - [x] Saving a customer with an existing normalised number prompts for confirmation
       — `test_khata::test_a_duplicate_number_asks_first_then_is_allowed`, `test_khata_routes::test_the_form_asks_before_a_duplicate_number`
 - [x] Two customers may share a number once confirmed — same tests
-- [ ] An unverified number receives the neutral notice and never an amount — Phase 5
-- [ ] A verified number receives full notifications — Phase 5
+- [x] An unverified number receives the neutral notice and never an amount (ticked, ADR-0028)
+      — `test_notifications::test_ticked_unconfirmed_gets_one_account_notice_and_no_money_messages`
+- [x] A verified number receives full notifications (ticked) — `test_notification_policy::test_money_messages_need_a_confirmed_number`
 - [x] A customer with no phone number can still hold a Khata and be sold to
       — `test_khata::test_a_customer_with_no_phone_can_hold_a_khata_and_buy`
 - [x] Verification records who confirmed it, when, and by which method
@@ -965,8 +1034,9 @@ This list grows as new cases are found.
 - [x] An adjustment does not reset the reference date, even though it changes the balance — same test
 - [x] `days_overdue` matches a hand-calculated value for a known fixture
       — `test_ledger::test_aged_from_the_first_credit_sale_when_no_payment_yet` (60 days, 30-day terms → 30)
-- [ ] An overdue reminder goes only to a verified number; an unverified one gets nothing — Phase 5
-- [ ] The overdue sweep completes normally when the WhatsApp provider is unreachable — Phase 5
+- [x] An overdue reminder goes only to a verified number; an unverified one gets nothing — same policy test, and `::test_reminder_block_explains_why_not`
+- [x] The overdue sweep completes normally when the WhatsApp provider is unreachable
+      — the sweep only queues (no provider call); `test_scheduler::test_a_failing_job_is_logged_not_raised`
 
 ### POS / Billing (Phase 3)
 - [n/a] Discount cannot exceed the item or cart total — no discount mechanism exists in v1 (ADR-0008 / ADR-0020); `record_sale` has no path that sets a non-zero discount
@@ -1009,11 +1079,16 @@ This list grows as new cases are found.
       — `test_khata::test_overpayment_is_explicit_credit_not_a_silent_negative`, `test_ledger::test_a_negative_balance_is_described_as_credit_never_negative`
 
 ### WhatsApp notifications (Phase 5)
-- [ ] Provider timeout or outage never blocks or delays sale completion
-- [ ] Failed sends retry with capped, backed-off attempts, then land in a visible failure log
-- [ ] No duplicate notification is sent for the same event
-- [ ] Missing or invalid phone number is handled gracefully, with the sale still completing
-- [ ] Monthly statement generation is correct across month and timezone boundaries
+- [x] Provider timeout or outage never blocks or delays sale completion
+      — `test_notifications::test_a_sale_completes_with_the_provider_down_in_every_way`, `::test_a_sale_completes_even_when_queueing_blows_up`; `test_meta_provider::test_a_timeout_before_any_response_is_no_connection`
+- [x] Failed sends retry with capped, backed-off attempts, then land in a visible failure log
+      — `test_notification_policy::test_retryable_backs_off_then_fails_after_five`, `test_notifications::test_retryable_backs_off_then_fails_after_five_and_is_shown`, `test_messages_routes::test_retry_and_send_again_from_the_log`
+- [x] No duplicate notification is sent for the same event
+      — dedupe keys and `test_notification_concurrency` (four racing workers, exactly once)
+- [x] Missing or invalid phone number is handled gracefully, with the sale still completing
+      — `test_notification_policy::test_archived_or_numberless_customers_get_nothing`; a number WhatsApp rejects is `PERMANENT` → abandoned (`test_notifications::test_permanent_abandons_on_the_first_attempt`); sales never wait on sending
+- [x] Monthly statement generation is correct across month and timezone boundaries
+      — `test_notifications::test_statement_window_is_9am_on_the_1st_to_9am_on_the_8th_shop_time`, `::test_catch_up_until_the_8th_then_the_month_is_skipped`, Phase 4 `test_statements`
 
 ### Barcode / QR (Phase 2)
 - [x] Scanning an unregistered code gives a clear "not found" result, not a crash
@@ -1052,6 +1127,62 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-15 — Session 26: Phase 5 built
+
+Built against ADR-0027…0033 in three committed parts.
+
+**Part 1 — queue, consent, rules.** Migration (consent columns; `message_daily_count`;
+`statement_run`; nullable `notification_queue.customer_id` for test sends), tested up/down
+with an existing customer who stays not opted in. `policy.py` and `templates.py` pure (the
+approved wording asserted character for character). `queue.py`: enqueue (off = nothing,
+dedupe), post-commit hooks for credit sales, payments and consent; the worker with an
+eligibility re-check, atomic claim and cap reservation, retry/age/permanent handling,
+account-level pause with 30-minute checks, and stuck sends abandoned as outcome unknown;
+statements with the 1st–8th window; the weekly overdue check; retry, send again, test send.
+`APScheduler==3.11.3` pinned (3.11.0 was installed first from a guess, then corrected to the
+current release).
+
+**Part 2 — Meta adapter, key store, scheduler.** Standard-library Meta Cloud API adapter
+(template sends, PDF upload, a send-nothing check) tested over real HTTP against a local
+Graph API stub; **its Meta error-code table is from memory and unverified (O-23)**. DPAPI
+key store via ctypes with an owner-only file stand-in off Windows. Scheduler started only
+by `python -m sukoon.run`, with an OS file lock released by the OS on a crash (tested by
+killing a child that held it).
+
+**Part 3 — screens.** The Admin Messages screen, the consent tick on the Khata forms (a
+changed number switches it off even if the box stayed ticked), the one-line WhatsApp
+status on every Khata, Admin-only Send reminder within the limits, the paused banner and
+rail badge for Admins. Permissions `khata.send_reminder`, `whatsapp.manage`.
+
+**Real bugs found by tests, fixed:**
+- **Reserving the daily cap before claiming a message** let two racing workers both reserve
+  for one row, briefly inflating the count so a third was told "limit reached" early.
+  Now claim, then reserve.
+- **A pause triggered an immediate account check** on the worker's next minute instead of 30
+  minutes later (ADR-0029 §9) — pausing now records the failure as the latest check.
+- **`settings_service.set` read-then-insert raced:** two workers pausing at once both
+  inserted the same key and crashed. Surfaced as a *flaky* full-suite failure, not
+  reproduced by the standalone race test — investigated rather than rerun. Now one atomic
+  upsert that refreshes only that row's cached copy. **A thread-barrier regression test
+  was written first and passed even without the fix**, so it was replaced with a
+  deterministic test that fails on the old code with the same IntegrityError.
+
+**Test-side mistakes, stated:** the thread-safe fake's lock was never created (a
+dataclass subclass's `__post_init__` didn't run) — every send raised, which the queue
+correctly treated as retryable; a lock-holding child process didn't keep a reference to
+its lock, so GC released it (the app's scheduler keeps its reference — checked); an
+over-claiming comment said a base64 key file wasn't readable plain text (reworded: base64
+is not protection).
+
+**Honest limits:** the Windows DPAPI and `msvcrt` paths are untested here (Phase 7); the
+Meta error mapping and API version are unverified (O-23); no real send yet. Also caught on
+the Messages screenshot: the key card claimed "stored encrypted" on Linux — now says "not
+encrypted" off Windows, with a test.
+
+**Also:** the test config's key and lock paths moved to a temp folder, so a test saving a
+key can never write into the project's `instance/`. README status (said Phase 2) updated,
+with how to run with background jobs.
 
 ### 2026-09-14 — Session 25: the Phase 5 grill
 

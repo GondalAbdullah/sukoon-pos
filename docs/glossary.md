@@ -328,6 +328,11 @@ the shop means to be sending.
 when it stopped (a crash or power cut). It may or may not have reached WhatsApp, so it is
 never resent by itself; an Admin can press Send again.
 
+**Background jobs** *(Settled — ADR-0031, ADR-0033)* — Work Sukoon does on its own while it's
+running: sending waiting WhatsApp messages every minute, monthly statements, the daily
+overdue check. Only one running copy of Sukoon does this at a time (it holds the **worker
+lock**); they run only when Sukoon is started with `python -m sukoon.run`.
+
 **Archived Khata** *(Settled — ADR-0026)* — A customer removed from the Khata list and
 the till's picker, with all their purchases and payments kept. Only possible at a
 zero balance; a customer with no history at all is deleted instead.

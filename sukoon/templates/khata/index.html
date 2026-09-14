@@ -151,10 +151,26 @@
       </div>
       {% endif %}
     </div>
-    <div class="text-xs text-muted mb-7">
+    <div class="text-xs text-muted mb-4">
       {% if c.credit_limit_paisa is none %}No credit limit.
       {% elif d.limit_room_paisa > 0 %}Credit limit Rs {{ '{:,}'.format(c.credit_limit_paisa // 100) }} · Rs {{ '{:,}'.format(d.limit_room_paisa // 100) }} still available.
       {% else %}<span class="text-coral font-semibold">Credit limit Rs {{ '{:,}'.format(c.credit_limit_paisa // 100) }} reached</span> — a further credit sale needs an Admin.{% endif %}
+    </div>
+
+    {# ADR-0033 §6: one quiet line for everyone; the mock's "WhatsApp update was sent" banner, made true #}
+    <div class="flex flex-wrap items-center gap-3 rounded-[14px] px-4 py-3 mb-7 text-[13px] font-semibold
+                {{ {'ok': 'bg-teal-tint text-teal-deep', 'wait': 'bg-sky-tint text-sky', 'bad': 'bg-amber-tint text-amber'}.get(d.whatsapp_tone, 'bg-sunk text-muted') }}">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+      <span class="flex-1 min-w-[200px]">{{ d.whatsapp_line }}</span>
+      {% if can_remind %}
+        {% if d.reminder_block %}
+          <span class="text-xs font-medium opacity-80" title="The same limits as the daily reminder">Send reminder · {{ d.reminder_block }}</span>
+        {% else %}
+          <form method="post" action="{{ url_for('khata.remind', customer_id=c.id) }}">
+            <button class="btn-ghost !py-1.5 !px-3 text-xs bg-surface">Send reminder</button>
+          </form>
+        {% endif %}
+      {% endif %}
     </div>
 
     <div class="flex items-center justify-between mb-3">

@@ -56,6 +56,14 @@
     </fieldset>
     {% endif %}
 
+    {# ADR-0028 §1: starts unticked, never pre-ticked; agreement given for one number only #}
+    {% set ticked = (v.get('whatsapp_opt_in') == '1') if v else (customer.whatsapp_opt_in if customer else false) %}
+    <label class="flex items-start gap-2.5 text-sm cursor-pointer mb-5 rounded-md bg-sunk px-4 py-3">
+      <input type="checkbox" name="whatsapp_opt_in" value="1" class="accent-teal mt-1" {{ 'checked' if ticked }}>
+      <span><span class="font-semibold">Send updates on WhatsApp</span><br>
+        <span class="text-xs text-muted">Only if the customer agrees. Purchases, payments and monthly statements go to a confirmed number; nothing is sent without this tick.</span></span>
+    </label>
+
     <label class="block mb-4">
       <span class="label">Address (optional)</span>
       <input type="text" name="address" maxlength="255" class="field"

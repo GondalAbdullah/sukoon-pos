@@ -13,13 +13,26 @@ weight/amount for loose goods; the shop's owner tracks stock, credit customers
 
 ## Project status
 
-**Phase 2 (Inventory & Product Management) is built, awaiting sign-off.** On top of
-the Phase 1 data model + auth: category/product CRUD, auto-generated SKUs, stock
-movements with a full audit trail, barcode assignment + internal Code 128
-generation, an A4 label-sheet PDF, and low-stock alerting. The project follows a
-phased build plan with an explicit Definition of Done and a human sign-off gate at
-the end of each phase — see [`docs/context.md`](docs/context.md) for exactly where
-things stand right now, what's been decided, and what's still open.
+**Phases 0–4 are built; Phase 5 (WhatsApp notifications) is built and awaiting its
+closing sign-off.** Catalogue and stock with a full audit trail, barcodes and labels,
+the till (cash, card, weighed goods, receipts with a PDF fallback), refunds with
+two-person approval, Khata credit accounts with statements, and a WhatsApp outbox
+that can never slow or block a sale. The project follows a phased plan with an explicit
+Definition of Done and a human sign-off gate per phase — see
+[`docs/context.md`](docs/context.md) for exactly where things stand.
+
+### Running it locally
+
+```
+flask db upgrade && flask seed      # after pulling: new migrations and permissions
+python -m sukoon.run                # the app WITH background jobs (WhatsApp worker,
+                                    # monthly statements, overdue reminders)
+flask run                           # screens only — no background jobs
+```
+
+Background jobs start only from `python -m sukoon.run`, never from `create_app`, so
+`flask db upgrade` and `flask seed` can never start sending messages. Set
+`WHATSAPP_PROVIDER=fake` to exercise messaging without a Meta account.
 
 ## If you're reviewing this
 

@@ -37,6 +37,15 @@
   <span class="rail-label">Khata</span>
   {% endif %}
 
+  {% if messages_enabled %}
+  <a href="{{ url_for('messages.index') }}"
+     class="rail-link relative {{ 'is-active' if request.blueprint == 'messages' }}" title="Messages{{ ' — sending paused' if whatsapp_pause }}">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+    {% if whatsapp_pause %}<span class="rail-badge !bg-coral">!</span>{% endif %}
+  </a>
+  <span class="rail-label">Messages</span>
+  {% endif %}
+
   <a href="{{ url_for('refunds.find') }}"
      class="rail-link relative {{ 'is-active' if request.blueprint == 'refunds' }}"
      title="Refunds{{ ' — %d waiting for approval' % pending_refund_count if pending_refund_count }}">
@@ -73,6 +82,13 @@
   {% endif %}
 
   <main class="content-pad">
+    {% if whatsapp_pause %}
+    {# ADR-0029 §8: on every screen, for an Admin, while sending is paused #}
+    <a href="{{ url_for('messages.index') }}" class="block panel bg-coral-tint px-5 py-3.5 mb-5 text-sm">
+      <span class="font-bold text-coral">WhatsApp messages are paused:</span>
+      <span class="text-inkSoft">{{ whatsapp_pause.reason }} Nothing is lost; they'll send once this is fixed.</span>
+    </a>
+    {% endif %}
     {% block content %}{% endblock %}
   </main>
 </div>

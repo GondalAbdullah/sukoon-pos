@@ -28,6 +28,9 @@ PERMISSIONS: dict[str, str] = {
     "khata.record_payment": "Record a full, partial or over-payment against a Khata",
     "customer.manage_credit": "Set a customer's credit limit and terms; archive a Khata",
     "khata.override_limit": "Approve a credit sale past the customer's limit (ADR-0014, step-up)",
+    # Phase 5
+    "khata.send_reminder": "Send an overdue customer a WhatsApp reminder by hand (ADR-0031)",
+    "whatsapp.manage": "See the message log; switch sending, set the key, cap, test (ADR-0033)",
 }
 
 # role -> the codes it holds. Admin holds every code; Cashier holds the subset

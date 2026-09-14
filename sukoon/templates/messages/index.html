@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Messages — Sukoon{% endblock %}
+{% block heading %}Messages{% endblock %}
+{% block subheading %}WhatsApp updates to Khata customers{% endblock %}
+{% block content %}
+{# Phase 5 (ADR-0033 §5). No reference screenshot exists: the established vocabulary. #}
+{% set status_pill = {'sent': 'pill-teal', 'pending': 'pill-sky', 'sending': 'pill-sky', 'failed': 'pill-coral', 'abandoned': 'pill-amber'} %}
+<div class="flex flex-col gap-6">
+
+  <!-- the state of sending, in one line -->
+  <div class="panel p-6 flex flex-wrap items-center gap-5">
+    <div class="flex-1 min-w-[240px]">
+      {% if not enabled %}
+        <div class="text-[17px] font-bold">Sending is off</div>
+        <div class="text-sm text-muted mt-1">Nothing is queued while it's off. Set the key and the reply-to number below, send a test, then switch it on.</div>
+      {% elif pause %}
+        <div class="text-[17px] font-bold text-coral">Sending is paused</div>
+        <div class="text-sm text-inkSoft mt-1">{{ pause.reason }} Nothing is lost; waiting messages send once this is fixed.</div>
+      {% else %}
+        <div class="text-[17px] font-bold text-teal">Sending is on</div>
+        <div class="text-sm text-muted mt-1">Checked every minute. {{ sent_today }} of {{ cap }} sent today · {{ month_count }} this month.</div>
+      {% endif %}
+      {% if provider_kind != 'meta' %}<div class="text-xs text-amber font-semibold mt-1.5">Using the {{ provider_kind }} provider — nothing reaches a real phone.</div>{% endif %}
+    </div>
+    <div class="flex items-center gap-2.5">
+      {% if enabled and pause %}
+      <form method="post" action="{{ url_for('messages.check') }}"><button class="btn-ghost">Check now</button></form>
+      {% endif %}
+      <form method="post" action="{{ url_for('messages.switch') }}">
+        {% if enabled %}
+          <input type="hidden" name="on" value="0">
+          <button class="btn-ghost !text-coral" x-data data-confirm="Switch WhatsApp sending off? Waiting messages will be cancelled."
+                  @click="if (!confirm($el.dataset.confirm)) $event.preventDefault()">Switch off</button>
+        {% else %}
+          <input type="hidden" name="on" value="1">
+          <button class="btn-primary">Switch on</button>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+
+  <div class="grid lg:grid-cols-3 gap-4">
+    <!-- key -->
+    <form method="post" action="{{ url_for('messages.save_key') }}" class="panel p-6">
+      <div class="text-[15px] font-bold mb-1">Access key</div>
+      {# say only what is true on this machine: DPAPI exists only on Windows (ADR-0033 §1) #}
+      <p class="text-xs text-muted mb-4">From the shop's Meta Business account.
+        {% if key_encrypted %}Encrypted by Windows for this PC{% else %}Kept in a file only this user account can read — <b>not encrypted</b>, because this isn't Windows{% endif %}; never in backups, never shown again.</p>
+      {% if key_set %}
+        <div class="text-sm mb-3"><span class="pill-teal">set</span>
+          <span class="text-muted text-xs">{{ key_saved_at | shop_time('%d %b %Y') if key_saved_at }}</span></div>
+      {% endif %}
+      <input type="password" name="access_key" autocomplete="off" class="field mb-3" placeholder="{{ 'Paste a new key to replace it' if key_set else 'Paste the access key' }}">
+      <button class="btn-ghost w-full">{{ 'Replace key' if key_set else 'Save key' }}</button>
+    </form>
+
+    <!-- settings -->
+    <form method="post" action="{{ url_for('messages.save_settings') }}" class="panel p-6">
+      <div class="text-[15px] font-bold mb-1">Settings</div>
+      <p class="text-xs text-muted mb-4">The reply-to number goes in every message, because the sending number can't read replies.</p>
+      <label class="block mb-3"><span class="label">Shop's reply-to number</span>
+        <input type="tel" name="reply_to" value="{{ reply_to }}" class="field" placeholder="0300 1234567"></label>
+      <label class="block mb-3"><span class="label">WhatsApp phone number ID (from Meta)</span>
+        <input type="text" name="phone_number_id" value="{{ phone_number_id }}" class="field" autocomplete="off"></label>
+      <label class="block mb-4"><span class="label">Daily message limit</span>
+        <input type="number" name="daily_cap" min="1" step="1" value="{{ cap }}" class="field"></label>
+      <button class="btn-ghost w-full">Save settings</button>
+    </form>
+
+    <!-- test -->
+    <form method="post" action="{{ url_for('messages.send_test') }}" class="panel p-6">
+      <div class="text-[15px] font-bold mb-1">Send a test</div>
+      <p class="text-xs text-muted mb-4">Sends the account notice to a number you type — your own. Works while sending is off, and counts toward today's limit.</p>
+      <label class="block mb-4"><span class="label">Phone number</span>
+        <input type="tel" name="number" class="field" placeholder="0300 1234567"></label>
+      <button class="btn-primary w-full">Send test message</button>
+    </form>
+  </div>
+
+  <!-- the log -->
+  <div>
+    <div class="flex flex-wrap items-center gap-2 mb-3">
+      <h2 class="text-[15px] font-bold mr-2">Log</h2>
+      {% for t in tabs %}
+        <a href="{{ url_for('messages.index', status=t if t != 'all' else None) }}"
+           class="pill {{ 'bg-teal-tint text-teal-deep' if tab == t else 'bg-sunk text-muted hover:text-ink' }}">{{ t | capitalize }}</a>
+      {% endfor %}
+    </div>
+    {% if not rows %}
+      <div class="panel p-6 text-sm text-muted">No messages{{ ' here' if tab != 'all' }} yet.</div>
+    {% else %}
+    <div class="panel overflow-x-auto">
+      <table class="table">
+        <thead><tr><th class="!pl-5">Queued</th><th>Customer</th><th>Message</th><th>Status</th><th>Detail</th><th class="!pr-5"></th></tr></thead>
+        <tbody>
+        {% for r in rows %}
+          <tr>
+            <td class="!pl-5 whitespace-nowrap">{{ r.created_at | shop_time('%d %b, %H:%M') }}</td>
+            <td>{{ names.get(r.customer_id, 'Test') if r.customer_id else 'Test' }}</td>
+            <td class="whitespace-nowrap">{{ labels.get(r.notification_type, r.notification_type) }}</td>
+            <td><span class="{{ status_pill.get(r.status, 'pill') }}">{{ 'outcome unknown' if r.last_error == stuck_reason else r.status }}</span></td>
+            <td class="text-muted text-xs">
+              {% if r.status == 'sent' %}Sent {{ r.sent_at | shop_time('%d %b, %H:%M') }}
+              {% elif r.status == 'pending' and r.attempt_count %}Tried {{ r.attempt_count }}× — {{ r.last_error }}
+              {% else %}{{ r.last_error or '' }}{% endif %}
+            </td>
+            <td class="!pr-5 text-right whitespace-nowrap">
+              {% if r.status == 'failed' %}
+                <form method="post" action="{{ url_for('messages.retry', row_id=r.id, status=tab if tab != 'all' else None) }}" class="inline"><button class="text-xs font-semibold text-teal hover:text-teal-deep">Retry now</button></form>
+              {% endif %}
+              {% if r.customer_id and (r.status == 'failed' or r.last_error == stuck_reason) %}
+                <form method="post" action="{{ url_for('messages.again', row_id=r.id, status=tab if tab != 'all' else None) }}" class="inline ml-2"><button class="text-xs font-semibold text-teal hover:text-teal-deep">Send again</button></form>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

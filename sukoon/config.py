@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 import secrets
+import tempfile
 from datetime import timedelta
 
 
@@ -68,6 +69,9 @@ class TestingConfig(Config):
     TESTING = True
     SCHEDULER_ENABLED = False
     WHATSAPP_PROVIDER = "fake"
+    # never the real instance/ folder: a test saving a key must not write into the project
+    WHATSAPP_KEY_PATH = os.path.join(tempfile.gettempdir(), f"sukoon-test-{os.getpid()}.key")
+    WORKER_LOCK_PATH = os.path.join(tempfile.gettempdir(), f"sukoon-test-{os.getpid()}.lock")
     WTF_CSRF_ENABLED = False
     # An isolated in-memory database per app instance. A StaticPool keeps every
     # connection pointed at the same in-memory database for the life of the app.

@@ -714,3 +714,24 @@ TYPE_LABELS = {
     "account_notice": "Account notice", "statement": "Statement",
     "overdue_reminder": "Overdue reminder", "test": "Test message",
 }
+
+
+def customer_status_line(customer: Customer) -> tuple[str, str]:
+    """The one quiet line every member of staff sees on a Khata (ADR-0033 §6):
+    (text, tone) where tone is "ok" | "wait" | "bad" | "off"."""
+    if not customer.whatsapp_opt_in:
+        return "WhatsApp updates off — not ticked for this customer", "off"
+    if not is_enabled():
+        return "WhatsApp sending is switched off for the shop", "off"
+    row = last_for_customer(customer.id)
+    if row is None:
+        return "No WhatsApp messages sent yet", "off"
+    label = TYPE_LABELS.get(row.notification_type, row.notification_type)
+    if row.status == "sent":
+        return f"Last WhatsApp update: {label.lower()}, sent {as_of_text(row.sent_at)}", "ok"
+    if row.status in ("pending", "sending"):
+        return (f"{label} waiting to send" + (" — sending is paused" if paused() else ""),
+                "wait")
+    if row.status == "failed":
+        return f"{label} not sent — WhatsApp kept failing", "bad"
+    return f"{label} not sent — {row.last_error or 'given up'}", "bad"

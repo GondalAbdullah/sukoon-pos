@@ -78,6 +78,7 @@ def create_app(
     from sukoon.routes.auth import bp as auth_bp
     from sukoon.routes.khata import bp as khata_bp
     from sukoon.routes.main import bp as main_bp
+    from sukoon.routes.messages import bp as messages_bp
     from sukoon.routes.refunds import bp as refunds_bp
     from sukoon.routes.stock import bp as stock_bp
     from sukoon.routes.till import bp as till_bp
@@ -89,6 +90,7 @@ def create_app(
     app.register_blueprint(till_bp)
     app.register_blueprint(refunds_bp)
     app.register_blueprint(khata_bp)
+    app.register_blueprint(messages_bp)
 
     _register_template_helpers(app)
     _register_cli(app)
@@ -110,9 +112,16 @@ def _register_template_helpers(app: Flask) -> None:
         from sukoon.services import refund_service
         from sukoon.services.auth_service import role_has_permission
 
-        ctx = {"pending_refund_count": 0, "khata_enabled": False}
+        ctx = {"pending_refund_count": 0, "khata_enabled": False, "messages_enabled": False,
+               "whatsapp_pause": None}
         if current_user.is_authenticated:
             ctx["khata_enabled"] = role_has_permission(current_user.role, "khata.view")
+            if role_has_permission(current_user.role, "whatsapp.manage"):
+                # ADR-0029 §8: an Admin sees a banner on every screen while paused
+                from sukoon.services.notifications import queue
+
+                ctx["messages_enabled"] = True
+                ctx["whatsapp_pause"] = queue.paused() if queue.is_enabled() else None
             if role_has_permission(current_user.role, "sale.refund"):
                 ctx["pending_refund_count"] = refund_service.count_pending()
         return ctx

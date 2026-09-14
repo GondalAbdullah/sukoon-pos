@@ -77,7 +77,8 @@ def index():
                            selected=selected, detail=detail,
                            can_create=_can("customer.create"),
                            can_pay=_can("khata.record_payment"),
-                           can_manage=_can("customer.manage_credit"))
+                           can_manage=_can("customer.manage_credit"),
+                           can_remind=_can("khata.send_reminder"))
 
 
 def _detail(customer: Customer) -> dict:
@@ -92,7 +93,13 @@ def _detail(customer: Customer) -> dict:
                 if customer.phone_verified_by_user_id else None)
     room = (None if customer.credit_limit_paisa is None
             else customer.credit_limit_paisa - customer.balance_paisa)
+    from sukoon.services.notifications import queue
+
+    wa_text, wa_tone = queue.customer_status_line(customer)
     return {
+        "whatsapp_line": wa_text,
+        "whatsapp_tone": wa_tone,
+        "reminder_block": queue.reminder_block(customer, now),
         "balance": ledger.describe_balance(customer.balance_paisa),
         "overdue": ledger.compute_overdue_status(entries, customer.credit_terms_days, now),
         "purchased_paisa": whole.purchased_paisa,
@@ -123,6 +130,7 @@ def new():
         customer = khata.create_customer(
             name=f.get("name", ""), phone_raw=f.get("phone"), address=f.get("address"),
             notes=f.get("notes"), verified_method=f.get("verify") or None,
+            whatsapp_opt_in=f.get("whatsapp_opt_in") == "1",
             confirm_duplicate=f.get("confirm_duplicate") == "1", user_id=current_user.id,
         )
     except khata.DuplicatePhoneError as exc:
@@ -152,10 +160,20 @@ def edit(customer_id: int):
                                duplicates=None, return_to=None,
                                can_manage=_can("customer.manage_credit"))
     f = request.form
+    number_before = customer.phone_normalised
     try:
         khata.update_contact(customer, name=f.get("name", ""), phone_raw=f.get("phone"),
                              address=f.get("address"), notes=f.get("notes"),
                              confirm_duplicate=f.get("confirm_duplicate") == "1")
+        wants_updates = f.get("whatsapp_opt_in") == "1"
+        if customer.phone_normalised != number_before:
+            # ADR-0028 §6: agreement never carries to a new number, even if the box was
+            # still ticked in this same save — ask the customer again for this number
+            if wants_updates:
+                flash("The number changed, so WhatsApp updates were switched off. Tick it "
+                      "again once the customer agrees for this number.", "info")
+        else:
+            khata.set_whatsapp_opt_in(customer, opted_in=wants_updates, user_id=current_user.id)
     except khata.DuplicatePhoneError as exc:
         return render_template("khata/customer_form.html", customer=customer, form=f,
                                duplicates=exc.existing, return_to=None,
@@ -223,6 +241,24 @@ def remove(customer_id: int):
     flash(f"{name}'s Khata was archived — its history is kept." if outcome == "archived"
           else f"{name} was removed.", "info")
     return redirect(url_for("khata.index"))
+
+
+@bp.route("/<int:customer_id>/remind", methods=["POST"])
+@login_required
+@permission_required("khata.send_reminder")
+def remind(customer_id: int):
+    """ADR-0031 §5–7: Admin only, under exactly the same limits as the schedule."""
+    from sukoon.services.notifications import queue
+
+    customer = _active_customer(customer_id)
+    reason = queue.reminder_block(customer)
+    if reason is not None:
+        flash(f"No reminder sent: {reason}.", "error")
+    elif queue.queue_reminder(customer) is None:
+        flash("No reminder sent: one is already waiting.", "error")
+    else:
+        flash(f"Reminder queued for {customer.name}.", "info")
+    return redirect(url_for("khata.index", c=customer.id))
 
 
 # --- payments -----------------------------------------------------------------------
