@@ -245,6 +245,12 @@ def _recompute_sale_status(sale: Sale) -> None:
 # --- reads -----------------------------------------------------------
 
 
+def count_pending() -> int:
+    return db.session.scalar(
+        db.select(db.func.count(Refund.id)).where(Refund.status == "pending_approval")
+    ) or 0
+
+
 def list_pending() -> list[Refund]:
     return list(
         db.session.scalars(

@@ -491,7 +491,10 @@ def catalog_summary() -> dict:
     return {
         "catalog_size": len(products),
         "stock_value_paisa": stock_value_paisa,
-        "needs_attention": sum(1 for s in statuses if s in {"low", "out"}),
+        # Disjoint on purpose: the two tiles sit side by side, so an out-of-stock
+        # item counted in both read as twice the trouble (glossary: out of stock
+        # is "distinct from merely low").
+        "needs_attention": sum(1 for s in statuses if s == "low"),
         "out_of_stock": sum(1 for s in statuses if s == "out"),
     }
 

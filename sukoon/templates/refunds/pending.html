@@ -6,7 +6,7 @@
 {# Phase 3.5 (ADR-0022): established vocabulary, no reference screenshot (O-7). #}
 <p class="text-sm text-muted max-w-2xl mb-6">Approving one puts stock back, reverses a
    credit sale's Khata, and moves the sale to <em>partially refunded</em> /
-   <em>refunded</em>. Approval needs your password re-entered (ADR-0008 §5).</p>
+   <em>refunded</em>. Approval asks for your password again.</p>
 
 {% if not refunds %}
   <div class="card p-6 text-sm text-muted">Nothing pending.</div>
@@ -23,13 +23,13 @@
     </div>
     <p class="text-sm text-muted mb-4">
       {{ r.reason }}<br>
-      <span class="text-xs">Initiated by user #{{ r.initiated_by_user_id }} on {{ r.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+      <span class="text-xs">Recorded by {{ r.initiated_by.name }} on {{ r.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
     </p>
 
     <div class="bg-sunk rounded-md px-4 py-3 mb-5 flex flex-col gap-1.5">
       {% for item in r.items %}
         <div class="flex items-center justify-between text-sm">
-          <span>Sale item #{{ item.sale_item_id }} · {{ item.quantity_milli | qty }}</span>
+          <span>{{ item.sale_item.product_name_snapshot }} · {{ item.quantity_milli | qty(item.sale_item.product.unit_label) }}</span>
           <span class="flex items-center gap-2">
             <span class="font-semibold">{{ item.line_total_paisa | rupees }}</span>
             {% if item.restock %}

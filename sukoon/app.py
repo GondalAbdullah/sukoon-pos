@@ -93,6 +93,21 @@ def _register_template_helpers(app: Flask) -> None:
     """Display filters. Money is whole rupees (ADR-0007); quantity is milli-units
     (ADR-0004). Formatting only — no rounding decisions live here."""
 
+    @app.context_processor
+    def pending_refunds():
+        """The approval queue had no way in — refunds sat pending unseen. Only
+        someone who can approve gets the count (one COUNT per page render)."""
+        from flask_login import current_user
+
+        from sukoon.services import refund_service
+        from sukoon.services.auth_service import role_has_permission
+
+        if current_user.is_authenticated and role_has_permission(
+            current_user.role, "sale.refund"
+        ):
+            return {"pending_refund_count": refund_service.count_pending()}
+        return {"pending_refund_count": 0}
+
     @app.template_filter("rupees")
     def rupees(paisa: int | None) -> str:
         if paisa is None:

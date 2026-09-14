@@ -38,6 +38,11 @@
            hover:bg-sunk hover:text-ink transition-colors;
   }
   .rail-link.is-active { @apply bg-teal-tint text-teal-deep; }
+  .rail-badge {
+    @apply absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full
+           bg-teal text-white text-[10px] font-bold flex items-center justify-center
+           ring-2 ring-white;
+  }
   .rail-label { @apply text-[10px] font-semibold text-faint mb-3 -mt-0.5; }
 
   .topbar {
@@ -55,10 +60,16 @@
     @apply inline-flex items-center justify-center gap-2 rounded-md px-5 py-3
            text-sm font-bold transition-colors cursor-pointer;
   }
-  .btn-primary { @apply btn bg-teal text-white shadow-teal hover:bg-teal-deep; }
-  .btn-ghost { @apply btn border-[1.5px] border-hairline text-inkSoft hover:bg-sunk; }
+  .btn-primary { @apply btn bg-teal text-white shadow-teal; }
+  .btn-ghost { @apply btn border-[1.5px] border-hairline text-inkSoft; }
   .btn-lg { @apply px-6 py-[19px] text-[15px]; }
   .btn:disabled { @apply bg-sunk text-faint shadow-none cursor-not-allowed; }
+  /* Hover is guarded, not merely declared: a plain :hover has the same
+     specificity as :disabled and is emitted after it, so a dead "Complete sale"
+     turned bright teal under the pointer and looked clickable. :not(:disabled)
+     still matches <a class="btn-primary"> links, which can never be disabled. */
+  .btn-primary:not(:disabled):hover { @apply bg-teal-deep; }
+  .btn-ghost:not(:disabled):hover { @apply bg-sunk; }
 
   .field {
     @apply w-full bg-surface border-[1.5px] border-teal-tint2 rounded-[14px]

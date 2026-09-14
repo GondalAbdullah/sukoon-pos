@@ -28,8 +28,8 @@
             <div class="font-semibold">{{ it.product_name_snapshot }}</div>
             {% if row.whole_line_only %}<div class="text-xs text-muted mt-0.5">by amount — whole line only</div>{% endif %}
           </td>
-          <td>{{ it.quantity_milli | qty }}</td>
-          <td>{{ row.refundable_milli | qty }}</td>
+          <td>{{ it.quantity_milli | qty(it.product.unit_label) }}</td>
+          <td>{{ row.refundable_milli | qty(it.product.unit_label) }}</td>
           <td>
             {% if row.refundable_milli <= 0 %}
               <span class="text-faint">&mdash;</span>

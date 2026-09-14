@@ -11,9 +11,9 @@ work session, not just every phase.
 | | |
 |---|---|
 | **Phase** | **Phase 3.5 — Visual Pass ([ADR-0022](adr/0022-dedicated-visual-pass.md)) — CLOSED.** Phase 3 (POS & Billing) and Phase 3.5 (visual pass) are both complete. **Phase 4 — Credit Customer Management (Khata) — next.** |
-| **Status** | Phase 3.5 built out sessions 13–19 (toolchain, Login, Till, Sale Complete, terminal ID, Stock, Refunds, landing page, htmx pass — §4i), then the Design System §13 DoD side-by-side (session 20, §4j) — fresh screenshots of every screen plus an actually-rendered receipt PDF against all 9 reference images, not a documentation exercise. Found and fixed three real issues (two undersized/no-hover buttons, a receipt footer line that ran off the page, fixed with real word-wrapping + regression tests) and restored two missing Login details. One genuine tension between ADR-0006 (prototype pixel-fidelity) and the Design System's written 44px touch-target rule was put to the client rather than picked unilaterally: **keep the prototype-exact stepper size, no change** — recorded with rationale. **Phase 3.5 is now formally closed.** `ruff` clean, **245 tests green, 95% coverage**. |
-| **Last session** | 2026-09-12 (session 20) |
-| **Next action** | Begin **Phase 4 — Credit Customer Management (Khata)**. No STOP AND ASK gate in the spec (same shape as Phase 2). Steps: customer CRUD with duplicate-phone handling (ADR-0013 already settled the policy), credit ledger entries tied to sales/payments, full/partial payment application, per-customer statement view/export. Required tests: ledger balance correctness across mixed sale/payment sequences, blocked deletion of a customer with an outstanding balance, overpayment produces an explicit credit-balance state. Policy groundwork is already laid from the Phase 0 grill session — ADR-0013 (phone identity), ADR-0014 (credit-limit enforcement + step-up override), ADR-0015 (overdue aging) — so this phase is mostly build, not new decisions. |
+| **Status** | **Session 21:** a bug sweep driven by the developer's own walkthrough screenshots — 8 real bugs fixed and verified in a real browser (session 21 changelog), plus a plain-language field manual at `docs/field-manual.html` (untracked). Phase 3.5 built out sessions 13–19 (toolchain, Login, Till, Sale Complete, terminal ID, Stock, Refunds, landing page, htmx pass — §4i), then the Design System §13 DoD side-by-side (session 20, §4j) — fresh screenshots of every screen plus an actually-rendered receipt PDF against all 9 reference images, not a documentation exercise. Found and fixed three real issues (two undersized/no-hover buttons, a receipt footer line that ran off the page, fixed with real word-wrapping + regression tests) and restored two missing Login details. One genuine tension between ADR-0006 (prototype pixel-fidelity) and the Design System's written 44px touch-target rule was put to the client rather than picked unilaterally: **keep the prototype-exact stepper size, no change** — recorded with rationale. **Phase 3.5 is now formally closed.** `ruff` clean, **245 tests green, 95% coverage**. |
+| **Last session** | 2026-09-14 (session 21) |
+| **Next action** | **Two client questions first, neither blocking:** O-21 (timestamps display in UTC, including on receipts) and O-22 (should the till warn when an out-of-stock item goes in the cart?). Then begin **Phase 4 — Credit Customer Management (Khata)**. No STOP AND ASK gate in the spec (same shape as Phase 2). Steps: customer CRUD with duplicate-phone handling (ADR-0013 already settled the policy), credit ledger entries tied to sales/payments, full/partial payment application, per-customer statement view/export. Required tests: ledger balance correctness across mixed sale/payment sequences, blocked deletion of a customer with an outstanding balance, overpayment produces an explicit credit-balance state. Policy groundwork is already laid from the Phase 0 grill session — ADR-0013 (phone identity), ADR-0014 (credit-limit enforcement + step-up override), ADR-0015 (overdue aging) — so this phase is mostly build, not new decisions. |
 
 ## 2. Decisions made so far
 
@@ -120,6 +120,22 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   separate APScheduler jobs against the same customer. A customer overdue and due a
   statement in the same week should not receive two uncoordinated WhatsApp messages.
   Not yet resolved; noted while writing ADR-0015 rather than discovered at Phase 5.
+- **O-21 — Every timestamp displays in UTC, including on receipts.** Stored UTC
+  (correct — `models/base.py::utcnow`), but rendered with a bare `strftime`: stock
+  movement history, the pending-refunds list, and the **printed/PDF receipt** all show
+  UTC. Pakistan is UTC+5 with no DST, so a 6:54 pm sale prints as 13:54. Found
+  session 21. Needs a decision before a fix: convert to the **shop PC's local time**,
+  or to a **fixed `shop.timezone` setting** (default `Asia/Karachi`)? The setting is
+  more predictable on a misconfigured PC clock-zone; local time needs no setting.
+- **O-22 — Should the till warn when an out-of-stock item goes into the cart?**
+  Today the cart accepts it silently; `record_sale` refuses at checkout with
+  "Only 0 bottle in stock." (books never go negative — the important half). But the
+  refusal arrives after the customer has queued, and the message doesn't name the
+  product. Options: warn at add time; block at add time; or allow and keep the
+  checkout refusal (shops genuinely sell from deliveries not yet booked in — though
+  that would then need an override, since stock can't go below zero). Client call.
+  Found session 21 (field manual D5). Whatever the answer, the checkout message
+  should name the product — a small fix worth doing either way.
 - ~~**O-11 — The fractional cart row is undesigned.**~~ **RESOLVED 2026-09-11.**
   Designed: a loose product (`allows_fractional = 1`) row replaces the stepper with
   an inline-expanding control — a two-segment **Weight (kg) / Amount (Rs)** toggle
@@ -219,6 +235,17 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
 Design System 13 requires every intentional departure from a reference screenshot to
 be recorded here.
 
+- **Stock (Figure 3) — "Out of stock" caption reads *reorder now*, not *reorder
+  soon*; "Needs attention" counts only running-low items.** The prototype's tiles sat
+  side by side with an out-of-stock item counted in both, so 3 out-of-stock items read
+  as "Needs attention 3 · Out of stock 3" — six problems that were three. The glossary
+  already defines out of stock as "distinct from merely low", so the tiles are now
+  disjoint; and an item at zero needs reordering now. Session 21.
+- **Till cash quick-amounts — the teal highlight follows the amount in the box.**
+  The prototype paints the middle button teal as a static mock of "selected"; it
+  never tracked state, so it claimed "next Rs 100" while the box held the exact
+  amount. The shortcuts are also de-duplicated (exact, then next 100/500/1,000/5,000,
+  first three distinct) and hidden on an empty cart. Session 21.
 - **Login screen (Figure 1) — PIN pad replaced by a password field.** The avatar row,
   greeting, radial wash, and status line are unchanged. Auto-submit on the fourth
   digit is gone; submission is now explicit. Cause: the client chose passwords for all
@@ -909,6 +936,68 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-14 — Session 21: bug sweep from the developer's walkthrough
+
+The developer (new to retail) sent 15 screenshots of their own walkthrough and
+couldn't tell bugs from features. Wrote a plain-language field manual
+(`docs/field-manual.html`, untracked; also published as a private artifact) — the
+domain vocabulary, each screen in a cashier's-day order, a verified bug/by-design
+docket, and a 13-step self-test script. Every docket item was traced to a line,
+not inferred from a screenshot. Then fixed them.
+
+**Fixed (each with a test or a real-browser check — see below):**
+- **B1 — a disabled "Complete sale" turned teal on hover and looked clickable.**
+  `.btn-primary:hover` compiled after `.btn-primary:disabled` at equal specificity.
+  Hover is now `:not(:disabled):hover` (still matches `<a class="btn-primary">`).
+  Guard: `tests/pure/test_stylesheet.py` fails on any unguarded button hover.
+- **B2 — top bar "N items in the cart" lagged one step behind the cart.** Caused by
+  session 19's htmx pass: swaps replace only `#till-body`; the subtitle lives in the
+  top bar outside it. Every till swap now also carries `hx-select-oob="#topbar-sub"`.
+  Guard: `test_every_cart_swap_also_refreshes_the_top_bar_count`.
+- **B3 — refund screens said "1.4 unit" for kg goods; pending list said "Sale item
+  #12" and "user #2", plus an "(ADR-0008 §5)" in user-facing copy.** Added view-only
+  ORM relationships (`SaleItem.product`, `RefundItem.sale_item`,
+  `Refund.initiated_by`) — **no schema change, no migration**; name/price snapshots
+  untouched. Unit label is read live from the product: acceptable because a unit
+  label changing under existing sales would be a data error anyway.
+- **B4 — cash shortcuts could repeat an amount** (Rs 3,500 · Rs 3,500; Rs 0 · Rs 0
+  on an empty cart) and the teal highlight was static. See §4b.
+- **B5 — "Needs attention" double-counted out-of-stock items.** Now low-only; see §4b.
+  `test_catalog_summary_counts` extended.
+- **B6 — the live "Change to return" showed paisa as rupees: Rs 24,500 for Rs 245.**
+  Found only because the browser check tendered more than the total. Introduced in
+  session 14's Till conversion (`f363594`) and missed by that session's verification,
+  which never exercised a non-zero change. The recorded sale was always right
+  (Sale Complete reads the server's `change_paisa`); only the preview was wrong. Now
+  `Math.floor(change / 100)`, matching the `|rupees` filter.
+- **B7 — `px-4.5` is not a Tailwind class; three panels had no side padding** (the
+  till's cash-received panel and two product-detail panels — the flush-left text in
+  the developer's screenshots). Now `px-[18px]`. Guard:
+  `test_templates_use_no_spacing_class_tailwind_cannot_generate`.
+- **B8 — the Refunds icon (rail and landing tile) was a malformed SVG path** rendering
+  as a stray hook. Restored Lucide's `undo` second path.
+- **D6 — the pending-refunds queue had no way in.** Admins (anyone with
+  `sale.refund`) now get a count badge on the Refunds rail icon and a "N refunds
+  waiting for your approval → Review" card on the Refunds screen; cashiers see
+  neither. New `refund_service.count_pending()` + a context processor (one COUNT per
+  page render for approvers only). Tests: `test_only_an_approver_is_pointed_at_the_pending_queue`,
+  `test_count_pending_counts_only_what_awaits_a_decision`.
+
+**Verification.** 251 tests pass, ruff clean, coverage 95%. B1/B2/B4/B6 are browser
+behaviour, so they were also driven in real Chrome (puppeteer-core) against a
+throwaway database — never the developer's `instance/` DB: disabled button keeps its
+colour under hover while an enabled one still darkens; removing a row and weighing
+an item by htmx updates the top bar with zero navigations; shortcuts read
+Exact · Rs 300 · Rs 500 for Rs 255 and hide at Rs 0; tendering Rs 500 previews Rs 245
+change and Sale Complete agrees. Admin screens (badge, banner, pending list, stock
+tiles, refund units) screenshotted and read.
+
+**Not fixed, raised instead:** O-21 (UTC timestamps, receipts included) and O-22
+(out-of-stock items at the till) — both need a decision, not a guess.
+
+**Not a bug (confirmed while checking):** an unweighed loose row has no × until its
+weight box is cancelled — two clicks, by design of the inline weigh control.
 
 ### 2026-09-12 — Session 20: the Design System §13 DoD, done against real output
 

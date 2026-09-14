@@ -2,6 +2,8 @@
 Specification Phase 3; edge-case matrix 'POS / Billing' and 'Weighed-item entry')."""
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from sukoon.extensions import db
@@ -49,6 +51,18 @@ def _add(client, **data):
 
 def test_cashier_can_open_the_till(till):
     assert till.get("/till/").status_code == 200
+
+
+def test_every_cart_swap_also_refreshes_the_top_bar_count(till, milk):
+    # Field-manual B2: htmx swaps only #till-body, and "N items in the cart" lives
+    # in the top bar outside it — so each swap must carry it out-of-band.
+    _add(till, product_id=milk.id)
+    html = till.get("/till/").get_data(as_text=True)
+    assert 'id="topbar-sub"' in html
+    assert re.search(r'id="topbar-sub">\s*1 item in the cart', html)
+    swaps = re.findall(r'<[^>]*hx-select="#till-body"[^>]*>', html)
+    assert swaps, "no htmx cart forms rendered"
+    assert all('hx-select-oob="#topbar-sub"' in tag for tag in swaps)
 
 
 def test_the_till_requires_a_login(client):

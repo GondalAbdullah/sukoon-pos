@@ -6,11 +6,16 @@ integer paisa, quantity is integer milli-units.
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from sqlalchemy import ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from sukoon.extensions import db
 from sukoon.models.base import TimestampMixin
+
+if TYPE_CHECKING:
+    from sukoon.models.catalog import Product
 
 PAYMENT_METHODS = ("cash", "card", "credit")
 SALE_STATUSES = ("completed", "refunded", "partially_refunded")
@@ -70,6 +75,9 @@ class SaleItem(db.Model):
     line_total_paisa: Mapped[int] = mapped_column(Integer, nullable=False)
 
     sale: Mapped[Sale] = relationship(Sale, back_populates="items")
+    # Read-only navigation for display (e.g. the unit label on a refund). The
+    # name and price stay snapshotted above; history never reads them live.
+    product: Mapped[Product] = relationship("Product", viewonly=True)
 
 
 class Payment(TimestampMixin, db.Model):

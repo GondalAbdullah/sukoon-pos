@@ -30,8 +30,10 @@
   <span class="rail-label">Stock</span>
 
   <a href="{{ url_for('refunds.find') }}"
-     class="rail-link {{ 'is-active' if request.blueprint == 'refunds' }}" title="Refunds">
-    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 1 0-3-7l-3 3"/></svg>
+     class="rail-link relative {{ 'is-active' if request.blueprint == 'refunds' }}"
+     title="Refunds{{ ' — %d waiting for approval' % pending_refund_count if pending_refund_count }}">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+    {% if pending_refund_count %}<span class="rail-badge">{{ pending_refund_count }}</span>{% endif %}
   </a>
   <span class="rail-label">Refunds</span>
 
@@ -50,7 +52,7 @@
   <header class="topbar">
     <div>
       <div class="topbar-title">{% block heading %}Sukoon{% endblock %}</div>
-      <div class="topbar-sub">{% block subheading %}Al-Rehman General Store{% endblock %}</div>
+      <div class="topbar-sub" id="topbar-sub">{% block subheading %}Al-Rehman General Store{% endblock %}</div>
     </div>
     <div class="flex items-center gap-2.5 text-sm">
       <div class="avatar w-9 h-9 text-[13px]">{{ current_user.initials }}</div>

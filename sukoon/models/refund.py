@@ -8,12 +8,17 @@ Nothing moves (no stock, no cash, no ledger entry) until an Admin approves a
 from __future__ import annotations
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from sukoon.extensions import db
 from sukoon.models.base import TimestampMixin
+
+if TYPE_CHECKING:
+    from sukoon.models.sales import SaleItem
+    from sukoon.models.user import User
 
 REFUND_STATUSES = ("pending_approval", "approved", "rejected")
 REFUND_METHODS = ("cash", "credit_ledger", "card")  # 'card' reserved (ADR-0020)
@@ -43,6 +48,9 @@ class Refund(TimestampMixin, db.Model):
     items: Mapped[list[RefundItem]] = relationship(
         "RefundItem", back_populates="refund", cascade="all, delete-orphan"
     )
+    initiated_by: Mapped[User] = relationship(
+        "User", foreign_keys=[initiated_by_user_id], viewonly=True
+    )
 
 
 class RefundItem(db.Model):
@@ -61,3 +69,4 @@ class RefundItem(db.Model):
     restock: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     refund: Mapped[Refund] = relationship(Refund, back_populates="items")
+    sale_item: Mapped[SaleItem] = relationship("SaleItem", viewonly=True)

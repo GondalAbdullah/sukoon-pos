@@ -164,7 +164,14 @@ def test_catalog_summary_counts(app, user):
         reason="in", user_id=user.id,
     )
     _mk(name="b")  # out of stock, provisional
+    c = _mk(name="c", low_stock_threshold_milli=5000)
+    inv.apply_stock_movement(
+        product=c, movement_type="stock_in", quantity_milli=1000,
+        reason="in", user_id=user.id,
+    )  # low: 1 <= 5
     s = inv.catalog_summary()
-    assert s["catalog_size"] == 2
+    assert s["catalog_size"] == 3
     assert s["out_of_stock"] == 1
+    # disjoint (field-manual B5): the out-of-stock item is not also "needs attention"
+    assert s["needs_attention"] == 1
     assert s["stock_value_paisa"] == 30000  # 10000 paisa * 3 units

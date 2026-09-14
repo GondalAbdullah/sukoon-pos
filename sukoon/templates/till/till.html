@@ -11,7 +11,9 @@
   weight/amount segmented control. Cart mutations swap only #till-body (Design
   System §10.3) — every mutating form below sends its existing POST + redirect
   unchanged (no route touched); htmx follows the redirect itself, then hx-select
-  lifts #till-body back out of the resulting full page. Checkout deliberately
+  lifts #till-body back out of the resulting full page. The top bar's
+  "N items in the cart" sits outside #till-body, so every swap also carries
+  hx-select-oob="#topbar-sub" — without it the count lagged a step behind. Checkout deliberately
   stays a real navigation to Sale Complete — a distinct "moment", not a swap.
 #}
 <div id="till-body" class="flex flex-col lg:flex-row gap-6 items-start">
@@ -30,7 +32,7 @@
         {{ terminal_label }}
       </button>
       <form method="post" action="{{ url_for('till.set_terminal') }}"
-            hx-post="{{ url_for('till.set_terminal') }}" hx-select="#till-body"
+            hx-post="{{ url_for('till.set_terminal') }}" hx-select="#till-body" hx-select-oob="#topbar-sub"
             hx-target="#till-body" hx-swap="outerHTML"
             x-show="renaming" x-cloak class="flex items-center gap-2">
         <input type="text" name="label" value="{{ terminal_label }}" maxlength="32" autofocus
@@ -40,7 +42,7 @@
     </div>
     {% else %}
     <form method="post" action="{{ url_for('till.set_terminal') }}"
-          hx-post="{{ url_for('till.set_terminal') }}" hx-select="#till-body"
+          hx-post="{{ url_for('till.set_terminal') }}" hx-select="#till-body" hx-select-oob="#topbar-sub"
           hx-target="#till-body" hx-swap="outerHTML"
           class="card mb-4 p-5 flex flex-wrap items-end gap-3 border border-teal-tint2">
       <div class="flex-1 min-w-[200px]">
@@ -53,7 +55,7 @@
     {% endif %}
 
     <form method="post" action="{{ url_for('till.add') }}"
-          hx-post="{{ url_for('till.add') }}" hx-select="#till-body"
+          hx-post="{{ url_for('till.add') }}" hx-select="#till-body" hx-select-oob="#topbar-sub"
           hx-target="#till-body" hx-swap="outerHTML"
           class="flex items-center gap-3 card px-5 py-4 border-[1.5px] border-teal-tint2">
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#0E6B57" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
@@ -68,7 +70,7 @@
     <div class="card mt-4 p-5 border border-amber/30">
       <div class="text-sm font-bold mb-3">&ldquo;{{ new_code }}&rdquo; isn&rsquo;t in the catalogue yet — add it?</div>
       <form method="post" action="{{ url_for('till.new_provisional') }}"
-            hx-post="{{ url_for('till.new_provisional') }}" hx-select="#till-body"
+            hx-post="{{ url_for('till.new_provisional') }}" hx-select="#till-body" hx-select-oob="#topbar-sub"
             hx-target="#till-body" hx-swap="outerHTML"
             class="flex flex-wrap gap-3 items-end">
         <input type="hidden" name="code" value="{{ new_code }}">
@@ -86,7 +88,7 @@
       <div class="text-sm font-bold">Cart · {{ rows|length }} item{{ '' if rows|length == 1 else 's' }}</div>
       {% if rows %}
       <form method="post" action="{{ url_for('till.clear') }}"
-            hx-post="{{ url_for('till.clear') }}" hx-select="#till-body"
+            hx-post="{{ url_for('till.clear') }}" hx-select="#till-body" hx-select-oob="#topbar-sub"
             hx-target="#till-body" hx-swap="outerHTML">
         <button type="submit" class="text-sm font-semibold text-muted hover:text-coral">Clear</button>
       </form>
@@ -112,16 +114,16 @@
           </div>
           <div class="stepper">
             <form method="post" action="{{ url_for('till.update_line', index=i) }}"
-                  hx-post="{{ url_for('till.update_line', index=i) }}" hx-select="#till-body"
+                  hx-post="{{ url_for('till.update_line', index=i) }}" hx-select="#till-body" hx-select-oob="#topbar-sub"
                   hx-target="#till-body" hx-swap="outerHTML"><button name="op" value="dec" class="stepper-key">&minus;</button></form>
             <span class="text-sm font-bold min-w-[14px] text-center">{{ (row.quantity_milli // 1000) }}</span>
             <form method="post" action="{{ url_for('till.update_line', index=i) }}"
-                  hx-post="{{ url_for('till.update_line', index=i) }}" hx-select="#till-body"
+                  hx-post="{{ url_for('till.update_line', index=i) }}" hx-select="#till-body" hx-select-oob="#topbar-sub"
                   hx-target="#till-body" hx-swap="outerHTML"><button name="op" value="inc" class="stepper-key">+</button></form>
           </div>
           <div class="w-24 text-right text-[14.5px] font-bold">{{ lt | rupees if lt is not none else '—' }}</div>
           <form method="post" action="{{ url_for('till.update_line', index=i) }}"
-                hx-post="{{ url_for('till.update_line', index=i) }}" hx-select="#till-body"
+                hx-post="{{ url_for('till.update_line', index=i) }}" hx-select="#till-body" hx-select-oob="#topbar-sub"
                 hx-target="#till-body" hx-swap="outerHTML">
             <button name="op" value="remove" class="text-faint hover:text-coral px-1" title="Remove">&times;</button>
           </form>
@@ -163,7 +165,7 @@
                   <div class="w-24 text-right text-[14.5px] font-bold text-faint">—</div>
                 {% endif %}
                 <form method="post" action="{{ url_for('till.update_line', index=i) }}"
-                      hx-post="{{ url_for('till.update_line', index=i) }}" hx-select="#till-body"
+                      hx-post="{{ url_for('till.update_line', index=i) }}" hx-select="#till-body" hx-select-oob="#topbar-sub"
                       hx-target="#till-body" hx-swap="outerHTML">
                   <button name="op" value="remove" class="text-faint hover:text-coral px-1" title="Remove">&times;</button>
                 </form>
@@ -182,7 +184,7 @@
             </div>
 
             <form method="post" action="{{ url_for('till.update_line', index=i) }}"
-                  hx-post="{{ url_for('till.update_line', index=i) }}" hx-select="#till-body"
+                  hx-post="{{ url_for('till.update_line', index=i) }}" hx-select="#till-body" hx-select-oob="#topbar-sub"
                   hx-target="#till-body" hx-swap="outerHTML"
                   x-show="mode === 'manual_weight'" class="flex items-center gap-2">
               <input type="hidden" name="op" value="set_weight">
@@ -193,7 +195,7 @@
               <button type="submit" class="btn-ghost !py-2 !px-3 text-xs">Set</button>
             </form>
             <form method="post" action="{{ url_for('till.update_line', index=i) }}"
-                  hx-post="{{ url_for('till.update_line', index=i) }}" hx-select="#till-body"
+                  hx-post="{{ url_for('till.update_line', index=i) }}" hx-select="#till-body" hx-select-oob="#topbar-sub"
                   hx-target="#till-body" hx-swap="outerHTML"
                   x-show="mode === 'manual_amount'" class="flex items-center gap-2">
               <input type="hidden" name="op" value="set_amount">
@@ -218,7 +220,17 @@
          method: 'cash',
          total: {{ summary.total_paisa }},
          tendered: {{ (summary.total_paisa / 100) | round(0, 'ceil') | int if summary.total_paisa else 0 }},
-         get change() { return Math.max(0, Math.round(this.tendered * 100) - this.total) }
+         get change() { return Math.max(0, Math.round(this.tendered * 100) - this.total) },
+         get quickAmounts() {
+           if (this.total <= 0) return [];
+           const rupees = this.total / 100, out = [];
+           for (const note of [1, 100, 500, 1000, 5000]) {
+             const v = Math.ceil(rupees / note) * note;
+             if (!out.includes(v)) out.push(v);
+             if (out.length === 3) break;
+           }
+           return out;
+         }
        }">
     <div class="flex items-center gap-3 bg-sunk rounded-[16px] px-4 py-3.5 mb-5">
       <div class="avatar w-9 h-9 text-[12px]">WI</div>
@@ -266,22 +278,24 @@
         </label>
       </div>
 
-      <div x-show="method === 'cash'" x-cloak class="bg-sunk rounded-md px-4.5 py-4 mb-5">
+      <div x-show="method === 'cash'" x-cloak class="bg-sunk rounded-md px-[18px] py-4 mb-5">
         <div class="text-xs text-muted font-semibold mb-2">Cash received</div>
         <div class="flex items-baseline gap-1.5 mb-3.5">
           <span class="text-lg font-bold text-faint">Rs</span>
           <input type="number" name="amount_tendered" step="1" min="0" x-model.number="tendered"
                  class="text-[26px] font-extrabold bg-transparent w-32 focus:outline-none">
         </div>
-        <div class="flex gap-2">
-          <button type="button" @click="tendered = total / 100"
-                  class="flex-1 text-center bg-surface rounded-[10px] py-2 text-xs font-semibold">Exact</button>
-          <button type="button" @click="tendered = Math.ceil(total/100/100)*100"
-                  class="flex-1 text-center bg-teal text-white rounded-[10px] py-2 text-xs font-semibold"
-                  x-text="'Rs ' + (Math.ceil(total/100/100)*100).toLocaleString()"></button>
-          <button type="button" @click="tendered = Math.ceil(total/100/500)*500"
-                  class="flex-1 text-center bg-surface rounded-[10px] py-2 text-xs font-semibold"
-                  x-text="'Rs ' + (Math.ceil(total/100/500)*500).toLocaleString()"></button>
+        {# The notes a customer actually hands over: exact, then the next round
+           100 / 500 / 1,000 / 5,000 — de-duplicated, so a Rs 3,470 bill offers
+           3,470 · 3,500 · 4,000 rather than 3,500 twice. The highlight follows
+           what's in the box, not a fixed position. Hidden on an empty cart. #}
+        <div class="flex gap-2" x-show="quickAmounts.length">
+          <template x-for="(amt, i) in quickAmounts" :key="amt">
+            <button type="button" @click="tendered = amt"
+                    class="flex-1 text-center rounded-[10px] py-2 text-xs font-semibold transition-colors"
+                    :class="tendered === amt ? 'bg-teal text-white' : 'bg-surface text-inkSoft hover:bg-teal-tint'"
+                    x-text="i === 0 ? 'Exact' : 'Rs ' + amt.toLocaleString()"></button>
+          </template>
         </div>
       </div>
 
@@ -293,7 +307,9 @@
       <div x-show="method === 'cash' && change > 0" x-cloak
            class="flex justify-between items-center bg-sky-tint rounded-[14px] px-4 py-3.5 mb-4">
         <span class="text-[13px] text-sky font-semibold">Change to return</span>
-        <span class="text-base text-sky font-extrabold" x-text="'Rs ' + change.toLocaleString()"></span>
+        {# change is paisa (like total); shown as whole rupees the way the |rupees
+           filter does (paisa // 100) — printing paisa read 100x too high. #}
+        <span class="text-base text-sky font-extrabold" x-text="'Rs ' + Math.floor(change / 100).toLocaleString()"></span>
       </div>
 
       <button type="submit" class="btn-primary btn-lg w-full justify-between px-6"

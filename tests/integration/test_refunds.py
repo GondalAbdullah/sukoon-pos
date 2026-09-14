@@ -444,3 +444,67 @@ def test_admin_approve_needs_a_valid_step_up_password(client, seeded, login):
     resp = client.post(f"/refunds/{r.id}/approve",
                        data={"step_up_password": ADMIN_PASSWORD}, follow_redirects=True)
     assert b"Refund approved" in resp.data
+
+
+# --- display: real units, real names, a way into the queue (field manual) ----
+
+def _pending_kg_refund(seeded):
+    seed_invoice_counter()
+    atta = inv.create_product(
+        name="Atta loose", sell_price_paisa=17_000, allows_fractional=True, unit_label="kg"
+    )
+    inv.apply_stock_movement(product=atta, movement_type="stock_in", quantity_milli=10_000,
+                             reason="in", user_id=seeded["admin"].id)
+    sale = sales_service.record_sale(
+        lines=[CartLine(product=atta, quantity_milli=1_400, unit_price_paisa=17_000,
+                        quantity_source="manual_weight")],
+        payment_method="cash", user_id=seeded["cashier"].id, now=JAN,
+    )
+    refund_service.initiate_refund(
+        sale_id=sale.id,
+        lines=[RefundLineSpec(sale_item_id=sale.items[0].id, quantity_milli=500)],
+        reason="wrong grade", initiated_by_user_id=seeded["cashier"].id,
+    )
+    return sale
+
+
+def test_refund_screens_show_the_real_unit_and_who_recorded_it(client, seeded, login):
+    # B3: a kg line read "1.4 unit" because the unit label fell back to the default
+    sale = _pending_kg_refund(seeded)
+
+    login("T1", CASHIER_PASSWORD)
+    html = client.get(f"/refunds/sale/{sale.id}").get_data(as_text=True)
+    assert "1.4 kg" in html and "0.9 kg" in html  # sold, still refundable
+    assert " unit<" not in html
+    client.post("/logout")
+
+    login("Owner", ADMIN_PASSWORD)
+    html = client.get("/refunds/pending").get_data(as_text=True)
+    assert "Atta loose · 0.5 kg" in html
+    assert "Recorded by Till One" in html
+    assert "Sale item #" not in html and "user #" not in html and "ADR-" not in html
+
+
+def test_count_pending_counts_only_what_awaits_a_decision(seeded):
+    assert refund_service.count_pending() == 0
+    _pending_kg_refund(seeded)
+    assert refund_service.count_pending() == 1
+    refund = refund_service.list_pending()[0]
+    refund_service.reject_refund(refund_id=refund.id, approved_by_user_id=seeded["admin"].id)
+    assert refund_service.count_pending() == 0
+
+
+def test_only_an_approver_is_pointed_at_the_pending_queue(client, seeded, login):
+    # D6: the queue existed but nothing linked to it
+    _pending_kg_refund(seeded)
+
+    login("T1", CASHIER_PASSWORD)
+    html = client.get("/refunds/find").get_data(as_text=True)
+    assert "/refunds/pending" not in html and "rail-badge" not in html
+    client.post("/logout")
+
+    login("Owner", ADMIN_PASSWORD)
+    html = client.get("/refunds/find").get_data(as_text=True)
+    assert "1 refund waiting for your approval" in html
+    assert 'href="/refunds/pending"' in html
+    assert 'class="rail-badge">1<' in html
