@@ -12,8 +12,8 @@ work session, not just every phase.
 |---|---|
 | **Phase** | **Phase 6 — Reports & Dashboard — functionally complete** (session 27, [ADR-0034](adr/0034-phase-6-reporting-policy.md); DoD §4m; no gate in the spec). **Phase 7 — Windows Packaging & Offline Installable App — next, opening with a scheduled `grill-with-docs` session.** Phase 5 closed 2026-09-15 (real send under O-23). |
 | **Status** | **Session 27:** Phase 6 built — Insights dashboard, five reports (sales, estimated profit, stock value, low stock, outstanding credit) with CSV and PDF exports, Admin only; profit estimated at today's cost prices with coverage stated; every figure checked against a hand-calculated scenario; 10,000-sale performance test. 497 tests. **Session 26:** Phase 5 built against ADR-0027…0033 in three parts — queue/consent/rules, Meta adapter/key store/scheduler, screens — 475 tests, and an end-to-end browser run where the real background worker in `python -m sukoon.run` sent a credit-sale notice by itself (fake provider). Three real bugs found by the tests and fixed (§6). **Session 25:** the Phase 5 `grill-with-docs` session ran on the session-24 proposal — 26 questions, 7 ADRs (0027–0033), O-20 resolved, O-18's trigger sharpened, O-23 opened for Meta facts that must be checked when the account exists. **Session 23:** Phase 4 built — customers with duplicate-number and in-person confirmation (ADR-0013), a single ledger writer that sales, refunds and payments all go through, full/partial/over-payments, credit limits with Admin approval at the till (ADR-0014), overdue flags (ADR-0015), month statements on shop time with an A4 PDF, the Khata screen, and a Khata picker replacing the till's raw customer ID. 363 tests pass; verified in real Chrome. **Session 22:** the client answered O-21/O-22 — shop timezone (ADR-0024) and stock limits at the till (ADR-0025) built; along the way found and fixed a latent bug (items created at the till could never be sold) and B9 (htmx swaps silently dropped every till error message). **Session 21:** a bug sweep driven by the developer's own walkthrough screenshots — 8 real bugs fixed and verified in a real browser (session 21 changelog), plus a plain-language field manual at `docs/field-manual.html` (untracked). Phase 3.5 built out sessions 13–19 (toolchain, Login, Till, Sale Complete, terminal ID, Stock, Refunds, landing page, htmx pass — §4i), then the Design System §13 DoD side-by-side (session 20, §4j) — fresh screenshots of every screen plus an actually-rendered receipt PDF against all 9 reference images, not a documentation exercise. Found and fixed three real issues (two undersized/no-hover buttons, a receipt footer line that ran off the page, fixed with real word-wrapping + regression tests) and restored two missing Login details. One genuine tension between ADR-0006 (prototype pixel-fidelity) and the Design System's written 44px touch-target rule was put to the client rather than picked unilaterally: **keep the prototype-exact stepper size, no change** — recorded with rationale. **Phase 3.5 is now formally closed.** `ruff` clean, **245 tests green, 95% coverage**. |
-| **Last session** | 2026-09-15 (session 27) |
-| **Next action** | **Phase 7's `grill-with-docs` session** (Development Spec: required before Windows packaging, auto-start and update strategy are locked). It is human-invoked — the client/developer starts it. Topics already known to need it: PyWebview vs browser window, Inno Setup auto-start, where the database and the WhatsApp key live on Windows, **which Windows account DPAPI binds the key to (ADR-0033)**, the scheduler launcher (`python -m sukoon.run` today), and **testing the Windows-only code paths never run here: DPAPI and the `msvcrt` worker lock (§4)**. Before WhatsApp is switched on in the shop: O-23. On any existing database: `flask db upgrade` and `flask seed` (new permission `report.view`). |
+| **Last session** | 2026-09-15 (session 28) |
+| **Next action** | **The client/developer starts the Phase 7 grill:** `/grill-with-docs docs/proposals/phase-7-packaging.md` (human-invoked). The proposal (session 28) lists what's settled, six problems nothing in the project had raised — no way to build or test Windows here, auto-start-on-login leaving tills dead after a reboot, closing the window stopping the shop, the dev server shipping, no first-run account creation, USB printers on Windows — and twelve decisions with recommendations, including the spec's 🛑 gate items (database location, backup location, auto-start default). **No Phase 7 code until its ADRs are Accepted.** Before WhatsApp is switched on in the shop: O-23. |
 
 ## 2. Decisions made so far
 
@@ -1191,6 +1191,17 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-15 — Session 28: Phase 7 grill prepared, not started
+
+Wrote [`docs/proposals/phase-7-packaging.md`](proposals/phase-7-packaging.md) for the
+mandatory Phase 7 grill: the spec's requirements and 🛑 gate items, what ADR-0001/0023/0024/0033
+already fix, **six problems no document had raised** (U1–U6: no Windows build/test environment
+here; login auto-start leaves tills dead after an unattended reboot and decides DPAPI's account;
+closing the window must not stop the shop; the Flask dev server can't ship; no first-run account
+creation or generated `SECRET_KEY`; raw USB printing on Windows), and twelve decisions with
+recommendations. Unconfirmed Windows facts marked **(verify)**. **No code written, nothing
+decided.**
 
 ### 2026-09-15 — Session 27: Phase 6 — Reports & Dashboard
 
