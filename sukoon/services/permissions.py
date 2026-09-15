@@ -31,6 +31,8 @@ PERMISSIONS: dict[str, str] = {
     # Phase 5
     "khata.send_reminder": "Send an overdue customer a WhatsApp reminder by hand (ADR-0031)",
     "whatsapp.manage": "See the message log; switch sending, set the key, cap, test (ADR-0033)",
+    # Phase 6
+    "report.view": "See Insights and reports, and export them (ADR-0034: Admin only)",
 }
 
 # role -> the codes it holds. Admin holds every code; Cashier holds the subset

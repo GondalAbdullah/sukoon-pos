@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Reports — Sukoon{% endblock %}
+{% block heading %}Reports{% endblock %}
+{% block subheading %}Numbers to run the shop by, to view, print or open in a spreadsheet{% endblock %}
+{% block content %}
+{% set blurbs = {
+  'sales': 'Sales by day, hour, payment method and category, and the best sellers. Refunds deducted when approved.',
+  'profit': "Estimated at today's cost prices, by category. Items without a cost price are left out, never counted as free.",
+  'stock': "What's on the shelf right now, valued at cost.",
+  'low-stock': 'What to reorder: out of stock, running low, and never counted.',
+  'credit': 'Who owes what, oldest overdue first, and who is in credit.',
+} %}
+<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl">
+  {% for kind, (title, ranged) in reports.items() %}
+  <a href="{{ url_for('reports.report', kind=kind) }}" class="panel p-6 border border-transparent hover:border-teal-tint2 transition-colors">
+    <div class="flex items-center justify-between mb-2">
+      <div class="text-[15px] font-bold text-ink">{{ title }}</div>
+      <span class="pill bg-sunk text-muted">{{ 'Any period' if ranged else 'Right now' }}</span>
+    </div>
+    <div class="text-sm text-muted">{{ blurbs[kind] }}</div>
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}

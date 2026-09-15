@@ -252,6 +252,17 @@ ADR-0002 itself is kept, unedited, as the historical starting point.
 **Statement** *(Settled)* — A per-customer summary of Khata activity over a period
 (purchases, payments, closing balance), viewable, exportable, and sent monthly.
 
+**Net sales** *(Settled — ADR-0034)* — Everything sold in a period, by every payment
+method (Khata included), minus refunds approved in that period.
+
+**Estimated profit** *(Settled — ADR-0034)* — Net sales minus what those items cost *at
+today's cost prices*. Items without a cost price are left out entirely rather than counted as
+free, so it always comes with its **coverage** — the share of sales it could be worked out
+for. A past period's figure changes if a cost price changes.
+
+**Coverage** *(Settled — ADR-0034)* — How much of a period's sales estimated profit is based
+on, e.g. "covers 93% of sales"; the rest were items with no cost price.
+
 **Statement cycle** *(Settled — ADR-0024, ADR-0026)* — A calendar month on the
 shop's clock (Pakistan time), or "all time". A purchase at 01:00 on the 1st belongs
 to the new month even though it is still the previous day in UTC.

@@ -13,12 +13,12 @@ weight/amount for loose goods; the shop's owner tracks stock, credit customers
 
 ## Project status
 
-**Phases 0–4 are built; Phase 5 (WhatsApp notifications) is built and awaiting its
-closing sign-off.** Catalogue and stock with a full audit trail, barcodes and labels,
-the till (cash, card, weighed goods, receipts with a PDF fallback), refunds with
-two-person approval, Khata credit accounts with statements, and a WhatsApp outbox
-that can never slow or block a sale. The project follows a phased plan with an explicit
-Definition of Done and a human sign-off gate per phase — see
+**Phases 0–6 are built.** Catalogue and stock with a full audit trail, barcodes and labels,
+the till (cash, card, weighed goods, receipts with a PDF fallback), refunds with two-person
+approval, Khata credit accounts with statements, a WhatsApp outbox that can never slow or
+block a sale, and an owner's dashboard with reports exported to CSV and PDF. Next is Phase 7:
+packaging it as an installable Windows program. The project follows a phased plan with an
+explicit Definition of Done and a human sign-off gate per phase — see
 [`docs/context.md`](docs/context.md) for exactly where things stand.
 
 ### Running it locally

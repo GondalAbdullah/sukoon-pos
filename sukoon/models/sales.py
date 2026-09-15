@@ -16,6 +16,7 @@ from sukoon.models.base import TimestampMixin
 
 if TYPE_CHECKING:
     from sukoon.models.catalog import Product
+    from sukoon.models.customer import Customer
 
 PAYMENT_METHODS = ("cash", "card", "credit")
 SALE_STATUSES = ("completed", "refunded", "partially_refunded")
@@ -49,6 +50,8 @@ class Sale(TimestampMixin, db.Model):
     change_paisa: Mapped[int | None] = mapped_column(Integer, nullable=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False)
 
+    # read-only navigation for display (Insights' recent sales); ADR-0016 unchanged
+    customer: Mapped[Customer | None] = relationship("Customer", viewonly=True)
     items: Mapped[list[SaleItem]] = relationship(
         "SaleItem", back_populates="sale", cascade="all, delete-orphan"
     )

@@ -33,6 +33,16 @@
       <div class="text-sm text-muted">Catalogue, stock levels, barcodes, labels</div>
     </a>
 
+    {% if reports_enabled %}
+    <a href="{{ url_for('reports.insights') }}" class="panel p-6 border border-transparent hover:border-teal-tint2 transition-colors">
+      <div class="w-11 h-11 rounded-[13px] bg-teal-tint flex items-center justify-center mb-4">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#0A4F41" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M8 17V11"/><path d="M13 17V7"/><path d="M18 17v-4"/></svg>
+      </div>
+      <div class="text-[15px] font-bold mb-1">Insights</div>
+      <div class="text-sm text-muted">Today's sales, profit, credit, and reports</div>
+    </a>
+    {% endif %}
+
     {% if khata_enabled %}
     <a href="{{ url_for('khata.index') }}" class="panel p-6 border border-transparent hover:border-teal-tint2 transition-colors">
       <div class="w-11 h-11 rounded-[13px] bg-coral-tint flex items-center justify-center mb-4">

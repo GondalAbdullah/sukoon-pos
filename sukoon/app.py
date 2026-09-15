@@ -80,6 +80,7 @@ def create_app(
     from sukoon.routes.main import bp as main_bp
     from sukoon.routes.messages import bp as messages_bp
     from sukoon.routes.refunds import bp as refunds_bp
+    from sukoon.routes.reports import bp as reports_bp
     from sukoon.routes.stock import bp as stock_bp
     from sukoon.routes.till import bp as till_bp
 
@@ -91,6 +92,7 @@ def create_app(
     app.register_blueprint(refunds_bp)
     app.register_blueprint(khata_bp)
     app.register_blueprint(messages_bp)
+    app.register_blueprint(reports_bp)
 
     _register_template_helpers(app)
     _register_cli(app)
@@ -113,9 +115,10 @@ def _register_template_helpers(app: Flask) -> None:
         from sukoon.services.auth_service import role_has_permission
 
         ctx = {"pending_refund_count": 0, "khata_enabled": False, "messages_enabled": False,
-               "whatsapp_pause": None}
+               "whatsapp_pause": None, "reports_enabled": False}
         if current_user.is_authenticated:
             ctx["khata_enabled"] = role_has_permission(current_user.role, "khata.view")
+            ctx["reports_enabled"] = role_has_permission(current_user.role, "report.view")
             if role_has_permission(current_user.role, "whatsapp.manage"):
                 # ADR-0029 §8: an Admin sees a banner on every screen while paused
                 from sukoon.services.notifications import queue
@@ -129,6 +132,12 @@ def _register_template_helpers(app: Flask) -> None:
     @app.template_test("match_initial")
     def match_initial(word: str) -> bool:
         return bool(word) and word[0].isalnum()
+
+    @app.template_filter("shop_clock")
+    def shop_clock(dt, with_date: bool = False) -> str:
+        from sukoon.services import clock
+
+        return clock.format_clock(dt, with_date=with_date)
 
     @app.template_filter("balance_words")
     def balance_words(paisa: int) -> str:

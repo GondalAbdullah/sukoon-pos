@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{{ doc.title }} — Sukoon{% endblock %}
+{% block heading %}{{ doc.title }}{% endblock %}
+{% block subheading %}{{ doc.period_label }}{% endblock %}
+{% block content %}
+{# ADR-0034 §10: this page, the CSV and the PDF are the same ReportDoc.
+   Tailwind only generates classes it sees whole; the summary grid's computed column count
+   can be any of: lg:grid-cols-1 lg:grid-cols-2 lg:grid-cols-3 lg:grid-cols-4 lg:grid-cols-5 #}
+<div class="flex flex-col gap-5">
+  <a href="{{ url_for('reports.reports_index') }}" class="text-sm font-semibold">&larr; Reports</a>
+
+  <div class="flex flex-wrap items-center gap-3">
+    {% if ranged %}
+      <div class="flex bg-sunk rounded-[12px] p-[3px] gap-1">
+        {% for key, label in presets %}
+          <a href="{{ url_for('reports.report', kind=kind, preset=key) }}"
+             class="px-3.5 py-1.5 rounded-[9px] text-[13px] font-semibold {{ 'bg-surface text-ink shadow-control' if preset == key else 'text-muted hover:text-ink' }}">{{ label }}</a>
+        {% endfor %}
+      </div>
+      <form method="get" action="{{ url_for('reports.report', kind=kind) }}" class="flex flex-wrap items-center gap-2">
+        <label class="sr-only" for="from">From</label>
+        <input type="date" id="from" name="from" value="{{ date_from }}" required class="field !py-1.5 !w-auto text-sm">
+        <span class="text-sm text-muted">to</span>
+        <label class="sr-only" for="to">To</label>
+        <input type="date" id="to" name="to" value="{{ date_to }}" required class="field !py-1.5 !w-auto text-sm">
+        <button class="btn-ghost !py-1.5 text-sm">Show</button>
+      </form>
+    {% endif %}
+    <div class="flex items-center gap-2 ml-auto">
+      <a href="{{ url_for('reports.report_csv', kind=kind, **export_args) }}" class="btn-ghost !py-2 text-sm">Download CSV</a>
+      <a href="{{ url_for('reports.report_pdf', kind=kind, **export_args) }}" target="_blank" rel="noopener" class="btn-primary !py-2 text-sm">PDF</a>
+    </div>
+  </div>
+
+  {% if doc.summary %}
+  <div class="grid grid-cols-2 lg:grid-cols-{{ [doc.summary|length, 5] | min }} gap-3">
+    {% for label, value in doc.summary %}
+      <div class="stat-card"><div class="stat-label">{{ label }}</div><div class="text-[18px] font-extrabold tabular-nums">{{ value }}</div></div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% for s in doc.sections %}
+  <div>
+    <h2 class="text-[15px] font-bold mb-2.5">{{ s.heading }}</h2>
+    <div class="panel overflow-x-auto">
+      {% if not s.rows %}
+        <div class="p-5 text-sm text-muted">{{ s.empty_text }}</div>
+      {% else %}
+      <table class="table">
+        <thead><tr>{% for col in s.columns %}<th class="{{ '!pl-5' if loop.first }} {{ 'text-right' if loop.index0 in s.money_cols or loop.index0 in s.right_cols or (s.rows[0][loop.index0] is number) }} {{ '!pr-5' if loop.last }}">{{ col }}</th>{% endfor %}</tr></thead>
+        <tbody>
+          {% for row in s.rows %}
+            <tr>{% for v in row %}<td class="{{ '!pl-5' if loop.first }} {{ 'text-right tabular-nums whitespace-nowrap' if loop.index0 in s.money_cols or loop.index0 in s.right_cols or v is number }} {{ '!pr-5' if loop.last }}">{{ cell_text(s, loop.index0, v) }}</td>{% endfor %}</tr>
+          {% endfor %}
+          {% if s.total %}
+            <tr class="font-bold">{% for v in s.total %}<td class="{{ '!pl-5' if loop.first }} {{ 'text-right tabular-nums whitespace-nowrap' if loop.index0 in s.money_cols or loop.index0 in s.right_cols or v is number }} {{ '!pr-5' if loop.last }}">{{ cell_text(s, loop.index0, v) if v is not none else '' }}</td>{% endfor %}</tr>
+          {% endif %}
+        </tbody>
+      </table>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+
+  {% for note in doc.notes %}
+    <p class="text-xs text-muted max-w-3xl">{{ note }}</p>
+  {% endfor %}
+</div>
+{% endblock %}

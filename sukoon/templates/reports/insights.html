@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Insights — Sukoon{% endblock %}
+{% block heading %}Insights{% endblock %}
+{% block subheading %}How {{ 'today' if period.key == 'today' else ('this week' if period.key == 'week' else 'this month') }} is going, and how it compares{% endblock %}
+{% block content %}
+{#
+  Phase 6 (ADR-0034), Figure 6. Departures from the mock (context.md §4b): profit says it is
+  estimated at today's cost prices and how much of sales it covers (ADR-0011); the comparison
+  is "same day last week" rather than naming the weekday; week and month show sales by day in
+  place of busiest hours.
+#}
+<div class="flex flex-col gap-6">
+
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="text-sm text-muted">{{ period.label }}</div>
+    <div class="flex bg-sunk rounded-[12px] p-[3px] gap-1" role="tablist" aria-label="Period">
+      {% for key, label in presets %}
+        <a href="{{ url_for('reports.insights', preset=key) }}" role="tab" aria-selected="{{ 'true' if period.key == key else 'false' }}"
+           class="px-3.5 py-1.5 rounded-[9px] text-[13px] font-semibold transition-colors {{ 'bg-surface text-ink shadow-control' if period.key == key else 'text-muted hover:text-ink' }}">{{ label }}</a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- the three headline numbers -->
+  <div class="grid lg:grid-cols-[1.3fr_1fr_1fr] gap-4">
+    <div class="rounded-[22px] bg-teal text-white px-7 py-6 shadow-teal">
+      <div class="text-xs font-bold tracking-[0.06em] uppercase opacity-80">{{ 'Today' if period.key == 'today' else ('This week' if period.key == 'week' else 'This month') }}'s sales</div>
+      <div class="text-[40px] font-extrabold tracking-[-0.02em] leading-tight mt-2">{{ rs(totals.net_paisa) }}</div>
+      <div class="text-[13px] font-medium opacity-90 mt-1.5">{{ change }}</div>
+      <div class="text-[11.5px] opacity-70 mt-1">{{ totals.count }} sale{{ '' if totals.count == 1 else 's' }}{{ ' · after ' ~ rs(totals.refunds_paisa) ~ ' in refunds' if totals.refunds_paisa }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label uppercase tracking-[0.06em]">Credit outstanding</div>
+      <div class="text-[28px] font-extrabold tracking-[-0.01em] mt-1 {{ 'text-coral' if credit_total else 'text-faint' }}">{{ rs(credit_total) }}</div>
+      <div class="stat-sub">{{ 'across ' ~ credit_accounts ~ ' open account' ~ ('' if credit_accounts == 1 else 's') if credit_accounts else 'Nobody owes anything' }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label uppercase tracking-[0.06em]">Estimated profit</div>
+      {% if profit.covered_sales_paisa > 0 %}
+        <div class="text-[28px] font-extrabold tracking-[-0.01em] mt-1 {{ 'text-coral' if profit.estimated_profit_paisa < 0 }}">{{ rs(profit.estimated_profit_paisa) }}</div>
+        <div class="stat-sub">{{ percent(profit.margin_percent) }} margin · covers {{ percent(profit.coverage_percent) }} of sales</div>
+      {% else %}
+        <div class="text-[28px] font-extrabold tracking-[-0.01em] mt-1 text-faint">—</div>
+        <div class="stat-sub">{{ 'No sales with a known cost price' if totals.count else 'No sales yet' }}</div>
+      {% endif %}
+      <div class="text-[11px] text-faint mt-1">At today's cost prices</div>
+    </div>
+  </div>
+
+  <div class="grid lg:grid-cols-[1.6fr_1fr] gap-4 items-start">
+    <!-- busiest hours / sales by day: one hue, the peak emphasised, labels + tooltip + a table in the Sales report -->
+    <div class="panel p-6" x-data="{ tip: null }">
+      <div class="flex items-baseline justify-between gap-3 mb-5">
+        <h2 class="text-[16px] font-bold">{{ 'Busiest hours today' if period.key == 'today' else 'Sales by day' }}</h2>
+        <div class="text-[12.5px] font-semibold text-muted min-h-[18px]" aria-live="polite">
+          <span x-show="tip" x-text="tip" x-cloak></span>
+          {% if peak_label %}<span x-show="!tip">Peak: {{ peak_label }}</span>{% endif %}
+        </div>
+      </div>
+      {% if peak <= 0 %}
+        <div class="h-[190px] flex items-center justify-center text-sm text-muted">No sales {{ 'yet today' if period.key == 'today' else 'in this period' }}.</div>
+      {% else %}
+        <div class="flex items-end gap-[2px] h-[190px]" role="list" aria-label="{{ 'Sales by hour' if period.key == 'today' else 'Sales by day' }}">
+          {% for axis, tip_text, value, _label in bars %}
+            <div class="flex-1 flex flex-col items-center justify-end h-full min-w-0 group outline-none" tabindex="0" role="listitem"
+                 x-data="{ t: {{ tip_text | tojson | forceescape }} }"
+                 @mouseenter="tip = t" @mouseleave="tip = null" @focus="tip = t" @blur="tip = null"
+                 aria-label="{{ tip_text }}">
+              {% if value == peak %}<div class="text-[11px] font-bold text-ink mb-1 whitespace-nowrap">{{ rs(value) }}</div>{% endif %}
+              <div class="w-full rounded-t-[4px] transition-colors {{ 'bg-teal' if value == peak else 'bg-teal-tint2 group-hover:bg-teal/40 group-focus:bg-teal/40' }}"
+                   style="height: {{ ([(value / peak * 150) | round(1), 2] | max) if value else 0 }}px"></div>
+              <div class="text-[10.5px] text-faint mt-2 font-medium">{{ axis }}</div>
+            </div>
+          {% endfor %}
+        </div>
+        <p class="text-[11px] text-faint mt-3">Every figure here is also a table in the <a href="{{ url_for('reports.report', kind='sales', preset=period.key) }}" class="font-semibold">Sales report</a>.</p>
+      {% endif %}
+    </div>
+
+    <!-- where sales came from: magnitude, one hue, every bar labelled -->
+    <div class="panel p-6">
+      <h2 class="text-[16px] font-bold mb-5">Where sales came from</h2>
+      {% if not categories %}
+        <div class="text-sm text-muted">No sales {{ 'yet today' if period.key == 'today' else 'in this period' }}.</div>
+      {% else %}
+      <div class="flex flex-col gap-4">
+        {% for name, value in categories %}
+          {% set share = value / category_total * 100 %}
+          <div>
+            <div class="flex justify-between text-[13px] mb-1.5"><span class="font-medium">{{ name }}</span><span class="font-semibold tabular-nums">{{ share | round(0) | int }}%</span></div>
+            <div class="h-[6px] rounded-full bg-sunk overflow-hidden" title="{{ rs(value) }}"><div class="h-full rounded-full bg-teal" style="width: {{ share | round(1) }}%"></div></div>
+          </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- recent sales -->
+  <div class="panel p-6">
+    <div class="flex items-center justify-between mb-2">
+      <h2 class="text-[16px] font-bold">{{ 'Today' if period.key == 'today' else ('This week' if period.key == 'week' else 'This month') }}'s sales</h2>
+      {% if sales_count %}<a href="{{ url_for('reports.report', kind='sales', preset=period.key) }}" class="text-[13px] font-semibold">View all {{ sales_count }}</a>{% endif %}
+    </div>
+    {% if not recent %}
+      <div class="py-6 text-sm text-muted">No sales {{ 'yet today' if period.key == 'today' else 'in this period' }}.</div>
+    {% else %}
+    <div class="divide-y divide-hairline">
+      {% for s in recent %}
+        <div class="flex items-center gap-4 py-3.5">
+          <div class="w-20 text-[13px] font-semibold text-muted tabular-nums">{{ s.created_at | shop_clock if period.key == 'today' else s.created_at | shop_time('%d %b') }}</div>
+          <div class="flex-1 min-w-0 text-[14.5px] truncate">{{ s.customer.name if s.customer_id and s.customer else 'Walk-in customer' }}</div>
+          <span class="{{ 'pill-teal' if s.payment_method == 'credit' else 'pill bg-sunk text-muted' }}">{{ {'cash': 'Cash', 'card': 'Card', 'credit': 'Khata'}[s.payment_method] }}</span>
+          <div class="w-28 text-right text-[14.5px] font-semibold tabular-nums {{ 'text-teal' if s.payment_method == 'credit' }}">{{ rs(s.total_paisa) }}</div>
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

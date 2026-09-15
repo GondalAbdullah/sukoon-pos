@@ -37,6 +37,14 @@
   <span class="rail-label">Khata</span>
   {% endif %}
 
+  {% if reports_enabled %}
+  <a href="{{ url_for('reports.insights') }}"
+     class="rail-link {{ 'is-active' if request.blueprint == 'reports' }}" title="Insights">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M8 17V11"/><path d="M13 17V7"/><path d="M18 17v-4"/></svg>
+  </a>
+  <span class="rail-label">Insights</span>
+  {% endif %}
+
   {% if messages_enabled %}
   <a href="{{ url_for('messages.index') }}"
      class="rail-link relative {{ 'is-active' if request.blueprint == 'messages' }}" title="Messages{{ ' — sending paused' if whatsapp_pause }}">

@@ -187,7 +187,7 @@
         {% for row, line in d.recent %}
           <tr>
             <td class="!pl-5 whitespace-nowrap">
-              <div class="font-medium">{{ row.entry.created_at | shop_time('%d %b, %I:%M %p') }}</div>
+              <div class="font-medium">{{ row.entry.created_at | shop_clock(with_date=True) }}</div>
               {% if line.details %}<div class="text-[11.5px] text-faint mt-0.5">{{ line.details }}</div>{% endif %}
             </td>
             <td class="align-middle">{{ entry_pill(row.entry.entry_type) }}</td>

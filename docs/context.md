@@ -10,10 +10,10 @@ work session, not just every phase.
 
 | | |
 |---|---|
-| **Phase** | **Phase 5 — WhatsApp Notification Module — CLOSED 2026-09-15** (gate approved by the client; the first real send is tracked under O-23, §4l). **Phase 6 — Reports & Dashboard — next.** Phases 0–4 closed or functionally complete. |
-| **Status** | **Session 26:** Phase 5 built against ADR-0027…0033 in three parts — queue/consent/rules, Meta adapter/key store/scheduler, screens — 475 tests, and an end-to-end browser run where the real background worker in `python -m sukoon.run` sent a credit-sale notice by itself (fake provider). Three real bugs found by the tests and fixed (§6). **Session 25:** the Phase 5 `grill-with-docs` session ran on the session-24 proposal — 26 questions, 7 ADRs (0027–0033), O-20 resolved, O-18's trigger sharpened, O-23 opened for Meta facts that must be checked when the account exists. **Session 23:** Phase 4 built — customers with duplicate-number and in-person confirmation (ADR-0013), a single ledger writer that sales, refunds and payments all go through, full/partial/over-payments, credit limits with Admin approval at the till (ADR-0014), overdue flags (ADR-0015), month statements on shop time with an A4 PDF, the Khata screen, and a Khata picker replacing the till's raw customer ID. 363 tests pass; verified in real Chrome. **Session 22:** the client answered O-21/O-22 — shop timezone (ADR-0024) and stock limits at the till (ADR-0025) built; along the way found and fixed a latent bug (items created at the till could never be sold) and B9 (htmx swaps silently dropped every till error message). **Session 21:** a bug sweep driven by the developer's own walkthrough screenshots — 8 real bugs fixed and verified in a real browser (session 21 changelog), plus a plain-language field manual at `docs/field-manual.html` (untracked). Phase 3.5 built out sessions 13–19 (toolchain, Login, Till, Sale Complete, terminal ID, Stock, Refunds, landing page, htmx pass — §4i), then the Design System §13 DoD side-by-side (session 20, §4j) — fresh screenshots of every screen plus an actually-rendered receipt PDF against all 9 reference images, not a documentation exercise. Found and fixed three real issues (two undersized/no-hover buttons, a receipt footer line that ran off the page, fixed with real word-wrapping + regression tests) and restored two missing Login details. One genuine tension between ADR-0006 (prototype pixel-fidelity) and the Design System's written 44px touch-target rule was put to the client rather than picked unilaterally: **keep the prototype-exact stepper size, no change** — recorded with rationale. **Phase 3.5 is now formally closed.** `ruff` clean, **245 tests green, 95% coverage**. |
-| **Last session** | 2026-09-15 (session 26) |
-| **Next action** | **Begin Phase 6 — Reports & Dashboard.** No STOP AND ASK gate or grill in the spec. Steps: sales, inventory, low-stock, outstanding-credit and basic profit/loss reports; a dashboard of the most-used numbers; date-range filters and CSV/PDF export. Required tests: empty ranges render cleanly; date/timezone boundaries (shop time, ADR-0024); performance on thousands of seeded transactions. **Already decided:** profit/margin reporting **excludes** products without a cost price rather than assuming zero (ADR-0011). **Open and relevant:** O-10 (the Insights reference's Today / This week / This month controls). **Before WhatsApp is switched on in the shop:** O-23's real send and checks. |
+| **Phase** | **Phase 6 — Reports & Dashboard — functionally complete** (session 27, [ADR-0034](adr/0034-phase-6-reporting-policy.md); DoD §4m; no gate in the spec). **Phase 7 — Windows Packaging & Offline Installable App — next, opening with a scheduled `grill-with-docs` session.** Phase 5 closed 2026-09-15 (real send under O-23). |
+| **Status** | **Session 27:** Phase 6 built — Insights dashboard, five reports (sales, estimated profit, stock value, low stock, outstanding credit) with CSV and PDF exports, Admin only; profit estimated at today's cost prices with coverage stated; every figure checked against a hand-calculated scenario; 10,000-sale performance test. 497 tests. **Session 26:** Phase 5 built against ADR-0027…0033 in three parts — queue/consent/rules, Meta adapter/key store/scheduler, screens — 475 tests, and an end-to-end browser run where the real background worker in `python -m sukoon.run` sent a credit-sale notice by itself (fake provider). Three real bugs found by the tests and fixed (§6). **Session 25:** the Phase 5 `grill-with-docs` session ran on the session-24 proposal — 26 questions, 7 ADRs (0027–0033), O-20 resolved, O-18's trigger sharpened, O-23 opened for Meta facts that must be checked when the account exists. **Session 23:** Phase 4 built — customers with duplicate-number and in-person confirmation (ADR-0013), a single ledger writer that sales, refunds and payments all go through, full/partial/over-payments, credit limits with Admin approval at the till (ADR-0014), overdue flags (ADR-0015), month statements on shop time with an A4 PDF, the Khata screen, and a Khata picker replacing the till's raw customer ID. 363 tests pass; verified in real Chrome. **Session 22:** the client answered O-21/O-22 — shop timezone (ADR-0024) and stock limits at the till (ADR-0025) built; along the way found and fixed a latent bug (items created at the till could never be sold) and B9 (htmx swaps silently dropped every till error message). **Session 21:** a bug sweep driven by the developer's own walkthrough screenshots — 8 real bugs fixed and verified in a real browser (session 21 changelog), plus a plain-language field manual at `docs/field-manual.html` (untracked). Phase 3.5 built out sessions 13–19 (toolchain, Login, Till, Sale Complete, terminal ID, Stock, Refunds, landing page, htmx pass — §4i), then the Design System §13 DoD side-by-side (session 20, §4j) — fresh screenshots of every screen plus an actually-rendered receipt PDF against all 9 reference images, not a documentation exercise. Found and fixed three real issues (two undersized/no-hover buttons, a receipt footer line that ran off the page, fixed with real word-wrapping + regression tests) and restored two missing Login details. One genuine tension between ADR-0006 (prototype pixel-fidelity) and the Design System's written 44px touch-target rule was put to the client rather than picked unilaterally: **keep the prototype-exact stepper size, no change** — recorded with rationale. **Phase 3.5 is now formally closed.** `ruff` clean, **245 tests green, 95% coverage**. |
+| **Last session** | 2026-09-15 (session 27) |
+| **Next action** | **Phase 7's `grill-with-docs` session** (Development Spec: required before Windows packaging, auto-start and update strategy are locked). It is human-invoked — the client/developer starts it. Topics already known to need it: PyWebview vs browser window, Inno Setup auto-start, where the database and the WhatsApp key live on Windows, **which Windows account DPAPI binds the key to (ADR-0033)**, the scheduler launcher (`python -m sukoon.run` today), and **testing the Windows-only code paths never run here: DPAPI and the `msvcrt` worker lock (§4)**. Before WhatsApp is switched on in the shop: O-23. On any existing database: `flask db upgrade` and `flask seed` (new permission `report.view`). |
 
 ## 2. Decisions made so far
 
@@ -52,6 +52,7 @@ work session, not just every phase.
 | [0031](adr/0031-message-scheduling-and-cadence.md) | Triggers and dedupe keys; statements 09:00 on the 1st with catch-up until the 8th; overdue check 11:00, at most weekly, none within 3 days of a statement (**resolves O-20**); Send reminder is Admin-only under the same limits | **Accepted** |
 | [0032](adr/0032-payment-receipt-message.md) | **Scope addition:** a payment receipt message (48h age limit, approved wording); refunds send nothing | **Accepted** |
 | [0033](adr/0033-whatsapp-operational-safety.md) | Access key DPAPI-encrypted, set by an Admin in Sukoon, never in the DB (first answer — a developer config file — reversed over the ADR-0027 conflict); starts off, off = nothing queued; daily cap 200 pauses; Admin Messages screen + one status line per Khata; one-worker lock + atomic claim; a crash mid-send is never resent ('outcome unknown'); Admin Send test | **Accepted** |
+| [0034](adr/0034-phase-6-reporting-policy.md) | Reports and Insights are Admin-only (`report.view`); profit is **estimated at today's cost prices**, always labelled, with lines lacking a cost price excluded and coverage stated (client's choices). Proposed defaults: Today / This week (Monday start) / This month + custom dates in shop time (**resolves O-10**); comparison to the same point last period; refunds counted when approved; stock and credit point-in-time; screen = CSV = PDF from one document; stock value uses the money rounding rule | **Accepted** |
 
 (Historical rule, now satisfied: no ADR could move to **Accepted** until the Phase 0
 grill session had run. It ran on 2026-09-10; ADR-0017 onward are ordinary Phase-N
@@ -221,7 +222,7 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   ADR-0006). A quiet progress ring on "Start next sale" advances after **~8 seconds**;
   any key or tap cancels it and keeps the calm screen. Recorded in §4b. Mockup in
   `docs/design/drafts/till-fractional-cart/SaleComplete.dc.html`.
-- **O-10 — Insights date range.** The Insights screenshot shows
+- ~~**O-10 — Insights date range.**~~ **RESOLVED 2026-09-15** → [ADR-0034](adr/0034-phase-6-reporting-policy.md) §3: in scope, because the Development Specification's Phase 6 step 3 requires date-range filters; presets plus a custom from–to. The Insights screenshot shows
   Today / This week / This month controls; the prototype omits them. In scope for
   Phase 6 or not?
 
@@ -238,6 +239,10 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   Use `python -m sukoon.run` (README). Deliberate: jobs start only from an explicit
   launcher, so `flask db upgrade`/`flask seed` never send (ADR-0033 §7). Phase 7's
   Windows launcher calls the same `start_scheduler`.
+- **Estimated profit moves with cost prices (ADR-0034, accepted).** Sales don't record cost
+  at the time of sale, so a past period's estimated profit changes when a cost price changes.
+  Labelled on every screen. **Trigger to revisit:** the owner finds it misleading or asks for
+  exact profit — recording cost at sale changes ADR-0016 and needs a grill session.
 - **Windows-only code paths are untested on this Linux machine:** DPAPI key encryption
   (`secret_store._dpapi`) and the `msvcrt` worker lock. Both are marked `pragma: no cover`
   and **must be exercised in Phase 7's Windows testing** before the installer ships. The
@@ -286,6 +291,17 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
 Design System 13 requires every intentional departure from a reference screenshot to
 be recorded here.
 
+- **Insights (Figure 6) — built on the mock, with these departures (session 27).** Profit
+  says *"At today's cost prices"* and how much of sales it covers (ADR-0034 §2) — the mock
+  shows a bare margin. The comparison line reads "12.3% more than same day last week" rather
+  than naming the weekday, and "Nothing to compare with" when last period had no sales, never
+  a percentage from zero. This week / This month show **sales by day** in place of busiest
+  hours. The mock's "View all 142" links to the Sales report. A line under the chart points to
+  the Sales report's by-hour table: the pale context bars (the prototype's literal colour, per
+  ADR-0006) measure 1.2:1 against the page, so the chart carries relief — hour labels, a
+  labelled peak, a hover/focus readout, and that table.
+- **Reports screen — no reference screenshot exists.** Established vocabulary: preset pills
+  and a custom date pair, summary tiles, one table per section, Download CSV and PDF.
 - **Messages screen (Phase 5) — no reference screenshot exists.** Built on the established
   vocabulary: a state panel (off / paused / on, with today's count against the cap), key,
   settings and test-send cards, and a filterable log. A Messages rail item for Admins, with
@@ -853,6 +869,48 @@ cashier; the log shows both messages sent.
 close with no real send possible yet, **the client chose to close Phase 5 now, with the first
 real send tracked under O-23** — rather than hold it open, or test it themselves first.
 
+## 4m. Phase 6 Definition of Done — checked 2026-09-15
+
+Development Specification, Phase 6 (no STOP AND ASK gate):
+
+- [x] **Step 1 — sales, inventory, low-stock, outstanding-credit, basic profit/loss reports.**
+  `services/reporting_service.py`: Sales, Estimated profit, Stock value, Low stock,
+  Outstanding credit.
+- [x] **Step 2 — dashboard summary.** Insights (Figure 6): sales with comparison, credit
+  outstanding, estimated profit, busiest hours / sales by day, sales by category, recent sales.
+- [x] **Step 3 — date-range filters, CSV/PDF export.** Presets + custom dates; every report
+  exports CSV and PDF from the same document as the screen.
+- [x] **Every report verified against known seeded data with hand-checkable totals.**
+  `test_reporting.py` — one scenario written out by hand in its docstring **before running**:
+  gross Rs 4,585, refunds Rs 880, net Rs 3,705, estimated cost Rs 3,030, profit Rs 435, margin
+  12.6%, coverage 93.5%, per-category profit summing to Rs 435, stock value Rs 11,970, low / out /
+  never-counted split, credit oldest-overdue. Two expectations in the first run were **my
+  arithmetic slips, not the app** (days overdue 6 → 5; paisa costs that the app rightly refuses)
+  and are recorded in the test.
+- [x] **Export verified to open and match on-screen figures.** CSV parsed back
+  (`test_csv_totals_equal_the_screen_totals`, `test_reports_routes::test_exports_match_the_screen`);
+  PDFs rendered to images and read: the sales PDF's net Rs 140,605 equals the screen's.
+- [x] **Required: empty ranges render cleanly.** `test_an_empty_period_is_calm_not_an_error`,
+  `test_reports_routes::test_an_empty_shop_renders_calmly`.
+- [x] **Required: date/timezone boundaries.** A sale at 00:30 Pakistan time (19:30 UTC the day
+  before) lands on the shop's new day (`test_a_sale_at_half_past_midnight_belongs_to_the_shops_new_day`);
+  Monday-start weeks and month ends in shop time (`test_presets_are_shop_time_calendar_ranges_with_monday_weeks`).
+- [x] **Required: performance on thousands of transactions.** 10,000 seeded sales: sales report
+  0.19 s, profit 0.04 s, busiest hours 0.07 s, under a 1 s budget. **It first measured 3.6 s**:
+  shop-time conversion read the timezone setting from the database once per sale — fixed by
+  resolving the zone once per report.
+- [x] **Manual spot-check against a tally.** The scenario above is the tally; the SQL cost
+  rounding is additionally checked against `money.line_total_for_quantity` at .5 boundaries.
+
+**Visual check (throwaway database, a seeded 71-sale day):** Insights matches Figure 6's layout;
+found and fixed on the screenshots — times with a leading zero ("09:56 PM"; now a shared
+Windows-safe `shop_clock`), a left-aligned Margin column, **"(ADR-0011)" / "(ADR-0025)" in
+report notes shown to the owner** (removed, with a test that no report says "ADR" or "paisa"),
+and in the PDF, headings misaligned over number columns and cut off ("WITH KNOWN…") —
+now aligned per column and wrapped.
+
+**Suite:** 497 tests, ruff clean, coverage 95% (reporting service 96%, routes 93%).
+
 ## 5. Edge case and test matrix
 
 Every case below must have a passing automated test before its owning phase can
@@ -1109,8 +1167,10 @@ This list grows as new cases are found.
       mechanically enforces ADR-0003 §1 (`services/` never imports Flask)
 
 ### Reports (Phase 6)
-- [ ] A date range with no data renders an empty state, not an error
-- [ ] Reports over a large dataset stay responsive
+- [x] A date range with no data renders an empty state, not an error
+      — `test_reporting::test_an_empty_period_is_calm_not_an_error`, `test_reports_routes::test_an_empty_shop_renders_calmly`
+- [x] Reports over a large dataset stay responsive
+      — `test_reporting::test_reports_stay_fast_on_ten_thousand_sales` (10,000 sales, < 1 s each)
 
 ### Local network and offline operation (Phase 7)
 - [ ] The server auto-starts correctly after a PC restart
@@ -1131,6 +1191,37 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-15 — Session 27: Phase 6 — Reports & Dashboard
+
+Read Phase 6 and Figure 6. Two things had no decision; asked: **who sees reports** (client:
+Admin only) and **how profit is computed**, given `sale_item` doesn't snapshot cost (client:
+today's cost prices, clearly labelled — recording cost at sale would change ADR-0016 and need
+a grill). Wrote [ADR-0034](adr/0034-phase-6-reporting-policy.md) before code, resolving O-10
+from the spec's own step 3. **Corrected the ADR before building:** its first draft said no
+sales are loaded into Python, but SQLite can't convert timezones, so shop-time buckets must read
+timestamp and amount — §11 now says so.
+
+**Built:** `reporting_service.py` (periods and comparisons in shop time; SQL aggregates with
+the per-line cost rounding done in integer SQL; five reports as one `ReportDoc` rendered to the
+screen, CSV and an A4 PDF), `routes/reports.py` (Insights, reports, exports; `report.view`),
+Insights and report templates, Insights in the rail and on the landing page, a read-only
+`Sale.customer` relationship (no migration), `clock.format_clock` / the `shop_clock` filter.
+Phase 2's stock-value tile moved to the money rounding rule so it matches the report (§12).
+
+**Chart:** loaded the dataviz guidance first; ran its palette validator on the two bar
+colours — its categorical checks don't apply to a one-hue emphasis chart (it says so), but its
+contrast warning does (1.2:1 for the context bars), so the chart has labels, a labelled peak, a
+hover/focus readout, and a by-hour table in the Sales report as relief.
+
+**Found by tests or screenshots and fixed:** the per-sale timezone lookup (3.6 s → 0.19 s on
+10,000 sales; the budget then tightened from 3 s to 1 s); leading-zero times; left-aligned
+margins; internal "ADR-…" references in owner-facing report notes; PDF headings misaligned and
+truncated. **My own slips, stated:** two wrong hand-calculated expectations (above); a
+seeding script that tried to sell past the Rs 10,000 credit limit — which the app correctly
+refused; assertions expecting an escaped apostrophe in literal template text (again).
+
+**Verification:** 497 tests, ruff clean, coverage 95%. DoD in §4m.
 
 ### 2026-09-15 — Session 26 (cont.): Phase 5 gate closed
 

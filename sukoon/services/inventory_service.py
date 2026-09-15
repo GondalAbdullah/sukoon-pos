@@ -21,7 +21,7 @@ from sukoon.models import (
     SaleItem,
     StockMovement,
 )
-from sukoon.services import settings_service
+from sukoon.services import money, settings_service
 
 # --- named errors, per ADR-0003 §5 --------------------------------------------
 
@@ -512,8 +512,11 @@ def catalog_summary() -> dict:
     products = list(
         db.session.scalars(db.select(Product).where(Product.is_active.is_(True)))
     )
+    # ADR-0034 §12: the money rule (half-up, whole rupees), so this tile and the stock
+    # value report can't disagree; unknown cost contributes nothing, never a guess
     stock_value_paisa = sum(
-        (p.cost_price_paisa or 0) * p.stock_quantity_milli // _MILLI for p in products
+        money.line_total_for_quantity(p.cost_price_paisa, max(p.stock_quantity_milli, 0))
+        for p in products if p.cost_price_paisa is not None
     )
     statuses = [compute_stock_status(p) for p in products]
     return {

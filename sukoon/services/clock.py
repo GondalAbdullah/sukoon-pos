@@ -56,3 +56,13 @@ def shop_month_bounds(year: int, month: int) -> tuple[datetime, datetime]:
     start = datetime(year, month, 1, tzinfo=zone)
     end = datetime(year + (month == 12), month % 12 + 1, 1, tzinfo=zone)
     return start.astimezone(UTC), end.astimezone(UTC)
+
+
+def format_clock(dt: datetime | None, *, with_date: bool = False) -> str:
+    """'9:56 PM' (or '5 Aug, 9:56 PM') in shop time — no leading zero, built by hand
+    because strftime's %-I isn't available on Windows."""
+    if dt is None:
+        return "—"
+    local = to_shop_time(dt)
+    clock_text = f"{local.hour % 12 or 12}:{local.minute:02d} {'AM' if local.hour < 12 else 'PM'}"
+    return f"{local.day} {local.strftime('%b')}, {clock_text}" if with_date else clock_text
