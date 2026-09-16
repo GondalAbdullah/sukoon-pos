@@ -13,7 +13,7 @@ work session, not just every phase.
 | **Phase** | **Phase 6 — Reports & Dashboard — functionally complete** (session 27, [ADR-0034](adr/0034-phase-6-reporting-policy.md); DoD §4m; no gate in the spec). **Phase 7 — Windows Packaging & Offline Installable App — next, opening with a scheduled `grill-with-docs` session.** Phase 5 closed 2026-09-15 (real send under O-23). |
 | **Status** | **Session 27:** Phase 6 built — Insights dashboard, five reports (sales, estimated profit, stock value, low stock, outstanding credit) with CSV and PDF exports, Admin only; profit estimated at today's cost prices with coverage stated; every figure checked against a hand-calculated scenario; 10,000-sale performance test. 497 tests. **Session 26:** Phase 5 built against ADR-0027…0033 in three parts — queue/consent/rules, Meta adapter/key store/scheduler, screens — 475 tests, and an end-to-end browser run where the real background worker in `python -m sukoon.run` sent a credit-sale notice by itself (fake provider). Three real bugs found by the tests and fixed (§6). **Session 25:** the Phase 5 `grill-with-docs` session ran on the session-24 proposal — 26 questions, 7 ADRs (0027–0033), O-20 resolved, O-18's trigger sharpened, O-23 opened for Meta facts that must be checked when the account exists. **Session 23:** Phase 4 built — customers with duplicate-number and in-person confirmation (ADR-0013), a single ledger writer that sales, refunds and payments all go through, full/partial/over-payments, credit limits with Admin approval at the till (ADR-0014), overdue flags (ADR-0015), month statements on shop time with an A4 PDF, the Khata screen, and a Khata picker replacing the till's raw customer ID. 363 tests pass; verified in real Chrome. **Session 22:** the client answered O-21/O-22 — shop timezone (ADR-0024) and stock limits at the till (ADR-0025) built; along the way found and fixed a latent bug (items created at the till could never be sold) and B9 (htmx swaps silently dropped every till error message). **Session 21:** a bug sweep driven by the developer's own walkthrough screenshots — 8 real bugs fixed and verified in a real browser (session 21 changelog), plus a plain-language field manual at `docs/field-manual.html` (untracked). Phase 3.5 built out sessions 13–19 (toolchain, Login, Till, Sale Complete, terminal ID, Stock, Refunds, landing page, htmx pass — §4i), then the Design System §13 DoD side-by-side (session 20, §4j) — fresh screenshots of every screen plus an actually-rendered receipt PDF against all 9 reference images, not a documentation exercise. Found and fixed three real issues (two undersized/no-hover buttons, a receipt footer line that ran off the page, fixed with real word-wrapping + regression tests) and restored two missing Login details. One genuine tension between ADR-0006 (prototype pixel-fidelity) and the Design System's written 44px touch-target rule was put to the client rather than picked unilaterally: **keep the prototype-exact stepper size, no change** — recorded with rationale. **Phase 3.5 is now formally closed.** `ruff` clean, **245 tests green, 95% coverage**. |
 | **Last session** | 2026-09-15 (session 28) |
-| **Next action** | **The client/developer starts the Phase 7 grill:** `/grill-with-docs docs/proposals/phase-7-packaging.md` (human-invoked). The proposal (session 28) lists what's settled, six problems nothing in the project had raised — no way to build or test Windows here, auto-start-on-login leaving tills dead after a reboot, closing the window stopping the shop, the dev server shipping, no first-run account creation, USB printers on Windows — and twelve decisions with recommendations, including the spec's 🛑 gate items (database location, backup location, auto-start default). **No Phase 7 code until its ADRs are Accepted.** Before WhatsApp is switched on in the shop: O-23. |
+| **Next action** | ~~**The client/developer starts the Phase 7 grill:**~~ **DONE 2026-09-17 (session 30) — ADRs 0035–0039 Accepted. Next: build Phase 7 in the order ADR-0038 §6 sets out, starting with the Waitress launcher, the boot task and the first-run setup screen.** Superseded text: `/grill-with-docs docs/proposals/phase-7-packaging.md` (human-invoked). The proposal (session 28) lists what's settled, six problems nothing in the project had raised — no way to build or test Windows here, auto-start-on-login leaving tills dead after a reboot, closing the window stopping the shop, the dev server shipping, no first-run account creation, USB printers on Windows — and twelve decisions with recommendations, including the spec's 🛑 gate items (database location, backup location, auto-start default). **No Phase 7 code until its ADRs are Accepted.** Before WhatsApp is switched on in the shop: O-23. |
 
 ## 2. Decisions made so far
 
@@ -53,6 +53,11 @@ work session, not just every phase.
 | [0032](adr/0032-payment-receipt-message.md) | **Scope addition:** a payment receipt message (48h age limit, approved wording); refunds send nothing | **Accepted** |
 | [0033](adr/0033-whatsapp-operational-safety.md) | Access key DPAPI-encrypted, set by an Admin in Sukoon, never in the DB (first answer — a developer config file — reversed over the ADR-0027 conflict); starts off, off = nothing queued; daily cap 200 pauses; Admin Messages screen + one status line per Khata; one-worker lock + atomic claim; a crash mid-send is never resent ('outcome unknown'); Admin Send test | **Accepted** |
 | [0034](adr/0034-phase-6-reporting-policy.md) | Reports and Insights are Admin-only (`report.view`); profit is **estimated at today's cost prices**, always labelled, with lines lacking a cost price excluded and coverage stated (client's choices). Proposed defaults: Today / This week (Monday start) / This month + custom dates in shop time (**resolves O-10**); comparison to the same point last period; refunds counted when approved; stock and credit point-in-time; screen = CSV = PDF from one document; stock value uses the money rounding rule | **Accepted** |
+| [0035](adr/0035-how-sukoon-starts-on-windows.md) | Sukoon's server starts **at boot**, not on login, as a background task under a **dedicated account with a stored password** — which is what keeps user-scope DPAPI working (measured: it fails `0x5` under a credential-less logon). Window separate from server; Waitress ships, never the dev server | **Accepted** |
+| [0036](adr/0036-where-the-shops-data-lives.md) | `C:\ProgramData\Sukoon\`, fixed and not configurable; ACLs grant the Sukoon account only; **uninstall keeps the data** | **Accepted** |
+| [0037](adr/0037-offsite-backup-and-restore.md) | Encrypted SQLite snapshot to object storage **every 15 min** in trading hours + closing + pre-upgrade; printed **recovery sheet**; **weekly self-check**; full restore drill before handover. Neon mirror and Litestream both rejected, with reasons. **Resolves O-24** | **Accepted** |
+| [0038](adr/0038-packaging-installation-and-delivery.md) | PyInstaller + Inno Setup + pywebview; **one-time setup screen** creates the first Admin; generated `SECRET_KEY`; no sample data; **two supported network setups** — router-reserved address, or a fixed Windows address for a shop with no usable router; **no auto-update**; **unsigned** installer; clean-machine test by snapshot-and-revert, with its weakness recorded | **Accepted** |
+| [0039](adr/0039-receipt-printing-on-windows.md) | Print through the **Windows spooler**, not raw USB; the printer must be **machine-installed** or the background account may not see it (**untested — O-25**); failures visible, never blocking a sale | **Accepted** |
 
 (Historical rule, now satisfied: no ADR could move to **Accepted** until the Phase 0
 grill session had run. It ran on 2026-09-10; ADR-0017 onward are ordinary Phase-N
@@ -149,21 +154,24 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   operator's SIM inactivity rule (ADR-0027). Any fact that turns out false reopens the ADR
   that relied on it.
 
-- **O-24 — Offsite backup: the client asked for the local database to be copied to Neon (hosted Postgres).**
-  Raised by the client 2026-09-16 (session 29). **The need is accepted and D7 as first written does not
-  meet it** — every backup it proposes sits on the shop PC, so theft, fire, a dead disk or ransomware
-  loses the books. **What is open is the destination and the mechanism, not the need.** Written up as
-  **D7a** and **D7b** in `docs/proposals/phase-7-packaging.md` for the Phase 7 grill, with the
-  recommendation: an **encrypted SQLite backup uploaded to object storage** (hourly in trading hours,
-  plus one at close), not a row-by-row mirror into Postgres — a mirror duplicates the schema forever
-  (every migration written twice), needs a sync engine nobody has specified, makes the restore path a
-  converter that is exercised once in a disaster, and fails silently by drifting. Neon as the *live*
-  database is refused outright: it contradicts [ADR-0001](adr/0001-technology-stack.md)'s offline-first
-  requirement — the shop must keep selling with no internet. **Also unanswered (D7b): may the shop's
-  records — customer names, numbers, debts — be stored outside Pakistan at all, encrypted?** That is the
-  client's decision to record, not the developer's to assume. **No code until an ADR is Accepted.**
-  This is a 🛑 gate item (the spec names the backup location as painful to change after real data exists).
-
+- ~~**O-24 — Offsite backup: the client asked for the local database to be copied to Neon.**~~
+  **RESOLVED 2026-09-17** → [ADR-0037](adr/0037-offsite-backup-and-restore.md): an encrypted
+  SQLite snapshot to object storage every 15 minutes in trading hours, a printed recovery sheet,
+  a weekly self-check and a full restore drill. Neon's row mirror lost on schema duplication and
+  a converter-shaped restore path; **Litestream** — the client's first choice, and the better
+  design — lost only to its own release notes (Windows not officially supported), which is why
+  it was checked rather than assumed.
+- **O-25 — The shop's receipt printer model is unknown.** The client says it is a **USB thermal
+  printer** ([ADR-0039](adr/0039-receipt-printing-on-windows.md)); the make and model are still
+  needed, and with them the one genuinely untested assumption in the printing path: **whether a
+  machine-installed printer is visible to Sukoon's background account**. If it is not, receipts
+  print while the owner is signed in and silently fall back to PDF when they are not.
+  **Owner: the developer, with the shop. Trigger: before the printing work in Phase 7 is built.**
+- **O-26 — Storage provider, account and cost for the offsite backup are not chosen.** ADR-0037
+  fixes the *mechanism* (S3-compatible object storage, encrypted client-side) but not the
+  provider, its region, its price, or whose card pays for it after handover. Same question as
+  the WhatsApp account in ADR-0027: it belongs to the owner, not the developer.
+  **Trigger: before the backup upload is built.**
 - ~~**O-21 — Every timestamp displays in UTC, including on receipts.**~~ **RESOLVED 2026-09-14** → [ADR-0024](adr/0024-shop-timezone.md): fixed shop timezone (client's choice), default Asia/Karachi; the invoice year follows it too. Stored UTC
   (correct — `models/base.py::utcnow`), but rendered with a bare `strftime`: stock
   movement history, the pending-refunds list, and the **printed/PDF receipt** all show
@@ -276,7 +284,15 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   shows it — it does not corrupt or half-save the key. Full suite on Windows: **494 passed, 2 failed, 1 skipped**
   — and **both failures are in the tests, not in Sukoon** (see the two entries below). The
   installer itself is still unbuilt and untested (Phase 7).
-- **Two tests fail on Windows for test-side reasons — fix before Phase 7 closes:**
+- **Client-reported facts the Phase 7 decisions rest on, not verified by the developer:** the
+  shop is on **fixed broadband** (which is why ADR-0037 keeps a 15-minute backup cadence at
+  ~5 GB/month), the tills are wired **Ethernet** into a router whose settings can be reached
+  (ADR-0038 §10), and the receipt printer is **USB** (O-25). If any turns out otherwise, the ADR
+  that relied on it is reopened.
+- ~~**Two tests fail on Windows for test-side reasons — fix before Phase 7 closes:**~~
+  **FIXED 2026-09-17** (session 30, commit `d364359`): the lock test now waits to a deadline
+  instead of racing Windows' asynchronous release, and every test that reads a project file says
+  `encoding="utf-8"`. Windows: 496 passed, 1 skipped. Original description:
   1. `test_scheduler::test_a_crashed_holder_does_not_leave_a_stale_lock` re-acquires the lock
      immediately after `child.kill()`. Windows releases a terminated process's file locks
      *asynchronously*, so the check races; a measured probe re-acquired 0.1 s later. The test
@@ -1231,6 +1247,51 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-17 — Session 30: the Phase 7 grill — 11 questions, 5 ADRs, and a fact that killed the best option
+
+**The two Windows test failures fixed first** (commit `d364359`), and with them a correction:
+session 29's claim that both Windows-only paths "work" was too broad. The `msvcrt` lock does.
+**DPAPI is conditional** — measured with `CryptProtectData` directly, user-scope encryption
+fails `0x5` from a credential-less logon and succeeds the moment the account is signed in at the
+console. Session 29 passed only because the developer happened to be signed in at the time.
+Linux 497 passed; Windows 496 passed, 1 skipped.
+
+**The grill ran on `docs/proposals/phase-7-packaging.md`** — 11 questions, one at a time, and
+**five ADRs Accepted (0035–0039)**, covering all three 🛑 gate items.
+
+- **0035 — how Sukoon starts.** Boot-time background task under a dedicated account with a
+  **stored password**, chosen over start-on-login (tills dead after a 3 a.m. reboot) and over a
+  passwordless task (**which the measurement above says cannot read the WhatsApp key**). How it
+  starts turned out to decide whether WhatsApp survives a reboot — the failure being the quiet
+  kind, where only messages stop.
+- **0036 — where the data lives.** `C:\ProgramData\Sukoon\`, fixed, uninstall keeps it.
+- **0037 — backups (resolves O-24).** The client asked whether a **cloud database based on
+  SQLite** exists. It does — Turso/libSQL, and **Litestream** for replication — and Litestream
+  was chosen in the session as the better design. **Then it was checked**: its own current
+  release says Windows is *not* an officially supported platform, so it was withdrawn rather
+  than adopted on an unsupported build. Settled on an **encrypted snapshot every 15 minutes**,
+  a **printed recovery sheet** held off-premises, a **weekly self-check** that proves a backup
+  can actually be decrypted and opened, and a full restore drill before handover. Measured to
+  ground the cadence: **a shop-year is 13.1 MB on disk, 3.1 MB gzipped** (43,800 sales,
+  175,200 line items) ⇒ ~170 MB/day, ~5 GB/month at year-end.
+- **0038 — packaging and delivery.** One-time setup screen creates the first Admin (an installed
+  copy previously had *no way* to make an account); generated `SECRET_KEY`; no sample data ever;
+  two supported network setups (router-reserved, or a fixed Windows address where there is no
+  usable router — raised by the developer in the session, since "every shop has a router" was an
+  assumption); no auto-update; unsigned installer. The clean-machine test is
+  snapshot-and-revert — **the weaker option, chosen for disk space, with its weakness and two
+  mitigations written into the ADR rather than glossed**.
+- **0039 — printing.** The client's "USB thermal printer" collided with 0035: a printer
+  installed under the owner's login **may be invisible to the background account**, so receipts
+  would print while the owner is signed in and silently fall back to PDF when they aren't. Print
+  through the Windows spooler, install the printer machine-wide, and verify — **O-25**.
+
+**Opened:** O-25 (printer model, and the machine-installed printer question), O-26 (storage
+provider, region, cost and whose account). **Recorded as client-reported rather than verified:**
+fixed broadband, wired Ethernet with router access, USB printer.
+
+**No Phase 7 code written** — the grill's own rule. Next session starts on ADR-0038 §6.
 
 ### 2026-09-16 — Session 29: a Windows VM, the Windows-only code finally run, and the client's offsite-backup request
 

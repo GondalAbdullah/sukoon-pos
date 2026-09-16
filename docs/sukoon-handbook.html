@@ -1,0 +1,999 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Sukoon Handbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --paper:#FAF9F6; --surface:#FFFFFF; --sunk:#F2F1EC;
+    --ink:#1C1C1E; --inkSoft:#48484D; --muted:#7E7D78; --faint:#ADACA6;
+    --hairline:#E5E3DD; --rule:#D5D3CB;
+    --teal:#0E6B57; --teal-deep:#0A4F41; --teal-tint:#E7F3EF; --teal-edge:#CFE6DC;
+    --amber:#94691F; --amber-tint:#FAF2E1; --amber-edge:#E8D8B4;
+    --coral:#B14A34; --coral-tint:#FBEDE9; --coral-edge:#EED2C8;
+    --sky:#35619F; --sky-tint:#EBF1FA; --sky-edge:#CFDDF1;
+    --shadow: 0 1px 1px rgba(0,0,0,.02), 0 8px 22px rgba(0,0,0,.045);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:#141416; --surface:#1C1C20; --sunk:#232328;
+      --ink:#EFEEEA; --inkSoft:#C6C5C0; --muted:#97968F; --faint:#6D6C68;
+      --hairline:#2C2C31; --rule:#3A3A40;
+      --teal:#5BC0A3; --teal-deep:#7AD3B8; --teal-tint:#122F29; --teal-edge:#1D443A;
+      --amber:#D9AB5E; --amber-tint:#2E2618; --amber-edge:#4A3D22;
+      --coral:#E4917A; --coral-tint:#2F1E1A; --coral-edge:#4C2E26;
+      --sky:#88ADE6; --sky-tint:#1A2130; --sky-edge:#2A3A55;
+      --shadow: 0 1px 1px rgba(0,0,0,.3), 0 8px 22px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:#141416; --surface:#1C1C20; --sunk:#232328;
+    --ink:#EFEEEA; --inkSoft:#C6C5C0; --muted:#97968F; --faint:#6D6C68;
+    --hairline:#2C2C31; --rule:#3A3A40;
+    --teal:#5BC0A3; --teal-deep:#7AD3B8; --teal-tint:#122F29; --teal-edge:#1D443A;
+    --amber:#D9AB5E; --amber-tint:#2E2618; --amber-edge:#4A3D22;
+    --coral:#E4917A; --coral-tint:#2F1E1A; --coral-edge:#4C2E26;
+    --sky:#88ADE6; --sky-tint:#1A2130; --sky-edge:#2A3A55;
+    --shadow: 0 1px 1px rgba(0,0,0,.3), 0 8px 22px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--paper); color: var(--ink);
+    font-family: Newsreader, Georgia, 'Times New Roman', serif;
+    font-size: 17.5px; line-height: 1.62;
+    padding-inline: 20px; padding-block: 0 80px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1240px; margin: 0 auto; }
+  .layout { display: grid; grid-template-columns: minmax(0,1fr); }
+  @media (min-width: 1120px) { .layout { grid-template-columns: 220px minmax(0,1fr); gap: 56px; align-items: start; } }
+  .col { max-width: 760px; min-width: 0; }
+  .ui { font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif; }
+  .mono, code { font-family: 'JetBrains Mono', ui-monospace, Consolas, monospace; }
+  code { font-size: .8em; background: var(--sunk); color: var(--inkSoft); padding: 1px 6px; border-radius: 5px; word-break: break-word; }
+  a { color: var(--teal); text-underline-offset: 3px; }
+  a:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; border-radius: 4px; }
+  p { margin: 0 0 14px; }
+  b, strong { font-weight: 600; }
+
+  /* masthead */
+  .mast { border-bottom: 1px solid var(--rule); padding-block: 56px 28px; margin-bottom: 40px; }
+  .kicker { font-family: Inter, system-ui, sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; color: var(--teal); display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+  .kicker::after { content: ""; flex: 1; height: 1px; background: var(--teal-edge); }
+  h1 { font-size: clamp(38px, 7vw, 62px); font-weight: 500; line-height: 1.02; letter-spacing: -.022em; margin: 0 0 18px; text-wrap: balance; }
+  h1 em { color: var(--teal); }
+  .standfirst { font-size: 19.5px; color: var(--inkSoft); max-width: 64ch; margin: 0; }
+  .facts { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 24px; font-family: Inter, system-ui, sans-serif; font-size: 12.5px; color: var(--muted); }
+  .facts b { color: var(--inkSoft); font-weight: 600; }
+
+  /* index */
+  nav.index { display: none; }
+  @media (min-width: 1120px) {
+    nav.index { display: block; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 28px); max-height: calc(100vh - 56px); overflow: auto; padding-top: 56px; font-family: Inter, system-ui, sans-serif; font-size: 12.5px; }
+    nav.index .ix-head { font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); padding: 0 10px 8px; }
+    nav.index ol { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+    nav.index a { display: flex; gap: 8px; padding: 5px 10px; border-radius: 8px; color: var(--muted); text-decoration: none; font-weight: 500; border-left: 2px solid transparent; }
+    nav.index a span { color: var(--faint); font-variant-numeric: tabular-nums; width: 1.4em; }
+    nav.index a:hover { color: var(--teal); background: var(--teal-tint); border-left-color: var(--teal); }
+  }
+
+  /* parts */
+  section.part { margin-bottom: 76px; scroll-margin-top: 24px; }
+  .part-no { font-family: Inter, system-ui, sans-serif; font-size: 12.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--teal); margin: 0 0 6px; }
+  h2 { font-size: clamp(28px, 4.8vw, 38px); font-weight: 500; letter-spacing: -.02em; line-height: 1.12; margin: 0 0 14px; text-wrap: balance; }
+  .intro { font-size: 18.5px; color: var(--inkSoft); max-width: 62ch; margin: 0 0 30px; }
+  h3 { font-size: 23px; font-weight: 600; letter-spacing: -.012em; line-height: 1.25; margin: 44px 0 10px; text-wrap: balance; scroll-margin-top: 24px; }
+  h4 { font-family: Inter, system-ui, sans-serif; font-size: 11.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 24px 0 8px; }
+  ul.clean { margin: 0 0 16px; padding-left: 1.1em; }
+  ul.clean li { margin-bottom: 6px; }
+  ul.clean li::marker { color: var(--teal); }
+
+  /* feature card: what / how / why */
+  .feature { background: var(--surface); border: 1px solid var(--hairline); border-radius: 18px; box-shadow: var(--shadow); padding: 26px 28px; margin: 18px 0 26px; }
+  .feature > h3 { margin-top: 0; }
+  .feature .tagline { color: var(--inkSoft); margin-bottom: 18px; }
+  .whw { display: grid; grid-template-columns: minmax(0,1fr); gap: 0; border-top: 1px solid var(--hairline); }
+  .whw > div { padding: 16px 0; border-bottom: 1px solid var(--hairline); display: grid; grid-template-columns: 92px minmax(0,1fr); gap: 16px; }
+  .whw > div:last-child { border-bottom: 0; padding-bottom: 0; }
+  .whw .k { font-family: Inter, system-ui, sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--teal); padding-top: 4px; }
+  .whw .k.why { color: var(--amber); }
+  .whw .k.rules { color: var(--coral); }
+  .whw p:last-child, .whw ul:last-child { margin-bottom: 0; }
+  @media (max-width: 560px) { .whw > div { grid-template-columns: minmax(0,1fr); gap: 4px; } .feature { padding: 20px 18px; } }
+  .adr { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+
+  /* callouts */
+  .note { border-radius: 14px; padding: 16px 20px; margin: 20px 0; border: 1px solid var(--teal-edge); background: var(--teal-tint); }
+  .note.amber { border-color: var(--amber-edge); background: var(--amber-tint); }
+  .note.coral { border-color: var(--coral-edge); background: var(--coral-tint); }
+  .note .nh { font-family: Inter, system-ui, sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; display: block; margin-bottom: 6px; color: var(--teal-deep); }
+  .note.amber .nh { color: var(--amber); }
+  .note.coral .nh { color: var(--coral); }
+  .note p:last-child { margin-bottom: 0; }
+
+  /* example box that looks like the app's own output */
+  .sample { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; line-height: 1.55; background: var(--sunk); border-radius: 12px; padding: 14px 16px; color: var(--inkSoft); white-space: pre-wrap; margin: 12px 0 16px; overflow-x: auto; }
+
+  /* tables */
+  .tablewrap { overflow-x: auto; margin: 14px 0 22px; border: 1px solid var(--hairline); border-radius: 14px; background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-family: Inter, system-ui, sans-serif; font-size: 13.5px; }
+  th { text-align: left; font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 11px 14px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--hairline); vertical-align: top; color: var(--inkSoft); }
+  tr:last-child td { border-bottom: 0; }
+  td.c, th.c { text-align: center; }
+  td:first-child { color: var(--ink); }
+  .yes { color: var(--teal); font-weight: 700; }
+  .no { color: var(--faint); }
+  .pill { display: inline-block; font-family: Inter, system-ui, sans-serif; font-size: 10.5px; font-weight: 700; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+  .pill.done { background: var(--teal-tint); color: var(--teal-deep); }
+  .pill.next { background: var(--amber-tint); color: var(--amber); }
+  .pill.later { background: var(--sunk); color: var(--muted); }
+
+  /* glossary */
+  .gloss-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 0 0 22px; }
+  .gloss-tools label { font-family: Inter, system-ui, sans-serif; font-size: 12px; font-weight: 600; color: var(--muted); }
+  #gloss-filter { font-family: Inter, system-ui, sans-serif; font-size: 15px; padding: 10px 14px; border-radius: 12px; border: 1.5px solid var(--teal-edge); background: var(--surface); color: var(--ink); width: min(360px, 100%); }
+  #gloss-count { font-family: Inter, system-ui, sans-serif; font-size: 12px; color: var(--faint); }
+  .gloss-group { margin-bottom: 30px; }
+  .gloss-head { font-family: Inter, system-ui, sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); padding-bottom: 9px; border-bottom: 1px solid var(--hairline); margin-bottom: 16px; }
+  dl { margin: 0; display: grid; gap: 16px; }
+  dt { font-family: Inter, system-ui, sans-serif; font-size: 14.5px; font-weight: 700; color: var(--ink); margin-bottom: 3px; }
+  dt .alt { font-weight: 500; color: var(--teal); }
+  dd { margin: 0; color: var(--inkSoft); font-size: 16.5px; }
+  dd .eg { display: block; margin-top: 5px; font-size: 15px; color: var(--muted); padding-left: 12px; border-left: 2px solid var(--teal-edge); }
+
+  /* steps of the day */
+  .day { counter-reset: step; display: grid; gap: 0; border-top: 1px solid var(--rule); margin-top: 8px; }
+  .step { display: grid; grid-template-columns: 76px minmax(0,1fr); gap: 0 18px; padding: 20px 0; border-bottom: 1px solid var(--hairline); }
+  .step .when { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12.5px; color: var(--teal); padding-top: 5px; }
+  .step h3 { margin: 0 0 6px; font-size: 20px; }
+  .step p:last-child { margin-bottom: 0; }
+  @media (max-width: 520px) { .step { grid-template-columns: minmax(0,1fr); } }
+
+  /* diagrams */
+  .diagram { background: var(--surface); border: 1px solid var(--hairline); border-radius: 16px; padding: 18px; margin: 18px 0 8px; overflow-x: auto; }
+  .diagram pre.mermaid { margin: 0; background: transparent; text-align: center; font-family: Inter, system-ui, sans-serif; }
+  .caption { font-family: Inter, system-ui, sans-serif; font-size: 12.5px; color: var(--muted); margin: 0 0 22px; }
+
+  /* decisions register */
+  details.adrs { border-top: 1px solid var(--hairline); padding: 12px 0; }
+  details.adrs:last-of-type { border-bottom: 1px solid var(--hairline); }
+  details.adrs summary { cursor: pointer; font-family: Inter, system-ui, sans-serif; font-size: 14.5px; font-weight: 700; list-style: none; display: flex; justify-content: space-between; gap: 12px; }
+  details.adrs summary::-webkit-details-marker { display: none; }
+  details.adrs summary::after { content: "+"; color: var(--teal); font-weight: 600; }
+  details.adrs[open] summary::after { content: "–"; }
+  .adr-list { display: grid; gap: 12px; margin-top: 14px; }
+  .adr-row { display: grid; grid-template-columns: 58px minmax(0,1fr); gap: 12px; }
+  .adr-row .n { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12.5px; color: var(--teal); padding-top: 3px; }
+  .adr-row b { font-family: Inter, system-ui, sans-serif; font-size: 14px; }
+  .adr-row div { font-size: 16px; color: var(--inkSoft); }
+
+  footer { border-top: 1px solid var(--rule); padding-top: 22px; font-family: Inter, system-ui, sans-serif; font-size: 12.5px; color: var(--muted); }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+<header class="mast">
+  <div class="kicker">Al-Rehman General Store · Sukoon · Handbook</div>
+  <h1>Everything Sukoon does, and <em>why</em></h1>
+  <p class="standfirst">A complete guide for someone who has never worked in a shop or on a point-of-sale system: the business behind it, the words shopkeepers use, a full day's workflow, every feature built so far with the reasoning behind each, and how the software is put together underneath.</p>
+  <div class="facts">
+    <span><b>Built</b> Phases 0–6 of 8</span>
+    <span><b>Decisions recorded</b> 34</span>
+    <span><b>Automated tests</b> 497</span>
+    <span><b>As of</b> 16 September 2026</span>
+  </div>
+</header>
+
+<div class="layout">
+<nav class="index" aria-label="Contents">
+  <div class="ix-head">Contents</div>
+  <ol>
+    <li><a href="#shop"><span>1</span>The shop and the problem</a></li>
+    <li><a href="#words"><span>2</span>The words of the trade</a></li>
+    <li><a href="#day"><span>3</span>A day at the shop</a></li>
+    <li><a href="#people"><span>4</span>People and permissions</a></li>
+    <li><a href="#features"><span>5</span>Every feature, explained</a></li>
+    <li><a href="#tech"><span>6</span>How it's built</a></li>
+    <li><a href="#process"><span>7</span>How the project is run</a></li>
+    <li><a href="#decisions"><span>8</span>All 34 decisions</a></li>
+    <li><a href="#limits"><span>9</span>Open items and limits</a></li>
+    <li><a href="#techwords"><span>10</span>Technical words</a></li>
+  </ol>
+  <div class="ix-head">Features</div>
+  <ol>
+    <li><a href="#f-signin">Sign-in and accounts</a></li>
+    <li><a href="#f-catalogue">Catalogue</a></li>
+    <li><a href="#f-barcodes">Barcodes and labels</a></li>
+    <li><a href="#f-stock">Stock</a></li>
+    <li><a href="#f-till">The till</a></li>
+    <li><a href="#f-receipts">Receipts</a></li>
+    <li><a href="#f-refunds">Refunds</a></li>
+    <li><a href="#f-khata">Khata</a></li>
+    <li><a href="#f-whatsapp">WhatsApp messages</a></li>
+    <li><a href="#f-insights">Insights and reports</a></li>
+    <li><a href="#f-time">Shop time</a></li>
+  </ol>
+</nav>
+
+<div class="col">
+
+<!-- ======================================================================= 1 -->
+<section class="part" id="shop">
+  <p class="part-no">Part 1</p>
+  <h2>The shop and the problem</h2>
+  <p class="intro">Before any feature makes sense, you need a picture of the place it runs in. Sukoon was not designed for "a store" in the abstract. It was designed for one particular kind of shop.</p>
+
+  <h3>What Al-Rehman General Store is</h3>
+  <p>A <b>general store</b>, called a <b>kiryana</b> store in Pakistan, is the neighbourhood shop that sells everyday things: flour (atta), rice, lentils (daal), cooking oil and ghee, milk and yogurt, soap, biscuits, cold drinks. It is usually run by the owner with one or two helpers behind a counter, and customers ask for things rather than walking aisles.</p>
+  <p>Four facts about this kind of shop shaped almost every design decision in Sukoon:</p>
+  <ul class="clean">
+    <li><b>Two kinds of goods.</b> Some things come in sealed packs you count (a bottle of oil). Others are scooped from a sack and weighed (1.5 kg of atta). The software has to handle both at the same counter.</li>
+    <li><b>Two kinds of customers.</b> Most people pay on the spot and leave (walk-in customers). But trusted regulars take goods now and pay later, and the shop keeps their account in a <b>Khata</b>, a credit book. Losing track of who owes what is one of the biggest real risks to a small shop's money.</li>
+    <li><b>Unreliable internet and power.</b> The shop cannot stop selling because the internet is down. So everything except WhatsApp messages works completely offline, on one PC inside the shop.</li>
+    <li><b>Small staff, high trust, real temptation.</b> A cashier handles cash all day. The system has to make honest mistakes easy to catch and dishonest ones hard to hide, without insulting good staff. That's why some actions (refunds, price changes) need the owner's approval.</li>
+  </ul>
+
+  <h3>What the shop needs software for</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Problem without software</th><th>What Sukoon does about it</th></tr></thead>
+    <tbody>
+      <tr><td>Adding up bills by hand; wrong change under pressure</td><td>The till totals every sale and works out the change</td></tr>
+      <tr><td>Not knowing what's on the shelf until it runs out</td><td>Every item's stock goes down as it sells; low and out-of-stock items are flagged</td></tr>
+      <tr><td>Goods going missing with no record</td><td>Every stock change has a reason and a person's name on it</td></tr>
+      <tr><td>The credit book gets lost, smudged or argued about</td><td>Each Khata has a ledger of every purchase and payment, with printable statements</td></tr>
+      <tr><td>Customers forget what they owe</td><td>WhatsApp messages after purchases and payments, and monthly statements</td></tr>
+      <tr><td>The owner doesn't know if the shop made money today</td><td>The Insights dashboard: today's sales, estimated profit, credit outstanding</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>What Sukoon is, in one paragraph</h3>
+  <p>Sukoon is a <b>point-of-sale</b> (POS) system: the software behind the counter where sales happen. Around it sit <b>inventory</b> (stock tracking), <b>credit customer management</b> (Khata), <b>customer messaging</b> (WhatsApp) and <b>reports</b>. It runs on one Windows PC in the shop. Other counters (tills) in the shop simply open it in a web browser over the shop's local network. No data leaves the shop except the WhatsApp messages.</p>
+  <p>"Sukoon" is an Urdu word meaning <i>peace of mind</i>, which is exactly what the owner should feel about the numbers.</p>
+</section>
+
+<!-- ======================================================================= 2 -->
+<section class="part" id="words">
+  <p class="part-no">Part 2</p>
+  <h2>The words of the trade</h2>
+  <p class="intro">Every word you'll see on Sukoon's screens and in its documents, grouped by where you meet them. These aren't software jargon. Most are how shopkeepers have talked for generations, which is exactly why the app uses them.</p>
+
+  <div class="gloss-tools">
+    <label for="gloss-filter">Find a word</label>
+    <input type="search" id="gloss-filter" placeholder="e.g. khata, paisa, restock" autocomplete="off">
+    <span id="gloss-count" aria-live="polite"></span>
+  </div>
+
+  <div class="gloss-group">
+    <div class="gloss-head">At the counter</div>
+    <dl>
+      <div><dt>Point of sale (POS)</dt><dd>The place where a sale is completed, and by extension the software used there. In Sukoon, the <b>Till</b> screen is the POS.</dd></div>
+      <div><dt>Till <span class="alt">· terminal · counter</span></dt><dd>Historically the cash drawer; now the counter plus the computer or browser at it. A shop can have several. Each till names itself once ("Till 1", "Till 2") so every sale records which counter rang it.<span class="eg">When Rs 400 is missing at night, the till name tells you which counter to look at.</span></dd></div>
+      <div><dt>Ring up</dt><dd>To enter a customer's items and take their payment: the whole job of the till.</dd></div>
+      <div><dt>Cart</dt><dd>The items scanned for the current customer, before they've paid. Nothing is saved to the books until the sale is completed; until then it's a scratchpad that lives in the browser session.</dd></div>
+      <div><dt>Walk-in customer</dt><dd>Someone who pays now and leaves: no name, no account. The default for every sale, because it's most of them.</dd></div>
+      <div><dt>Cash received <span class="alt">· tendered</span></dt><dd>The money the customer physically hands over, e.g. a Rs 2,000 note for a Rs 1,700 bill.</dd></div>
+      <div><dt>Change</dt><dd>Cash received minus the total: Rs 300 in that example. Sukoon works it out.</dd></div>
+      <div><dt>Exact <span class="alt">· quick amounts</span></dt><dd>The shortcut buttons under "Cash received": <b>Exact</b> (no change needed), then the next round Rs 100 / 500 / 1,000 / 5,000, meaning the notes people really carry. Duplicates are removed.<span class="eg">A Rs 3,470 bill offers Exact · Rs 3,500 · Rs 4,000.</span></dd></div>
+      <div><dt>Invoice number</dt><dd>The permanent number of a completed sale, like <code>INV-2026-0001</code>. Never skipped and never reused, even with two tills selling at the same instant. It restarts at 0001 each year. A gap-free sequence is what makes the books auditable.</dd></div>
+      <div><dt>Receipt</dt><dd>The printed slip the customer takes: shop name, items, total, payment, change, invoice number, till name and time.</dd></div>
+      <div><dt>Subtotal / total</dt><dd>Subtotal is the goods added up; total is what's owed after discounts. In Sukoon they are always equal, because discounts were deliberately left out of version one.</dd></div>
+    </dl>
+  </div>
+
+  <div class="gloss-group">
+    <div class="gloss-head">Goods and stock</div>
+    <dl>
+      <div><dt>Catalogue</dt><dd>The list of everything the shop sells, whether or not any is on the shelf right now. An out-of-stock item stays in the catalogue.</dd></div>
+      <div><dt>Product</dt><dd>One entry in the catalogue: a name, a selling price, and optionally a cost price, category, barcodes and low-stock threshold.</dd></div>
+      <div><dt>Sealed pack goods</dt><dd>Items sold as whole countable units: a bottle, a tin, a packet. Quantities are whole numbers (1, 2, 3).</dd></div>
+      <div><dt>Loose goods <span class="alt">· weighed goods</span></dt><dd>Items scooped and weighed at the counter: atta, rice, daal, sugar. Quantities can be fractions (1.5 kg).</dd></div>
+      <div><dt>Unit label</dt><dd>What one of a product is, for reading: <code>bottle</code>, <code>kg</code>, <code>packet</code>, <code>unit</code>.</dd></div>
+      <div><dt>Selling price / cost price</dt><dd>Selling price is what the customer pays. Cost price is what the shop paid the supplier. The gap between them is the shop's margin. The cashier often doesn't know the cost price, so it's optional.</dd></div>
+      <div><dt>Category</dt><dd>A group for organising the catalogue: "Groceries & Grains", "Cooking Oils & Ghee". Used in reports and to build SKUs.</dd></div>
+      <div><dt>Stock level</dt><dd>How many of a product are physically in the shop right now. Sukoon never lets it go below zero.</dd></div>
+      <div><dt>Stock in</dt><dd>Goods arriving, usually a supplier's delivery. Raises the stock level.</dd></div>
+      <div><dt>Stock out</dt><dd>Goods leaving for any reason other than a sale: breakage, expiry, theft, the owner taking some home. Lowers the level. Kept separate from sales so a loss never looks like a sale.</dd></div>
+      <div><dt>Correct count</dt><dd>Setting the stock level to what's actually counted on the shelf, when the numbers have drifted. Sukoon works out and records the difference.</dd></div>
+      <div><dt>Stock movement <span class="alt">· audit trail</span></dt><dd>A permanent record of one change to a product's stock: when, what type, how much, the level after, the reason, and who did it. Together they form the product's complete history.</dd></div>
+      <div><dt>Low-stock threshold</dt><dd>"Warn me when this drops to 6." Set per product, and optional: no threshold means no warning.</dd></div>
+      <div><dt>Out of stock <span class="alt">· restock</span></dt><dd>A counted product at zero. Shown in coral: reorder now.</dd></div>
+      <div><dt>Counted / never counted</dt><dd>A product is <b>counted</b> once someone has recorded a delivery or a count for it. Until then it's <b>never counted</b>, and its "0" means "unknown", not "none". The till only limits quantities for counted products.</dd></div>
+      <div><dt>Found at the till</dt><dd>When a never-counted product is sold, Sukoon automatically records the sold quantity as a stock-in labelled "Found at the till" first, so the books stay honest and never go negative.</dd></div>
+      <div><dt>Stock value</dt><dd>What the shelf is worth at <b>cost price</b>: the shop's money tied up in goods. A product with no cost price shows "value unknown", never zero.</dd></div>
+      <div><dt>Provisional product <span class="alt">· needs completing</span></dt><dd>A product missing its cost price, category or threshold, typically created in a hurry at the till or through bulk entry. It sells normally; it's a to-do for the owner, shown with an amber badge.</dd></div>
+    </dl>
+  </div>
+
+  <div class="gloss-group">
+    <div class="gloss-head">Codes on goods and shelves</div>
+    <dl>
+      <div><dt>Barcode</dt><dd>The striped code printed on a product by its manufacturer. A scanner reads it and "types" it into the till.</dd></div>
+      <div><dt>SKU <span class="alt">· stock keeping unit</span></dt><dd>The shop's own internal code for a product, like <code>COO-0012</code>. Sukoon makes it from the first three letters of the category plus a shop-wide running number (<code>GEN</code> when there's no category). Useful for shelves and stock-taking.</dd></div>
+      <div><dt>Internal barcode</dt><dd>A barcode Sukoon generates for goods that have none (loose goods in bags, local products), starting <code>SK-</code>, printed on sticker labels.</dd></div>
+      <div><dt>Price-override barcode</dt><dd>A second barcode on the same product that sells it at a different price, without splitting its stock.<span class="eg">A "Near expiry, Oct" sticker that sells the same milk cheaper.</span></dd></div>
+      <div><dt>Keyboard wedge</dt><dd>How an ordinary USB barcode scanner works: the computer sees it as a keyboard that types the code very fast and presses Enter.</dd></div>
+    </dl>
+  </div>
+
+  <div class="gloss-group">
+    <div class="gloss-head">Money</div>
+    <dl>
+      <div><dt>Rupee and paisa</dt><dd>1 Pakistani rupee = 100 paisa. Sukoon stores every amount as a whole number of paisa (Rs 170 is stored as <code>17000</code>), but every price and total a person sees is whole rupees.</dd></div>
+      <div><dt>Round at the line</dt><dd>When a weighed quantity makes a price like Rs 159.50, it's rounded to whole rupees once, on that line (half goes up: Rs 160), never again on the total. That's what a person at a counter expects.</dd></div>
+      <div><dt>By weight / by amount</dt><dd>Two ways to sell loose goods. <b>By weight:</b> type 1.5 kg and Sukoon works out the price. <b>By amount:</b> the customer says "give me Rs 200 of atta", you type Rs 200, and Sukoon works out the weight. In by-amount, the Rs 200 is exactly what's charged.</dd></div>
+      <div><dt>Payment method</dt><dd>How a sale is paid: <b>cash</b>, <b>card</b>, or <b>Khata</b> (on credit).</dd></div>
+      <div><dt>Margin</dt><dd>Profit as a percentage of sales. Rs 160 profit on Rs 1,200 of sales is a 13.3% margin.</dd></div>
+    </dl>
+  </div>
+
+  <div class="gloss-group">
+    <div class="gloss-head">Credit (Khata)</div>
+    <dl>
+      <div><dt>Khata <span class="alt">· کھاتا · credit account</span></dt><dd>The account a shop keeps for a trusted regular who "puts it on the book": takes goods now, settles later. Kept as the Urdu word throughout the app on purpose.</dd></div>
+      <div><dt>Credit sale</dt><dd>A sale where no money changes hands; the total is added to the customer's Khata balance.</dd></div>
+      <div><dt>Balance</dt><dd>What the customer owes right now: purchases minus payments minus refunds.</dd></div>
+      <div><dt>Ledger</dt><dd>The list of every change to a Khata balance (purchase, payment, refund), each with the balance after it. The ledger is the truth; the balance is just its running total.</dd></div>
+      <div><dt>Credit limit</dt><dd>The most a customer may owe. New Khatas start at <b>Rs 10,000</b>. A sale past the limit is stopped unless the owner approves it at the counter. "Near credit limit" means 80% or more is used.</dd></div>
+      <div><dt>Credit terms</dt><dd>The agreed time to pay, in days, e.g. 30. Optional.</dd></div>
+      <div><dt>Overdue</dt><dd>A customer who owes money and hasn't paid <i>anything</i> within their credit terms, counted from their last payment (or their first credit purchase if they've never paid). Any payment, however small, restarts the count.</dd></div>
+      <div><dt>In credit</dt><dd>The customer paid more than they owed, so the shop owes them. Always shown as "Rs 200 in credit", never as a minus. Used up by their next purchase.</dd></div>
+      <div><dt>Statement</dt><dd>A printable summary of one customer's Khata for a month or all time: opening balance, every purchase and payment, closing balance.</dd></div>
+      <div><dt>Confirmed number</dt><dd>A phone number the cashier checked in person: the customer showed it on their phone, or the cashier rang it. Money messages only ever go to confirmed numbers.</dd></div>
+      <div><dt>Archived Khata</dt><dd>A customer removed from the lists with their history kept. Only possible at a zero balance.</dd></div>
+    </dl>
+  </div>
+
+  <div class="gloss-group">
+    <div class="gloss-head">Returns</div>
+    <dl>
+      <div><dt>Refund</dt><dd>Money (or Khata credit) given back for part or all of an earlier sale, found by its invoice number.</dd></div>
+      <div><dt>Pending approval</dt><dd>A refund a cashier has recorded but the owner hasn't approved. Nothing moves (no cash, no stock, no ledger change) until it's approved.</dd></div>
+      <div><dt>Restock</dt><dd>A tick on each refunded item: ticked means it came back sellable and goes back on the shelf; unticked means it was damaged, so the customer is refunded but stock doesn't go up.</dd></div>
+      <div><dt>Refundable</dt><dd>How much of a sale line can still be refunded: sold, minus already refunded, minus refunds still waiting for approval.</dd></div>
+      <div><dt>Step-up</dt><dd>Re-entering your password for one sensitive action (approving a refund, changing a price) even though you're already signed in. It proves the person at the keyboard is really the owner.</dd></div>
+    </dl>
+  </div>
+
+  <div class="gloss-group">
+    <div class="gloss-head">Messages and reports</div>
+    <dl>
+      <div><dt>WhatsApp consent <span class="alt">· the tick</span></dt><dd>"Send updates on WhatsApp", ticked only when the customer agrees. Without it, Sukoon sends that customer nothing.</dd></div>
+      <div><dt>Message template</dt><dd>Fixed wording, with blanks for amounts and names, that WhatsApp must approve before a business may send it.</dd></div>
+      <div><dt>Account notice</dt><dd>The one neutral message a ticked customer with an unconfirmed number can get: "an account was opened in your name… if this is not you, contact us". No amounts, ever.</dd></div>
+      <div><dt>Reply-to number</dt><dd>The shop's everyday phone number, printed in every message, because the sending number can't read replies.</dd></div>
+      <div><dt>Net sales</dt><dd>Everything sold in a period, by every payment method, minus refunds approved in that period.</dd></div>
+      <div><dt>Estimated profit</dt><dd>Net sales minus what those items cost at <i>today's</i> cost prices. Items with no cost price are left out rather than counted as free.</dd></div>
+      <div><dt>Coverage</dt><dd>How much of a period's sales the profit figure is based on, e.g. "covers 93% of sales".</dd></div>
+    </dl>
+  </div>
+</section>
+
+<!-- ======================================================================= 3 -->
+<section class="part" id="day">
+  <p class="part-no">Part 3</p>
+  <h2>A day at the shop</h2>
+  <p class="intro">The whole system follows the rhythm of a shopkeeper's day. Walk this path once and every screen has an obvious reason to exist. Times are illustrative.</p>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  A([Open and sign in]) --> B[Delivery arrives<br/>stock in]
+  B --> C[New items added<br/>bulk entry]
+  C --> D{Customer at<br/>the counter}
+  D -->|walk-in| E[Ring up<br/>cash or card]
+  D -->|regular| F[Ring up<br/>on Khata]
+  E --> G[Receipt]
+  F --> G
+  F -. WhatsApp .-> M[(Message queue)]
+  G --> H{Anything<br/>comes back?}
+  H -->|yes| R[Refund<br/>cashier records, owner approves]
+  H -->|no| I[Khata payments<br/>and statements]
+  R --> I
+  I -. WhatsApp .-> M
+  I --> J([Close: Insights<br/>and reports])
+</pre>
+  </div>
+  <p class="caption">Solid arrows are what staff do; dotted arrows are what Sukoon does on its own afterwards.</p>
+
+  <div class="day">
+    <div class="step"><div class="when">08:55</div><div>
+      <h3>Opening: signing in</h3>
+      <p>The owner or cashier opens Sukoon, taps their name and types their password. The <b>Admin</b> (owner) can do everything; a <b>Cashier</b> can sell, look up stock, open Khatas, take payments and <i>request</i> refunds.</p>
+      <p>On a till's first use, it's asked for a name once ("Till 1"). If WhatsApp sending is paused, an Admin sees a coral banner right away.</p>
+    </div></div>
+    <div class="step"><div class="when">09:30</div><div>
+      <h3>A supplier delivers 24 bottles of oil</h3>
+      <p>The owner opens the product in <b>Stock</b> and records a <b>stock in</b> of 24 with the reason "Delivery". The level goes up and the movement is written into the product's history with the owner's name. From now on, the till won't let anyone sell more bottles than are actually there.</p>
+    </div></div>
+    <div class="step"><div class="when">10:00</div><div>
+      <h3>New items join the catalogue</h3>
+      <p>For a batch of new goods, <b>Bulk entry</b> is the fast screen: scan, type a name and price, press Enter, repeat. For one-offs, <b>New product</b>. Only the name and selling price are required; cost price, category and threshold can wait, and the product is marked <b>needs completing</b> until they're filled.</p>
+    </div></div>
+    <div class="step"><div class="when">11:20</div><div>
+      <h3>A walk-in customer buys oil and atta</h3>
+      <p>The cashier scans the oil: it appears with a <b>− 1 +</b> stepper. They press + once; the cart shows 2. For atta, they choose the product and a weigh box opens: they weigh 1.5 kg on the scale and type it, or type "Rs 200" if the customer asked for Rs 200 worth. The total updates without the page reloading.</p>
+      <p>The customer pays cash with a Rs 2,000 note; the cashier taps the Rs 2,000 shortcut; Sukoon shows the change in blue. <b>Complete sale</b> saves everything in one go: the sale, its lines, the stock deductions and the invoice number.</p>
+    </div></div>
+    <div class="step"><div class="when">11:21</div><div>
+      <h3>The receipt prints</h3>
+      <p>Sukoon sends the receipt to the thermal printer. If the printer is off or missing, the sale is <i>still</i> complete, and Sukoon offers a PDF receipt instead. After a few seconds the screen returns to an empty till for the next customer.</p>
+    </div></div>
+    <div class="step"><div class="when">13:05</div><div>
+      <h3>A regular puts it on the book</h3>
+      <p>Haji Usman buys Rs 1,770 of goods on credit. The cashier picks <b>Khata</b>, searches "usman", and his name replaces "Walk-in customer". The panel shows his balance after this sale and his limit. If it would take him over his limit, the sale is stopped until the owner types their own name and password into the box on the till.</p>
+      <p>Once saved, if Haji Usman agreed to WhatsApp updates and his number is confirmed, Sukoon quietly queues a message: <i>"4 items, Rs 1,770, added to your Khata… New balance: Rs 10,030 owed."</i> The message goes out a minute later, and the sale never waits for it.</p>
+    </div></div>
+    <div class="step"><div class="when">16:40</div><div>
+      <h3>Something comes back</h3>
+      <p>A customer returns a dented tin with their receipt. The cashier opens <b>Refunds</b>, types the invoice number, picks the tin, unticks <b>restock</b> (it's damaged) and gives a reason. The refund waits for approval. The owner sees a badge on the Refunds icon, reviews it and approves with their password. Only then does money go back; for a Khata sale, the refund reduces the balance instead of paying cash.</p>
+    </div></div>
+    <div class="step"><div class="when">18:15</div><div>
+      <h3>A Khata payment</h3>
+      <p>Haji Usman pays Rs 5,000 by JazzCash. The cashier opens his Khata, taps <b>Record payment</b>, enters the amount, method and transaction ID. If he pays more than he owes, Sukoon asks first, then keeps the extra as credit. A payment receipt is queued for WhatsApp.</p>
+    </div></div>
+    <div class="step"><div class="when">22:00</div><div>
+      <h3>Closing: how did today go?</h3>
+      <p>The owner opens <b>Insights</b>: today's sales against the same day last week, how much is owed on Khatas, today's estimated profit and margin, the busiest hours, and which categories sold. <b>Reports</b> go deeper and export to CSV (for Excel) or PDF. <b>Low stock</b> becomes tomorrow's order list.</p>
+    </div></div>
+    <div class="step"><div class="when">1st, 09:00</div><div>
+      <h3>Once a month, on its own</h3>
+      <p>On the 1st of each month Sukoon sends WhatsApp statements, with the PDF attached, to customers who agreed. Every day at 11:00 it checks for overdue Khatas and sends a gentle reminder, at most once a week per customer.</p>
+    </div></div>
+  </div>
+</section>
+
+<!-- ======================================================================= 4 -->
+<section class="part" id="people">
+  <p class="part-no">Part 4</p>
+  <h2>People and permissions</h2>
+  <p class="intro">There are two roles. What each can do isn't decided by the role name in code; it's decided by a list of named <b>permissions</b>, checked by the server on every request. A hidden button is not security: a cashier who types an Admin page's address still gets refused.</p>
+
+  <div class="tablewrap"><table>
+    <thead><tr><th>Permission</th><th>What it allows</th><th class="c">Cashier</th><th class="c">Admin</th><th class="c">Password again</th></tr></thead>
+    <tbody>
+      <tr><td><code>sale.ring</code></td><td>Ring up a sale</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c no">—</td></tr>
+      <tr><td><code>sale.take_payment</code></td><td>Take cash, card or Khata payment for a sale</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c no">—</td></tr>
+      <tr><td><code>product.scan</code></td><td>Scan a barcode at the till</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c no">—</td></tr>
+      <tr><td><code>product.create_provisional</code></td><td>Create a missing product at the till (name and price only)</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c no">—</td></tr>
+      <tr><td><code>sale.refund_initiate</code></td><td>Record a refund for approval</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c no">—</td></tr>
+      <tr><td><code>khata.view</code></td><td>See Khatas, balances, history; print statements</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c no">—</td></tr>
+      <tr><td><code>customer.create</code></td><td>Open a Khata; edit contact details; the WhatsApp tick</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c no">—</td></tr>
+      <tr><td><code>khata.record_payment</code></td><td>Record a Khata payment</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c no">—</td></tr>
+      <tr><td><code>product.edit_price</code></td><td>Change a selling price</td><td class="c no">—</td><td class="c yes">✓</td><td class="c yes">✓</td></tr>
+      <tr><td><code>catalog.manage</code></td><td>Create, edit, delete products, categories, barcodes</td><td class="c no">—</td><td class="c yes">✓</td><td class="c no">—</td></tr>
+      <tr><td><code>stock.adjust</code></td><td>Stock in, stock out, correct count</td><td class="c no">—</td><td class="c yes">✓</td><td class="c no">—</td></tr>
+      <tr><td><code>sale.refund</code></td><td>Approve or reject a refund</td><td class="c no">—</td><td class="c yes">✓</td><td class="c yes">✓</td></tr>
+      <tr><td><code>customer.manage_credit</code></td><td>Set credit limit and terms; archive a Khata</td><td class="c no">—</td><td class="c yes">✓</td><td class="c no">—</td></tr>
+      <tr><td><code>khata.override_limit</code></td><td>Approve a sale past a credit limit</td><td class="c no">—</td><td class="c yes">✓</td><td class="c yes">✓</td></tr>
+      <tr><td><code>khata.send_reminder</code></td><td>Send an overdue reminder by hand</td><td class="c no">—</td><td class="c yes">✓</td><td class="c no">—</td></tr>
+      <tr><td><code>whatsapp.manage</code></td><td>Messages screen, key, switch, limit, test</td><td class="c no">—</td><td class="c yes">✓</td><td class="c no">—</td></tr>
+      <tr><td><code>report.view</code></td><td>Insights, reports and exports</td><td class="c no">—</td><td class="c yes">✓</td><td class="c no">—</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note amber"><span class="nh">The pattern behind the table</span>
+    <p>Cashiers can do everything that <b>adds</b> to the record: sales, payments, new Khatas, refund <i>requests</i>. The owner keeps everything that <b>changes money or history</b>: prices, stock corrections, approving refunds, credit limits, profit figures. The most sensitive of those also need the password typed again, because shop PCs are shared and a signed-in session can be left open.</p>
+  </div>
+</section>
+
+<!-- ======================================================================= 5 -->
+<section class="part" id="features">
+  <p class="part-no">Part 5</p>
+  <h2>Every feature, explained</h2>
+  <p class="intro">Each feature below has four parts: <b>what</b> it is for, <b>how</b> it works on screen, <b>why</b> it was built that way (with the decision record it comes from, like <span class="adr">ADR-0014</span>), and the <b>rules</b> it enforces. Decision records are explained in Part 7.</p>
+
+  <!-- sign in -->
+  <article class="feature" id="f-signin">
+    <h3>Sign-in and accounts</h3>
+    <p class="tagline">Who is using Sukoon right now, and what are they allowed to do.</p>
+    <div class="whw">
+      <div><div class="k">What</div><div><p>Every person has an account with a name, initials, a role (Admin or Cashier) and a password.</p></div></div>
+      <div><div class="k">How</div><div><p>The sign-in screen shows staff as avatars with initials; tap yours, type your password. You can also type your name or initials. A session lasts up to 10 hours, about a working day.</p></div></div>
+      <div><div class="k why">Why</div><div><p>The design originally showed a 4-digit PIN to switch users quickly. The client chose <b>passwords for everyone</b> instead, because a PIN is easy to watch someone type at a busy counter. <span class="adr">ADR-0008</span></p><p>Permissions are a list rather than "if Admin" checks in code, so a new rule is a data change, not a hunt through the program. <span class="adr">ADR-0008, 0017</span></p></div></div>
+      <div><div class="k rules">Rules</div><div><ul class="clean"><li>5 wrong passwords lock that account for 15 minutes. <span class="adr">ADR-0017</span></li><li>A wrong name and a wrong password give the same message, so the screen can't be used to discover who has an account.</li><li>Sensitive actions ask for the password again (step-up). <span class="adr">ADR-0008</span></li><li>Passwords are stored only as a one-way scrambled hash, never as the password itself.</li></ul></div></div>
+    </div>
+  </article>
+
+  <!-- catalogue -->
+  <article class="feature" id="f-catalogue">
+    <h3>Catalogue: products and categories</h3>
+    <p class="tagline">The list of everything the shop sells.</p>
+    <div class="whw">
+      <div><div class="k">What</div><div><p>Products with a name, selling price, optional cost price, category, unit label, whether it's sold loose, and a low-stock threshold. Categories group them.</p></div></div>
+      <div><div class="k">How</div><div><p><b>Stock</b> lists every product with its stock bar, price and badges, with search and a "Needs completing" filter. <b>New product</b> is the careful form; <b>Bulk entry</b> is the fast one: scan, type, Enter, and the cursor jumps back to the barcode box. <b>Categories</b> manages groups.</p></div></div>
+      <div><div class="k why">Why</div><div>
+        <p><b>Only name and price are required.</b> Product fields come in three tiers: what a cashier always knows (name, price), what the system fills in (dates, flags), and what's genuinely unknowable at the counter (cost price, category, threshold). The last group may be empty; the product is then "provisional" and shows up as needing completion. <span class="adr">ADR-0012</span></p>
+        <p><b>Bulk entry and scan-as-you-go</b> exist because typing in 2,000 products before the first sale would delay opening by weeks. The catalogue can fill up during real trading: if a scanned item isn't found, a cashier can create it on the spot with just name and price. <span class="adr">ADR-0011</span></p>
+        <p><b>SKUs are generated</b> from the category's first three letters plus a running number, because the owner wanted shelf codes but nobody wants to invent them. <span class="adr">ADR-0018</span></p>
+      </div></div>
+      <div><div class="k rules">Rules</div><div><ul class="clean"><li>Only an Admin changes a selling price, with step-up. <span class="adr">ADR-0008, 0019</span></li><li>A product with any sales or stock history can't be deleted, only deactivated, so history always makes sense.</li><li>A cashier can create a product at the till but can't edit an existing one.</li></ul></div></div>
+    </div>
+  </article>
+
+  <!-- barcodes -->
+  <article class="feature" id="f-barcodes">
+    <h3>Barcodes and labels</h3>
+    <p class="tagline">Getting from a physical item to the right product and price in one scan.</p>
+    <div class="whw">
+      <div><div class="k">What</div><div><p>Each product can have several barcodes. Any barcode can carry its own price. Goods without a barcode get one generated, printed on sticker sheets.</p></div></div>
+      <div><div class="k">How</div><div><p>On a product's page: add a barcode (typed or scanned), optionally with a price override and a note; generate an internal <code>SK-</code> barcode; print an A4 PDF sheet of labels on ordinary sticker paper with any office printer.</p></div></div>
+      <div><div class="k why">Why</div><div>
+        <p><b>Many barcodes per product</b> because real goods have them: the same ghee in a new pack design, or a "Near expiry, Oct" sticker that sells cheaper. Stock stays one number, because it's the same ghee. <span class="adr">ADR-0009</span></p>
+        <p><b>A4 sticker sheets, not a label printer</b>, because a shop already has an office printer and a dedicated label printer is money and drivers for little gain. <span class="adr">ADR-0010</span></p>
+      </div></div>
+      <div><div class="k rules">Rules</div><div><ul class="clean"><li>A barcode can belong to only one product in the whole catalogue.</li><li>An unknown scan gives a calm "not recognised", never a crash, and offers to create the product.</li><li>Creating a price-override barcode needs the Admin's password (it changes what customers pay).</li></ul></div></div>
+    </div>
+  </article>
+
+  <!-- stock -->
+  <article class="feature" id="f-stock">
+    <h3>Stock: levels, movements and alerts</h3>
+    <p class="tagline">Knowing what's on the shelf, and exactly why the number is what it is.</p>
+    <div class="whw">
+      <div><div class="k">What</div><div><p>Every product has a stock level that changes only through recorded movements: stock in, stock out, correct count, sale, refund, and found at the till.</p></div></div>
+      <div><div class="k">How</div><div><p>On a product's page an Admin records a movement with a quantity and a reason. <b>Recent stock movements</b> shows the full history. The Stock screen's tiles show catalogue size, stock value at cost, running low, and out of stock; coloured bars show each product's state.</p></div></div>
+      <div><div class="k why">Why</div><div>
+        <p><b>Every change needs a reason and a name</b> because the audit trail is what makes the numbers trustworthy. If 20 bottles vanish, the history says whether they were sold, written off as broken, or corrected by a count, and by whom.</p>
+        <p><b>Sales and losses are different movement types</b> so a month's report can say "Rs 3,000 lost to expiry" instead of hiding it inside sales.</p>
+        <p><b>Counted vs never counted.</b> A limit on selling makes sense only once someone knows how many exist. Items created at the till, or bulk-entered and never delivered, sell without a limit and are booked as "found at the till". <span class="adr">ADR-0025</span></p>
+      </div></div>
+      <div><div class="k rules">Rules</div><div><ul class="clean"><li>Stock can never go below zero, even with two tills selling the last item at the same instant.</li><li>Sealed packs accept only whole quantities; loose goods accept fractions. <span class="adr">ADR-0004</span></li><li>"Running low" and "out of stock" are counted separately, so the same item isn't reported twice.</li></ul></div></div>
+    </div>
+  </article>
+
+  <!-- till -->
+  <article class="feature" id="f-till">
+    <h3>The till: selling</h3>
+    <p class="tagline">The screen that must never be slow, confusing or wrong.</p>
+    <div class="whw">
+      <div><div class="k">What</div><div><p>Scan or search items into a cart, adjust quantities or weights, choose a customer and payment method, and complete the sale.</p></div></div>
+      <div><div class="k">How</div><div>
+        <ul class="clean">
+          <li><b>Sealed packs</b> get a − / + stepper. <b>Loose goods</b> open a weigh box with two modes: Weight (kg) or Amount (Rs), with a live "≈" preview of the other.</li>
+          <li>Rows that still need a weight are amber, and <b>Complete sale</b> stays disabled until every weight is in.</li>
+          <li>Cart changes update just the cart area without reloading the page, so the scan box keeps focus.</li>
+          <li>Cash shows quick-amount buttons and the change. Khata shows a customer search, balance after the sale, the limit, and an approval box if over it.</li>
+          <li><b>+</b> fades out when the cart already holds all the stock ("That's all of it — 2 bottle in stock").</li>
+        </ul>
+      </div></div>
+      <div><div class="k why">Why</div><div>
+        <p><b>Weight or amount</b>, because both are how customers actually ask. "Two kilos of atta" and "Rs 200 of atta" are equally common. A USB scale is deferred, with a place left for it in the design. <span class="adr">ADR-0005</span></p>
+        <p><b>Rounding once, per line, half up</b> so a refund is always the exact mirror of its sale, and customers see the price they'd expect. <span class="adr">ADR-0007</span></p>
+        <p><b>Invoice numbers are claimed in one indivisible step</b> so two tills can never get the same number or leave a gap. <span class="adr">ADR-0016, 0021</span></p>
+        <p><b>Each till names itself once</b> in the browser, rather than asking at every login, so sales can be traced to a counter without slowing anyone down. <span class="adr">ADR-0023</span></p>
+        <p><b>No discounts in version one.</b> Discounts are one of the commonest ways money leaks from a till; the client chose not to have them yet. <span class="adr">ADR-0008, 0020</span></p>
+      </div></div>
+      <div><div class="k rules">Rules</div><div><ul class="clean"><li><b>All-or-nothing:</b> a sale, its lines, its stock deductions, its invoice number and any Khata entry are saved together or not at all. A crash halfway leaves nothing half-saved.</li><li>Quantities past a counted item's stock are refused, on the server and not just by the faded button.</li><li>A Khata sale past the limit needs an Admin's own name and password at the till; wrong passwords count toward that account's lockout. <span class="adr">ADR-0014, 0026</span></li></ul></div></div>
+    </div>
+  </article>
+
+  <!-- receipts -->
+  <article class="feature" id="f-receipts">
+    <h3>Receipts</h3>
+    <p class="tagline">Proof of purchase, that never blocks a sale.</p>
+    <div class="whw">
+      <div><div class="k">What</div><div><p>After every sale, a receipt: shop name and contact, invoice number, time, cashier, till name, items, total, payment, cash received and change.</p></div></div>
+      <div><div class="k">How</div><div><p>Sukoon sends it to a thermal receipt printer in that printer's own command language (ESC/POS), over the network, USB or serial. If that fails, the Sale Complete screen offers an 80 mm PDF of the same receipt. Receipts can be reprinted.</p></div></div>
+      <div><div class="k why">Why</div><div><p><b>The sale is saved first; the receipt comes second.</b> A printer out of paper must never stop a sale or lose a record. That's a general rule in Sukoon: a secondary action never breaks a primary one. <span class="adr">ADR-0003</span></p><p>The printed and PDF receipts are built from one shared layout, so they always say the same thing.</p></div></div>
+      <div><div class="k rules">Rules</div><div><ul class="clean"><li>Times on receipts are Pakistan time, whatever the PC is set to. <span class="adr">ADR-0024</span></li><li>Long shop names and addresses wrap to fit 80 mm paper instead of being cut off.</li></ul></div></div>
+    </div>
+  </article>
+
+  <!-- refunds -->
+  <article class="feature" id="f-refunds">
+    <h3>Refunds</h3>
+    <p class="tagline">Giving money back, safely, with two people involved.</p>
+    <div class="whw">
+      <div><div class="k">What</div><div><p>Refund part or all of an earlier sale: choose lines and quantities, whether each goes back on the shelf, and a reason.</p></div></div>
+      <div><div class="k">How</div><div><p>A cashier finds the sale by invoice number and records the refund; it waits as <b>pending approval</b>. Admins see a count badge on the Refunds icon and a "waiting for your approval" card, then approve (with their password) or reject.</p></div></div>
+      <div><div class="k why">Why</div><div>
+        <p><b>Cashier records, owner approves.</b> Fake refunds (pocketing cash against an invented return) are one of the most common ways staff steal from shops. Needing two people removes the opportunity without making every return wait for the owner to type details. <span class="adr">ADR-0020</span></p>
+        <p><b>The original invoice is required</b> so a refund can never exceed what was actually sold, and the stock goes back to the right product.</p>
+        <p><b>A credit sale's refund reduces the Khata balance</b> instead of paying cash out, because no cash was taken in the first place.</p>
+      </div></div>
+      <div><div class="k rules">Rules</div><div><ul class="clean"><li>Nothing moves (no cash, no stock, no ledger change) until approval.</li><li>A pending refund reserves its quantity, so the same goods can't be refunded twice while waiting.</li><li>A damaged item (restock unticked) is refunded but not put back into stock.</li></ul></div></div>
+    </div>
+  </article>
+
+  <!-- khata -->
+  <article class="feature" id="f-khata">
+    <h3>Khata: credit customers</h3>
+    <p class="tagline">The digital credit book, where the shop's trust meets its money.</p>
+    <div class="whw">
+      <div><div class="k">What</div><div><p>Customer accounts with a balance, a ledger of every purchase, payment and refund, credit limits and terms, overdue flags, payments by several methods, and statements.</p></div></div>
+      <div><div class="k">How</div><div>
+        <ul class="clean">
+          <li><b>Khata</b> lists customers with All / Owing / Settled / In credit tabs, overdue and near-limit flags; selecting one shows total purchased, total paid, currently owed, and recent activity.</li>
+          <li><b>Open a Khata</b> asks for name, phone, how the number was confirmed, and whether they want WhatsApp updates.</li>
+          <li><b>Record payment</b>: amount, method (cash, bank transfer, JazzCash/Easypaisa, card), optional reference.</li>
+          <li><b>Statement</b>: pick a month or all time; download an A4 PDF.</li>
+        </ul>
+      </div></div>
+      <div><div class="k why">Why</div><div>
+        <p><b>Phone numbers are normalised</b>, because "0300 5541298" and "+92 300 5541298" are the same number. <b>Duplicates are flagged, not blocked</b> ("This number is already on Haji Usman's Khata. Same person?"), because family members and shop partners genuinely share phones. <span class="adr">ADR-0013</span></p>
+        <p><b>A default limit of Rs 10,000</b> for new Khatas, so a cashier can't accidentally open unlimited credit. <span class="adr">ADR-0026</span> <b>Over-limit sales need the owner</b>, because the limit exists to be a deliberate decision. <span class="adr">ADR-0014</span></p>
+        <p><b>Overdue is measured from the last payment</b>, not per purchase. It answers "has this customer paid anything recently?" without complex allocation of which payment covers which purchase. <span class="adr">ADR-0015</span></p>
+        <p><b>Overpayment becomes credit</b> rather than being refused or shown as a confusing minus. <b>Customers are archived, never deleted</b>, because their history is financial record. <span class="adr">ADR-0026</span></p>
+        <p><b>One single piece of code writes every ledger entry</b> (sales, refunds and payments all go through it), so the balance and the ledger can never disagree. Tests check they match after every step.</p>
+      </div></div>
+      <div><div class="k rules">Rules</div><div><ul class="clean"><li>A customer who owes, or is in credit, can't be removed.</li><li>Changing a confirmed number makes it unconfirmed again, and clears the WhatsApp tick.</li><li>Statement months follow Pakistan time: a purchase at 1 am on the 1st belongs to the new month.</li></ul></div></div>
+    </div>
+  </article>
+
+  <!-- whatsapp -->
+  <article class="feature" id="f-whatsapp">
+    <h3>WhatsApp messages</h3>
+    <p class="tagline">Automatic, respectful updates that can never slow a sale.</p>
+    <div class="whw">
+      <div><div class="k">What</div><div><p>Five messages: a <b>credit sale</b> notice, a <b>payment receipt</b>, the monthly <b>statement</b> with its PDF, an <b>overdue reminder</b>, and a neutral <b>account notice</b> for unconfirmed numbers. An Admin <b>Messages</b> screen shows everything.</p>
+        <div class="sample">Al-Rehman General Store: 4 items, Rs 1,770, added to your Khata as of 14 Sep 2026, 8:26 PM. Previous balance: Rs 8,260 owed. New balance: Rs 10,030 owed. This number can't read replies. For questions, contact the shop on 0300 1234567.</div></div></div>
+      <div><div class="k">How</div><div>
+        <p>Nothing is sent during a sale. Each message goes into a <b>queue</b> (an outbox in the database). A background worker sends waiting messages every minute through Meta's official WhatsApp Business API. The Messages screen has the on/off switch, the access key, the reply-to number, the daily limit, a test send, and a log with Retry and Send again.</p>
+        <p class="ui" style="font-size:13px;color:var(--muted)">Status: fully built and tested with a stand-in "fake" sender. The first real send waits for the owner's Meta account (see Part 9).</p>
+      </div></div>
+      <div><div class="k why">Why</div><div>
+        <p><b>Meta directly, in the owner's name</b>: official (unofficial WhatsApp tools get numbers banned), no reseller markup, and the owner controls it after the developer hands over. A new SIM is used so the owner keeps their everyday WhatsApp. <span class="adr">ADR-0027</span></p>
+        <p><b>Consent first.</b> Only customers who tick "Send updates on WhatsApp" get anything. Money messages go only to confirmed numbers, and permission is re-checked just before sending. <span class="adr">ADR-0028</span></p>
+        <p><b>An item count, never item names</b>, because a phone's lock screen is visible to family, and item names are typed by staff. This deliberately differs from the original specification. <span class="adr">ADR-0030</span></p>
+        <p><b>Every message says replies aren't read</b> and gives the shop's number, because the shop PC can't receive replies. <span class="adr">ADR-0029, 0030</span></p>
+        <p><b>The payment receipt</b> was added after the planning session asked what a customer holds after paying. <span class="adr">ADR-0032</span></p>
+      </div></div>
+      <div><div class="k rules">Rules</div><div><ul class="clean">
+        <li><b>Retries:</b> after 1 min, 5 min, 30 min, 2 h and 6 h, then "failed". A lost internet connection doesn't use up a try. <span class="adr">ADR-0029</span></li>
+        <li><b>Age limits:</b> a credit-sale or payment message older than 48 hours is dropped (a stale balance is worse than none); statements and account notices 7 days; reminders 24 hours.</li>
+        <li><b>If the account itself breaks</b> (expired key, card declined), sending pauses and Admins see a banner; it checks every 30 minutes and resumes by itself.</li>
+        <li><b>Statements</b> at 9 am on the 1st, caught up until the 8th if the PC was off; <b>reminders</b> checked daily at 11 am, at most one a week, none within 3 days of a statement. <span class="adr">ADR-0031</span></li>
+        <li><b>A daily limit of 200 messages</b> stops a bug from running up the bill; sending starts <b>off</b>; each message is sent exactly once even if two copies of Sukoon run; a crash mid-send is never automatically resent. <span class="adr">ADR-0033</span></li>
+        <li>The access key is encrypted by Windows and never stored in the database or backups. <span class="adr">ADR-0033</span></li>
+      </ul></div></div>
+    </div>
+  </article>
+
+  <!-- insights -->
+  <article class="feature" id="f-insights">
+    <h3>Insights and reports</h3>
+    <p class="tagline">The numbers an owner runs the shop by.</p>
+    <div class="whw">
+      <div><div class="k">What</div><div><p>An <b>Insights</b> dashboard and five <b>reports</b>: Sales, Estimated profit, Stock value, Low stock, Outstanding credit. Each exports to CSV and PDF.</p></div></div>
+      <div><div class="k">How</div><div><p>Insights shows today, this week or this month: sales compared with the same point last period, credit outstanding, estimated profit with margin and coverage, busiest hours (or sales by day), sales by category, and recent sales. Reports add custom date ranges and full tables.</p></div></div>
+      <div><div class="k why">Why</div><div>
+        <p><b>Admin only</b>, because totals and margins are owner information. <span class="adr">ADR-0034</span></p>
+        <p><b>"Estimated" profit at today's cost prices.</b> Sales don't record what items cost at the time, so profit uses current cost prices and says so. Recording cost at sale would change the database design and was deferred. <span class="adr">ADR-0034</span></p>
+        <p><b>Items without a cost price are left out, with coverage stated</b>, because counting them as free would report false profit. <span class="adr">ADR-0011, 0034</span></p>
+        <p><b>The screen, the CSV and the PDF are built from one document</b>, so they can never show different numbers.</p>
+      </div></div>
+      <div><div class="k rules">Rules</div><div><ul class="clean"><li>Weeks run Monday to Sunday; days and months follow Pakistan time.</li><li>Refunds count in the period they're approved.</li><li>A comparison with an empty period says "Nothing to compare with", never a percentage from zero.</li><li>Checked on 10,000 sales: each report computes in under a second.</li></ul></div></div>
+    </div>
+  </article>
+
+  <!-- time -->
+  <article class="feature" id="f-time">
+    <h3>Shop time</h3>
+    <p class="tagline">A small feature that touches everything.</p>
+    <div class="whw">
+      <div><div class="k">What</div><div><p>Every time a person reads (screens, receipts, statements, reports, the year in an invoice number) is shown in one shop timezone, Asia/Karachi by default.</p></div></div>
+      <div><div class="k why">Why</div><div><p>Times are stored in UTC, the world's reference clock, which is correct for storage. But the first version showed UTC directly, so a 6:54 pm sale printed as 13:54. Using a fixed shop setting rather than each PC's own Windows setting means a mis-configured PC can't misprint receipts. <span class="adr">ADR-0024</span></p></div></div>
+      <div><div class="k rules">Rules</div><div><ul class="clean"><li>The invoice year changes at Pakistan's midnight, not five hours later.</li><li>Clock accuracy itself is Windows' job: turn on "Set time automatically" on the shop PC.</li></ul></div></div>
+    </div>
+  </article>
+</section>
+
+<!-- ======================================================================= 6 -->
+<section class="part" id="tech">
+  <p class="part-no">Part 6</p>
+  <h2>How it's built</h2>
+  <p class="intro">You don't need to write code to understand this part. It explains what the pieces are, how a click becomes a saved sale, and the handful of engineering rules that keep the shop's money correct.</p>
+
+  <h3>The big picture</h3>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  subgraph Shop["Inside the shop (no internet needed)"]
+    T1["Till 1<br/>browser on the shop PC"]
+    T2["Till 2<br/>browser on another PC"]
+    SC[Barcode scanner] --> T1
+    subgraph PC["The shop PC"]
+      APP["Sukoon app<br/>(Python + Flask)"]
+      DB[("Database file<br/>(SQLite)")]
+      JOBS["Background jobs<br/>(message worker, statements, reminders)"]
+      APP <--> DB
+      JOBS <--> DB
+    end
+    T1 <-->|local network| APP
+    T2 <-->|local network| APP
+    APP --> PR[Receipt printer]
+  end
+  JOBS -. "internet (WhatsApp only)" .-> WA["Meta WhatsApp API"]
+</pre>
+  </div>
+  <p class="caption">One PC holds the app and the data. Every till is just a browser. Only WhatsApp messages leave the building.</p>
+
+  <h3>The technology, and why each piece</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Piece</th><th>What it is</th><th>Why it was chosen</th></tr></thead>
+    <tbody>
+      <tr><td>Python</td><td>The programming language</td><td>Readable, well-supported, good libraries for PDFs, printers and scheduling</td></tr>
+      <tr><td>Flask</td><td>A small web framework: receives requests from the browser and returns pages</td><td>Simple and predictable for a single shop's modest traffic</td></tr>
+      <tr><td>SQLite</td><td>A database stored as a single file on the PC</td><td>No database server to install or maintain; reliable; runs offline</td></tr>
+      <tr><td>Jinja templates</td><td>HTML pages with blanks the server fills in</td><td>Every screen is ordinary HTML from the server, with no separate app to build</td></tr>
+      <tr><td>htmx</td><td>Updates part of a page without reloading it</td><td>The till cart updates instantly while the scan box keeps focus</td></tr>
+      <tr><td>Alpine.js</td><td>Small interactive touches in the browser</td><td>Weigh-box toggles, quick-amount buttons, live previews, with no heavy framework</td></tr>
+      <tr><td>Tailwind CSS</td><td>A styling toolkit, compiled ahead of time</td><td>Matches the Design System precisely; nothing downloaded at runtime (works offline)</td></tr>
+      <tr><td>ReportLab</td><td>Makes PDFs</td><td>Receipts, statements, labels, report exports; pure Python, easy to package for Windows</td></tr>
+      <tr><td>python-escpos</td><td>Talks to thermal receipt printers</td><td>Speaks the ESC/POS language most receipt printers use</td></tr>
+      <tr><td>APScheduler</td><td>Runs jobs on a schedule inside the app</td><td>Message worker, monthly statements, daily reminders, with no separate service</td></tr>
+      <tr><td>pywebview · PyInstaller · Inno Setup</td><td>Desktop window, Windows program bundle, installer</td><td>Phase 7: install like a normal Windows program, with no Python needed on the shop PC</td></tr>
+    </tbody>
+  </table></div>
+  <p class="caption">All from the technology decision, <span class="adr">ADR-0001</span>.</p>
+
+  <h3>Three layers inside the app</h3>
+  <p>The code is organised in layers, with a strict rule about who may talk to whom <span class="adr">ADR-0003</span>:</p>
+  <ul class="clean">
+    <li><b>Routes</b> receive a click or form from the browser, check permissions, call a service, and return a page. They hold no business rules.</li>
+    <li><b>Services</b> hold every rule of the business: how a sale is priced, when a refund is allowed, how overdue is worked out. Services never depend on the web framework, so the rules can be tested on their own, thousands of times, in seconds.</li>
+    <li><b>Models</b> describe the tables in the database: products, sales, customers, ledger entries, messages.</li>
+  </ul>
+
+  <h3>How one sale travels through the system</h3>
+  <div class="diagram">
+<pre class="mermaid">
+sequenceDiagram
+  participant C as Cashier's browser
+  participant R as Till route
+  participant S as Sales service
+  participant D as Database
+  participant Q as Message queue
+  C->>R: Complete sale (cart, payment)
+  R->>S: record_sale(...)
+  S->>D: claim next invoice number (one step)
+  S->>D: save sale + lines, deduct stock, write Khata entry
+  D-->>S: all saved together, or nothing
+  S->>Q: queue WhatsApp notice (after saving; can't fail the sale)
+  S-->>R: the saved sale
+  R-->>C: Sale Complete screen + receipt
+</pre>
+  </div>
+
+  <h3>The engineering rules that protect the money</h3>
+  <div class="note"><span class="nh">Money and quantities are whole numbers</span>
+    <p>Computers can't store 0.1 exactly as a decimal fraction, so adding rupees as decimals slowly drifts. Sukoon stores money as whole <b>paisa</b> (Rs 170 → <code>17000</code>) and quantities as whole <b>thousandths</b> (1.5 kg → <code>1500</code>). Nothing rounds by accident; rounding happens once, deliberately, per line. <span class="adr">ADR-0004, 0007</span></p>
+  </div>
+  <div class="note"><span class="nh">All or nothing</span>
+    <p>A sale and everything it changes is saved as one unit, called a <b>transaction</b>. If anything fails partway, none of it is saved: never a sale without its stock deduction, never a payment without its ledger entry.</p>
+  </div>
+  <div class="note"><span class="nh">Safe with two tills at once</span>
+    <p>When two tills act in the same instant, Sukoon uses single indivisible database steps ("take the next invoice number", "reduce stock only if enough remains", "claim this message only if still waiting"). Tests run dozens of threads at once to prove no number repeats and no stock update is lost.</p>
+  </div>
+  <div class="note"><span class="nh">History is never rewritten</span>
+    <p>A sale line keeps its own copy of the product's name and price at the time, so renaming or repricing a product later doesn't change old receipts. Things with history are archived, not deleted. Stock only changes through recorded movements.</p>
+  </div>
+  <div class="note"><span class="nh">A secondary action never breaks a primary one</span>
+    <p>Printing, WhatsApp and similar extras run after the main action is safely saved, and their failures are caught and logged, never shown to the customer as a failed sale. <span class="adr">ADR-0003</span></p>
+  </div>
+
+  <h3>The database, briefly</h3>
+  <p>The main tables, in plain words: <b>users</b> and <b>permissions</b>; <b>categories</b>, <b>products</b> and <b>barcodes</b>; <b>stock movements</b>; <b>sales</b> and <b>sale items</b>; the <b>invoice counter</b>; <b>refunds</b> and <b>refund items</b>; <b>customers</b>, <b>credit ledger entries</b> and <b>payments</b>; the <b>notification queue</b> with its daily counter and statement runs; and <b>settings</b>. The full design is recorded in one consolidated document <span class="adr">ADR-0016</span>. Changes to it are made through <b>migrations</b>: small scripts that upgrade an existing database without losing data, tested both up and down.</p>
+
+  <h3>How it's tested</h3>
+  <ul class="clean">
+    <li><b>497 automated tests</b>, run on every change. <b>Pure</b> tests check rules with no database (pricing, rounding, overdue, message wording); <b>integration</b> tests use a real temporary database and real screens.</li>
+    <li><b>Hand-calculated scenarios:</b> statements and reports are checked against figures worked out by hand before the code runs.</li>
+    <li><b>Real browser checks</b> drive Chrome like a person would: clicking +, weighing items, completing sales, watching a WhatsApp message send.</li>
+    <li><b>Concurrency and performance tests:</b> racing tills, racing message workers, and 10,000 sales.</li>
+  </ul>
+</section>
+
+<!-- ======================================================================= 7 -->
+<section class="part" id="process">
+  <p class="part-no">Part 7</p>
+  <h2>How the project is run</h2>
+  <p class="intro">Sukoon is built to a written plan with rules about how decisions are made and recorded. This is what lets a project survive changing developers, a forgotten conversation, or a client asking "why does it do that?" a year later.</p>
+
+  <h3>The governing documents</h3>
+  <ul class="clean">
+    <li><b>Development Specification</b>: the technical source of truth: features, phases, required tests, and approval gates.</li>
+    <li><b>Design System</b> and <b>prototype</b>: how every screen should look and behave. On technical matters the specification wins. <span class="adr">ADR-0006</span></li>
+    <li><b>Building Software the Right Way</b>: the standards: honest reporting of mistakes, no guessed values, tests alongside features.</li>
+    <li><b><code>docs/context.md</code></b>: the living record: current phase, status, next action, every decision, open questions, known issues, and a session-by-session changelog.</li>
+    <li><b><code>docs/glossary.md</code></b>: every business and technical term as it was defined.</li>
+  </ul>
+
+  <h3>The mechanisms</h3>
+  <dl>
+    <div><dt>ADR <span class="alt">· Architecture Decision Record</span></dt><dd>One numbered file per real decision: the <b>context</b> that forced it, the <b>decision</b>, the <b>alternatives considered</b> and why they lost, and the <b>consequences</b>. Written <i>before</i> code. An accepted ADR is binding until a new one replaces it.</dd></div>
+    <div><dt>grill-with-docs session</dt><dd>A structured interview, started by the human, that attacks a proposal one question at a time before big, hard-to-reverse work (Phase 0's data model, Phase 5's WhatsApp design, Phase 7's packaging). Every answer becomes an ADR.</dd></div>
+    <div><dt>STOP AND ASK gate</dt><dd>A point in a phase where work must halt until the client approves, recorded in <code>context.md</code>. Used where a mistake would be costly after real data exists.</dd></div>
+    <div><dt>Definition of Done</dt><dd>The checklist a phase must pass: required tests, verification steps, evidence recorded.</dd></div>
+  </dl>
+
+  <h3>The phases</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Phase</th><th>What it built</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>0 · Foundation</td><td>Project skeleton, documentation system, the data-model grill session</td><td><span class="pill done">Closed</span></td></tr>
+      <tr><td>1 · Data model &amp; auth</td><td>Database, accounts, permissions, sign-in, step-up</td><td><span class="pill done">Closed</span></td></tr>
+      <tr><td>2 · Inventory</td><td>Catalogue, categories, barcodes, labels, stock movements, low-stock alerts</td><td><span class="pill done">Closed</span></td></tr>
+      <tr><td>3 · POS &amp; billing</td><td>The till, weighed goods, payments, invoices, receipts, refunds, multiple tills</td><td><span class="pill done">Closed</span></td></tr>
+      <tr><td>3.5 · Visual pass</td><td>Every screen restyled to the Design System <span class="adr">ADR-0022</span></td><td><span class="pill done">Closed</span></td></tr>
+      <tr><td>4 · Khata</td><td>Credit customers, ledger, payments, limits, overdue, statements</td><td><span class="pill done">Complete</span></td></tr>
+      <tr><td>5 · WhatsApp</td><td>Consent, message queue, retries, schedules, Messages screen</td><td><span class="pill done">Closed</span> <span class="pill next">real send pending</span></td></tr>
+      <tr><td>6 · Reports</td><td>Insights dashboard, five reports, exports</td><td><span class="pill done">Complete</span></td></tr>
+      <tr><td>7 · Windows packaging</td><td>Installer, desktop window, auto-start, backups, LAN setup</td><td><span class="pill next">Next — grill session</span></td></tr>
+      <tr><td>8 · Integration &amp; UAT</td><td>Full-system testing and the client's acceptance testing in the shop</td><td><span class="pill later">Later</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ======================================================================= 8 -->
+<section class="part" id="decisions">
+  <p class="part-no">Part 8</p>
+  <h2>All 34 decisions</h2>
+  <p class="intro">Every decision record, in plain words, grouped by what it governs. Open a group to read them. Each one's full reasoning is in <code>docs/adr/</code>.</p>
+
+  <details class="adrs" open>
+    <summary>Foundations</summary>
+    <div class="adr-list">
+      <div class="adr-row"><span class="n">0001</span><div><b>Technology stack.</b> Python, Flask, SQLite, htmx, Alpine, Tailwind; pywebview, PyInstaller and Inno Setup for Windows.</div></div>
+      <div class="adr-row"><span class="n">0002</span><div><b>First data model draft.</b> Superseded by 0016, kept as history.</div></div>
+      <div class="adr-row"><span class="n">0003</span><div><b>Module boundaries.</b> Routes, services, models; business rules never depend on the web framework; extras never break a sale.</div></div>
+      <div class="adr-row"><span class="n">0006</span><div><b>Which document wins.</b> The specification outranks the design on technical matters; the prototype is the source of truth for colours and style.</div></div>
+      <div class="adr-row"><span class="n">0016</span><div><b>Consolidated data model.</b> Every table as it stands, all amendments merged; invoice numbers reset yearly.</div></div>
+      <div class="adr-row"><span class="n">0022</span><div><b>A dedicated visual pass.</b> Phases 1–3 built plain, then one pass styled every screen; later phases built styled.</div></div>
+    </div>
+  </details>
+  <details class="adrs">
+    <summary>Quantities, money and selling</summary>
+    <div class="adr-list">
+      <div class="adr-row"><span class="n">0004</span><div><b>Quantities in thousandths.</b> 1.5 kg is stored as 1500; "sold loose" only changes how the till asks.</div></div>
+      <div class="adr-row"><span class="n">0005</span><div><b>Weighed items by weight or by amount.</b> Typed at the till; a USB scale deferred but designed for.</div></div>
+      <div class="adr-row"><span class="n">0007</span><div><b>Money in paisa, whole rupees, rounded once per line.</b> A typed amount is exactly what's charged.</div></div>
+      <div class="adr-row"><span class="n">0021</span><div><b>Invoice formatting stays pure.</b> The one-step invoice claim lives with the sale-saving code.</div></div>
+      <div class="adr-row"><span class="n">0023</span><div><b>Tills name themselves.</b> Once per browser; the name appears on sales and receipts.</div></div>
+      <div class="adr-row"><span class="n">0024</span><div><b>Shop time.</b> Stored in UTC, shown in one fixed shop timezone.</div></div>
+      <div class="adr-row"><span class="n">0025</span><div><b>Stock limits at the till.</b> Capped for counted items; never-counted items booked "found at the till".</div></div>
+    </div>
+  </details>
+  <details class="adrs">
+    <summary>People, security and refunds</summary>
+    <div class="adr-list">
+      <div class="adr-row"><span class="n">0008</span><div><b>Authentication and access.</b> Passwords for all (no PIN), a permission list, step-up for destructive actions, no discounts.</div></div>
+      <div class="adr-row"><span class="n">0017</span><div><b>Sign-in details.</b> The first permission list, 5 attempts / 15-minute lockout, 10-hour sessions, name-or-initials login.</div></div>
+      <div class="adr-row"><span class="n">0019</span><div><b>Catalogue and stock permissions.</b> Admin-only; price changes and price-override barcodes need step-up.</div></div>
+      <div class="adr-row"><span class="n">0020</span><div><b>Refunds and discounts.</b> No discounts; cashier records a refund, Admin approves; partial refunds, restock choice, Khata reversal.</div></div>
+    </div>
+  </details>
+  <details class="adrs">
+    <summary>Catalogue, barcodes and labels</summary>
+    <div class="adr-list">
+      <div class="adr-row"><span class="n">0009</span><div><b>Many barcodes per product.</b> Each can override the price; stock stays one number.</div></div>
+      <div class="adr-row"><span class="n">0010</span><div><b>Labels as A4 PDF sticker sheets.</b> No label printer purchased.</div></div>
+      <div class="adr-row"><span class="n">0011</span><div><b>Catalogue onboarding.</b> Bulk entry, plus products created mid-sale; unknown cost is never counted as zero.</div></div>
+      <div class="adr-row"><span class="n">0012</span><div><b>Product fields in three tiers.</b> Name and price always required; cost, category and threshold may wait.</div></div>
+      <div class="adr-row"><span class="n">0018</span><div><b>Product codes.</b> Generated category-prefixed SKUs; internal barcodes start SK-.</div></div>
+    </div>
+  </details>
+  <details class="adrs">
+    <summary>Khata</summary>
+    <div class="adr-list">
+      <div class="adr-row"><span class="n">0013</span><div><b>Customer phone numbers.</b> Normalised; duplicates flagged not blocked; unconfirmed numbers get no money details.</div></div>
+      <div class="adr-row"><span class="n">0014</span><div><b>Credit limits.</b> Block a cashier; an Admin may approve with their password; the approval is recorded.</div></div>
+      <div class="adr-row"><span class="n">0015</span><div><b>Credit terms and overdue.</b> Measured from the last real payment; refunds and corrections don't reset it.</div></div>
+      <div class="adr-row"><span class="n">0026</span><div><b>Khata policy.</b> Cashiers take payments; Rs 10,000 default limit; four payment methods; PDF statements; overpayment kept as credit; archive, never delete.</div></div>
+    </div>
+  </details>
+  <details class="adrs">
+    <summary>WhatsApp</summary>
+    <div class="adr-list">
+      <div class="adr-row"><span class="n">0027</span><div><b>Provider and account.</b> Meta's API directly, in the owner's account, with a new SIM and the owner's card.</div></div>
+      <div class="adr-row"><span class="n">0028</span><div><b>Consent.</b> A tick that starts unticked; no tick, no messages; checked again before sending.</div></div>
+      <div class="adr-row"><span class="n">0029</span><div><b>Delivery and retries.</b> "Sent" means accepted; capped retries; age limits; account problems pause sending.</div></div>
+      <div class="adr-row"><span class="n">0030</span><div><b>Message content.</b> English; item counts not names; statement with PDF; the reply-to line; approved wording.</div></div>
+      <div class="adr-row"><span class="n">0031</span><div><b>Scheduling.</b> Statements on the 1st with catch-up; weekly overdue reminders; Admin-only manual reminder.</div></div>
+      <div class="adr-row"><span class="n">0032</span><div><b>Payment receipt message.</b> Added beyond the original specification.</div></div>
+      <div class="adr-row"><span class="n">0033</span><div><b>Operational safety.</b> Encrypted key set in the app; starts off; daily limit; one worker; no automatic resend after a crash; test send.</div></div>
+    </div>
+  </details>
+  <details class="adrs">
+    <summary>Reports</summary>
+    <div class="adr-list">
+      <div class="adr-row"><span class="n">0034</span><div><b>Reporting policy.</b> Admin only; profit estimated at today's cost prices with coverage; Monday weeks; refunds counted when approved; one document for screen, CSV and PDF.</div></div>
+    </div>
+  </details>
+</section>
+
+<!-- ======================================================================= 9 -->
+<section class="part" id="limits">
+  <p class="part-no">Part 9</p>
+  <h2>Open items and limits</h2>
+  <p class="intro">What isn't done or decided yet, stated plainly. These are recorded in <code>context.md</code> with a trigger for when each gets revisited.</p>
+
+  <div class="tablewrap"><table>
+    <thead><tr><th>Item</th><th>What it means</th><th>When it's dealt with</th></tr></thead>
+    <tbody>
+      <tr><td>First real WhatsApp send <span class="adr">O-23</span></td><td>Messages are built and tested with a fake sender. A real send, plus checking Meta's current rules, limits and prices, needs the owner's Meta account.</td><td>Before WhatsApp is switched on in the shop</td></tr>
+      <tr><td>Windows packaging</td><td>Installer, desktop window, auto-start, data location, backups, LAN setup.</td><td>Phase 7, starting with its grill session</td></tr>
+      <tr><td>Windows-only code untested</td><td>Key encryption and the worker lock use Windows features this Linux machine lacks.</td><td>Phase 7, on the Windows VM</td></tr>
+      <tr><td>Estimated profit moves with cost prices</td><td>A past month's profit changes if a cost price changes.</td><td>If the owner wants exact profit</td></tr>
+      <tr><td>Correcting a Khata entry</td><td>No way yet to fix a mistaken payment or pay out a customer's credit.</td><td>Needs a client decision</td></tr>
+      <tr><td>Voiding a sale</td><td>Undoing a completed sale (other than refunds) isn't built.</td><td>Needs a client decision</td></tr>
+      <tr><td>Never-counted display</td><td>The Stock screen shows a never-counted item as "out of stock".</td><td>Small follow-up</td></tr>
+      <tr><td>Phone number OTP</td><td>Confirming a number by a code sent on WhatsApp.</td><td>If a wrong-number incident happens <span class="adr">O-18</span></td></tr>
+      <tr><td>Scale hardware</td><td>Reading weight from a USB scale.</td><td>When the shop gets one <span class="adr">O-12</span></td></tr>
+      <tr><td>Discounts</td><td>Deliberately not in version one.</td><td>A future decision</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ======================================================================= 10 -->
+<section class="part" id="techwords">
+  <p class="part-no">Part 10</p>
+  <h2>Technical words</h2>
+  <p class="intro">The software terms used in this handbook, the project documents and our conversations.</p>
+  <dl>
+    <div><dt>Server</dt><dd>The program that holds the data and does the work (Sukoon on the shop PC). Browsers ask it for pages.</dd></div>
+    <div><dt>Browser / client</dt><dd>What a person looks through: Chrome, Edge, or the Sukoon window.</dd></div>
+    <div><dt>Route</dt><dd>One address on the server, like <code>/till/</code> or <code>/khata/12/payment</code>, and the code that handles it.</dd></div>
+    <div><dt>Service</dt><dd>The part of the code holding business rules, separate from screens.</dd></div>
+    <div><dt>Model / table</dt><dd>The shape of one kind of stored record (a product, a sale) and where those records are kept.</dd></div>
+    <div><dt>Database / SQLite</dt><dd>Where all data lives. SQLite keeps it in one file, with a safety mode (WAL) that protects it if the PC loses power mid-write.</dd></div>
+    <div><dt>Migration</dt><dd>A script that changes the database's structure (e.g. adds the WhatsApp tick) while keeping existing data.</dd></div>
+    <div><dt>Transaction</dt><dd>A group of database changes saved together or not at all.</dd></div>
+    <div><dt>Atomic</dt><dd>Done as one indivisible step that nothing else can interrupt halfway.</dd></div>
+    <div><dt>Concurrency</dt><dd>Two things happening at the same time, like two tills selling the last bottle.</dd></div>
+    <div><dt>API</dt><dd>A way for one program to use another over the internet; here, Meta's WhatsApp API.</dd></div>
+    <div><dt>Webhook</dt><dd>When a service calls <i>your</i> server to report something (e.g. "message delivered"). Sukoon doesn't use them, because the shop PC isn't reachable from the internet.</dd></div>
+    <div><dt>Provider adapter</dt><dd>A thin layer so the WhatsApp company could be swapped without touching business rules.</dd></div>
+    <div><dt>Queue / outbox</dt><dd>A list of work waiting to be done later, like messages waiting to send.</dd></div>
+    <div><dt>Background job / worker</dt><dd>Work Sukoon does on its own on a schedule, without anyone clicking.</dd></div>
+    <div><dt>Dedupe key</dt><dd>A unique label for one event, so the same message can never be queued twice.</dd></div>
+    <div><dt>Hash</dt><dd>A one-way scramble of a password: the password can be checked, but not recovered.</dd></div>
+    <div><dt>Session / cookie</dt><dd>How the browser stays signed in, and how a till remembers its name.</dd></div>
+    <div><dt>DPAPI</dt><dd>Windows' built-in encryption tied to a PC and account, used to protect the WhatsApp key.</dd></div>
+    <div><dt>UTC</dt><dd>The world's reference time. Pakistan is UTC+5.</dd></div>
+    <div><dt>ESC/POS</dt><dd>The command language of thermal receipt printers.</dd></div>
+    <div><dt>CSV</dt><dd>A plain table file that opens in Excel.</dd></div>
+    <div><dt>htmx / Alpine / Tailwind</dt><dd>Small front-end tools: partial page updates, small interactions, and styling.</dd></div>
+    <div><dt>PyInstaller / Inno Setup / pywebview</dt><dd>Turn the Python app into a Windows program, an installer for it, and a desktop window around it.</dd></div>
+    <div><dt>Virtual machine (VM)</dt><dd>A whole computer running inside another, used to build and test the Windows version safely.</dd></div>
+    <div><dt>Snapshot</dt><dd>A saved state of a VM you can return to, e.g. a spotless Windows for install tests.</dd></div>
+    <div><dt>Test / test suite</dt><dd>Code that checks other code does what it should; the suite is all of them, run together.</dd></div>
+    <div><dt>Lint</dt><dd>An automatic check for code style and common mistakes.</dd></div>
+    <div><dt>Commit / push</dt><dd>Saving a set of changes in the project history, and sending it to GitHub.</dd></div>
+  </dl>
+</section>
+
+<footer>The Sukoon Handbook · Al-Rehman General Store · Facts taken from the project's decision records, glossary and code as of 16 September 2026.</footer>
+</div>
+</div>
+</div>
+
+<script>
+  (function () {
+    var input = document.getElementById('gloss-filter');
+    var count = document.getElementById('gloss-count');
+    if (!input) return;
+    var entries = Array.prototype.slice.call(document.querySelectorAll('#words dl > div'));
+    var groups = Array.prototype.slice.call(document.querySelectorAll('#words .gloss-group'));
+    function apply() {
+      var q = input.value.trim().toLowerCase();
+      var shown = 0;
+      entries.forEach(function (el) {
+        var hit = !q || el.textContent.toLowerCase().indexOf(q) !== -1;
+        el.hidden = !hit;
+        if (hit) shown++;
+      });
+      groups.forEach(function (g) {
+        g.hidden = !g.querySelector('dl > div:not([hidden])');
+      });
+      count.textContent = q ? shown + ' of ' + entries.length + ' words' : entries.length + ' words';
+    }
+    input.addEventListener('input', apply);
+    apply();
+  })();
+</script>
+
+<script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs"; mermaid.initialize({startOnLoad:true});</script>
+</body></html>
