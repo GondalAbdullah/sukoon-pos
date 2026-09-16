@@ -1296,8 +1296,8 @@ fixed broadband, wired Ethernet with router access, USB printer.
 ### 2026-09-16 — Session 29: a Windows VM, the Windows-only code finally run, and the client's offsite-backup request
 
 **Handbook.** Published "The Sukoon Handbook" for the developer (business + technical, every
-feature with its reasoning) — the companion to session 21's field manual. Local copy at
-`docs/sukoon-handbook.html` (untracked).
+feature with its reasoning) — the companion to session 21's field manual. Committed at `docs/sukoon-handbook.html` (session 30 — it went in with the grill
+commit; kept deliberately, since a handover document belongs in the repository).
 
 **The client asked for the database to be mirrored to Neon** as protection against losing the
 shop PC. The need is accepted — D7 as first written keeps every backup on the same machine.
