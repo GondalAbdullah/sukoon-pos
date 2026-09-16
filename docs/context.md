@@ -258,10 +258,25 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   at the time of sale, so a past period's estimated profit changes when a cost price changes.
   Labelled on every screen. **Trigger to revisit:** the owner finds it misleading or asks for
   exact profit — recording cost at sale changes ADR-0016 and needs a grill session.
-- **Windows-only code paths are untested on this Linux machine:** DPAPI key encryption
-  (`secret_store._dpapi`) and the `msvcrt` worker lock. Both are marked `pragma: no cover`
-  and **must be exercised in Phase 7's Windows testing** before the installer ships. The
-  Messages screen says "not encrypted" when not on Windows, so it never overstates it.
+- ~~**Windows-only code paths are untested on this Linux machine:** DPAPI key encryption
+  (`secret_store._dpapi`) and the `msvcrt` worker lock.~~ **EXERCISED 2026-09-16 (session 29)**
+  on a Windows 11 VM (Python 3.12.10): both ran for the first time and **both behave**. DPAPI
+  encryption round-trips and the Messages screen correctly says "Encrypted by Windows" there;
+  the `msvcrt` lock gives real mutual exclusion between processes, and a killed holder's lock
+  is freed by Windows in **~0.1 s**. Full suite on Windows: **494 passed, 2 failed, 1 skipped**
+  — and **both failures are in the tests, not in Sukoon** (see the two entries below). The
+  installer itself is still unbuilt and untested (Phase 7).
+- **Two tests fail on Windows for test-side reasons — fix before Phase 7 closes:**
+  1. `test_scheduler::test_a_crashed_holder_does_not_leave_a_stale_lock` re-acquires the lock
+     immediately after `child.kill()`. Windows releases a terminated process's file locks
+     *asynchronously*, so the check races; a measured probe re-acquired 0.1 s later. The test
+     needs a short retry window on Windows, not a code change — mutual exclusion and crash
+     recovery both work.
+  2. `test_statements::test_statement_matches_the_hand_written_fixture[2026-10]` reads its
+     fixture with `Path.read_text()` and no `encoding=`, so Windows decodes a UTF-8 `·` with
+     the locale code page and the comparison fails. **Test-side only** — checked: the app's
+     CSV export builds a string through `io.StringIO` and Flask encodes it UTF-8, and no
+     app code reads or writes a text file without an explicit encoding.
 - **Existing databases need `flask db upgrade` and `flask seed`** for Phase 5's migration
   (consent columns, message counter, statement runs) and two new permissions
   (`khata.send_reminder`, `whatsapp.manage`).
@@ -1206,6 +1221,39 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-16 — Session 29: a Windows VM, the Windows-only code finally run, and the client's offsite-backup request
+
+**Handbook.** Published "The Sukoon Handbook" for the developer (business + technical, every
+feature with its reasoning) — the companion to session 21's field manual. Local copy at
+`docs/sukoon-handbook.html` (untracked).
+
+**The client asked for the database to be mirrored to Neon** as protection against losing the
+shop PC. The need is accepted — D7 as first written keeps every backup on the same machine.
+The *destination and mechanism* are not decided: written up as **D7a/D7b** in the Phase 7
+proposal and **O-24**, recommending an encrypted SQLite backup to object storage over a row
+mirror (a mirror duplicates the schema forever, needs an unspecified sync engine, and makes
+the restore path a converter exercised once in a disaster). Neon as the *live* database is
+refused against ADR-0001's offline-first requirement. **No code** (commit `f0dc3fb`).
+
+**Windows VM (answers U1's "who builds and where").** libvirt/KVM guest `win11`
+(Windows 11 build 26200, 4 GB RAM, 39 GB free) on the developer's laptop, reachable at
+192.168.122.35 over key-only SSH from the host; PowerShell set as the SSH shell; Python 3.12.10
+and Git 2.55 installed with winget. The repo was moved in as a **git bundle**, so no GitHub
+credential exists in the VM. First run of the suite on Windows: **494 passed, 2 failed,
+1 skipped in 127 s**.
+
+**What that proved:** the two `pragma: no cover` Windows paths carried since Phase 5 — DPAPI
+key encryption and the `msvcrt` worker lock — **work**. A separate probe held the lock in a
+child process, confirmed a second process is refused, killed the holder, and re-acquired
+0.1 s later. **What it found:** two *test-side* Windows bugs (an immediate re-acquire that
+races Windows' asynchronous lock release, and a fixture read without an explicit encoding),
+both recorded in §4 and unfixed as of this entry.
+
+**Note for Phase 7's install testing:** this VM now has developer tools on it, so it no longer
+satisfies the specification's "clean Windows VM with no developer tools" requirement for the
+fresh-install test. A snapshot of this state exists; the clean-machine test needs either a
+second VM from the same ISO or a rebuilt one (D1's manual checklist).
 
 ### 2026-09-15 — Session 28: Phase 7 grill prepared, not started
 
