@@ -101,6 +101,43 @@ the installer, and DPAPI bound to it (answers ADR-0033's open question). **Gate 
 should it start automatically by default?** Recommend **yes** — a shop PC exists to run the
 shop.
 
+### D2a — Measured: how Sukoon starts decides whether the WhatsApp key can be read
+
+**This is no longer a guess.** Measured on the Windows 11 VM, 2026-09-17 (session 30), by
+calling `CryptProtectData` directly:
+
+| Logon the process runs under | User-scope DPAPI (what `secret_store` uses today) |
+|---|---|
+| Account signed in at the console | **works** |
+| Key-authenticated SSH, nobody signed in | **fails, `0x5` access denied** |
+| Machine scope (`CRYPTPROTECT_LOCAL_MACHINE`), either case | works |
+
+User-scope DPAPI unlocks with the account's **password**. A logon that never carried one — an
+SSH key session, and **(verify)** a scheduled task or service configured without stored
+credentials (S4U, a virtual or group-managed account) — cannot decrypt it.
+
+**Consequence for D2-B and D2-C:** running the server as a background task under a dedicated
+account is still right for keeping the tills alive after an unattended reboot, but **that
+account must log on with a stored password**, or Sukoon cannot read the WhatsApp key after a
+restart. The failure is quiet in the worst way: sales, stock and Khata all keep working, and
+only messages stop, with an error on a screen an Admin may not open for days.
+
+**Options, for the grill:**
+
+1. **Keep user-scope DPAPI and require a stored-credential logon** for the background task
+   *(recommended)* — keeps the key bound to one account on one machine; the cost is that the
+   installer (or the developer) sets that account's password on the task, and a Windows
+   password change on that account **(verify)** may require re-entering the key.
+2. **Machine scope**, so any process on the PC can decrypt it. Survives any logon type and any
+   password change. Weaker: on a shop PC with one account and physical security, the practical
+   difference is small, but it is a real reduction and ADR-0033 §1 chose user scope deliberately.
+3. **Ask for the key at startup.** Rejected on sight: the shop PC must come back from a power
+   cut with nobody present.
+
+Whichever wins, two things follow: Sukoon should **check it can read the key when the worker
+starts, not when a message is due**, and the Messages screen (and ideally the paused banner)
+should say plainly that the key can't be read, rather than letting messages pile up.
+
 ### D3 — What closing the window does (U3)
 
 **Recommend:** closing the window only closes the window; the server keeps running (under D2-B

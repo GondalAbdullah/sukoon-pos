@@ -13,7 +13,7 @@ CSS = Path(__file__).resolve().parents[2] / "sukoon" / "static" / "css" / "tailw
 
 
 def test_hover_never_restyles_a_disabled_button():
-    css = CSS.read_text()
+    css = CSS.read_text(encoding="utf-8")
     for btn in ("btn-primary", "btn-ghost"):
         assert f".{btn}:hover{{" not in css, f"unguarded hover on .{btn}"
         assert f".{btn}:not(:disabled):hover" in css
@@ -32,7 +32,7 @@ def test_templates_use_no_spacing_class_tailwind_cannot_generate():
     offenders = [
         f"{path.relative_to(_TEMPLATES)}: {m.group(0)}"
         for path in _TEMPLATES.rglob("*.html")
-        for m in _PHANTOM_SPACING.finditer(path.read_text())
+        for m in _PHANTOM_SPACING.finditer(path.read_text(encoding="utf-8"))
     ]
     assert offenders == []
 
@@ -40,6 +40,6 @@ def test_templates_use_no_spacing_class_tailwind_cannot_generate():
 def test_a_table_column_can_right_align_its_heading():
     # a numbers column's heading must follow its own text-right; the table's default
     # left alignment has to lose to it (Stock's Price heading sat left of its prices)
-    css = CSS.read_text()
+    css = CSS.read_text(encoding="utf-8")
     assert ":where(.table th){text-align:left}" in css
     assert ".table th{text-align:left" not in css

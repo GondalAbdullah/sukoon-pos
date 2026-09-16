@@ -260,10 +260,20 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   exact profit — recording cost at sale changes ADR-0016 and needs a grill session.
 - ~~**Windows-only code paths are untested on this Linux machine:** DPAPI key encryption
   (`secret_store._dpapi`) and the `msvcrt` worker lock.~~ **EXERCISED 2026-09-16 (session 29)**
-  on a Windows 11 VM (Python 3.12.10): both ran for the first time and **both behave**. DPAPI
-  encryption round-trips and the Messages screen correctly says "Encrypted by Windows" there;
-  the `msvcrt` lock gives real mutual exclusion between processes, and a killed holder's lock
-  is freed by Windows in **~0.1 s**. Full suite on Windows: **494 passed, 2 failed, 1 skipped**
+  on a Windows 11 VM (Python 3.12.10): both ran for the first time. The `msvcrt` lock gives
+  real mutual exclusion between processes, and a killed holder's lock is freed by Windows in
+  **~0.1 s**. **DPAPI is conditional, and session 29's claim that it simply "works" was too
+  broad — corrected 2026-09-17 (session 30): user-scope DPAPI needs a logon that carried the
+  account's password.** Measured with `CryptProtectData` directly: from a key-authenticated
+  SSH session with nobody signed in at the console it fails with `0x5` (access denied), and
+  the same call in the same kind of session succeeds the moment the account is signed in at
+  the console. Session 29's run passed only because the developer happened to be signed in
+  at the VM window at the time. Machine-scope DPAPI (`CRYPTPROTECT_LOCAL_MACHINE`) succeeds
+  in both cases — it is not bound to the user's password, which is also why it is weaker.
+  **This constrains Phase 7's D2 (see the proposal): a background task that runs without
+  stored credentials cannot read the WhatsApp key, and messages would stop silently after
+  every reboot.** When DPAPI fails, Sukoon raises `KeyStoreError` and the Messages screen
+  shows it — it does not corrupt or half-save the key. Full suite on Windows: **494 passed, 2 failed, 1 skipped**
   — and **both failures are in the tests, not in Sukoon** (see the two entries below). The
   installer itself is still unbuilt and untested (Phase 7).
 - **Two tests fail on Windows for test-side reasons — fix before Phase 7 closes:**

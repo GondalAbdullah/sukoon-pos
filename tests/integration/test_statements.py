@@ -83,7 +83,7 @@ def usman(seeded):
 ])
 def test_statement_matches_the_hand_written_fixture(usman, period, fixture):
     doc = statements.build_statement(usman, statements.period_for(period))
-    expected = (FIXTURES / fixture).read_text().strip().split("\n")
+    expected = (FIXTURES / fixture).read_text(encoding="utf-8").strip().split("\n")
     assert statements.statement_text(doc) == expected
     assert doc.reconciles
 

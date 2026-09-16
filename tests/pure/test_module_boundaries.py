@@ -14,6 +14,6 @@ _FLASK_IMPORT = re.compile(r"^\s*(from flask import |from flask\.|import flask(\
 def test_services_never_import_flask():
     offenders = []
     for path in SERVICES.rglob("*.py"):
-        if _FLASK_IMPORT.search(path.read_text()):
+        if _FLASK_IMPORT.search(path.read_text(encoding="utf-8")):
             offenders.append(str(path.relative_to(SERVICES.parent.parent)))
     assert not offenders, f"services/ must not import Flask: {offenders}"

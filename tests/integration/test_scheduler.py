@@ -5,6 +5,7 @@ import json
 import subprocess
 import sys
 import textwrap
+import time
 from datetime import UTC, datetime
 
 from sukoon.app import create_app
@@ -40,8 +41,17 @@ def test_a_crashed_holder_does_not_leave_a_stale_lock(tmp_path):
     assert not WorkerLock(lock_path).acquire()
     child.kill()   # a crash, not a clean exit
     child.wait()
-    lock = WorkerLock(lock_path)
-    assert lock.acquire()  # the OS released it with the process
+    # The OS releases it with the process — but Windows does that asynchronously after the
+    # process dies, so an immediate re-acquire races the kernel rather than testing anything.
+    # Measured on Windows 11 (session 29): freed in ~0.1s. A generous deadline still fails
+    # loudly if a crash ever leaves the lock stuck, which is what this test exists to catch.
+    deadline = time.monotonic() + 15
+    while True:
+        lock = WorkerLock(lock_path)
+        if lock.acquire():
+            break
+        assert time.monotonic() < deadline, "a crashed holder left the lock stuck"
+        time.sleep(0.05)
     lock.release()
 
 
