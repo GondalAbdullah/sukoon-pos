@@ -149,6 +149,21 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   operator's SIM inactivity rule (ADR-0027). Any fact that turns out false reopens the ADR
   that relied on it.
 
+- **O-24 — Offsite backup: the client asked for the local database to be copied to Neon (hosted Postgres).**
+  Raised by the client 2026-09-16 (session 29). **The need is accepted and D7 as first written does not
+  meet it** — every backup it proposes sits on the shop PC, so theft, fire, a dead disk or ransomware
+  loses the books. **What is open is the destination and the mechanism, not the need.** Written up as
+  **D7a** and **D7b** in `docs/proposals/phase-7-packaging.md` for the Phase 7 grill, with the
+  recommendation: an **encrypted SQLite backup uploaded to object storage** (hourly in trading hours,
+  plus one at close), not a row-by-row mirror into Postgres — a mirror duplicates the schema forever
+  (every migration written twice), needs a sync engine nobody has specified, makes the restore path a
+  converter that is exercised once in a disaster, and fails silently by drifting. Neon as the *live*
+  database is refused outright: it contradicts [ADR-0001](adr/0001-technology-stack.md)'s offline-first
+  requirement — the shop must keep selling with no internet. **Also unanswered (D7b): may the shop's
+  records — customer names, numbers, debts — be stored outside Pakistan at all, encrypted?** That is the
+  client's decision to record, not the developer's to assume. **No code until an ADR is Accepted.**
+  This is a 🛑 gate item (the spec names the backup location as painful to change after real data exists).
+
 - ~~**O-21 — Every timestamp displays in UTC, including on receipts.**~~ **RESOLVED 2026-09-14** → [ADR-0024](adr/0024-shop-timezone.md): fixed shop timezone (client's choice), default Asia/Karachi; the invoice year follows it too. Stored UTC
   (correct — `models/base.py::utcnow`), but rendered with a bare `strftime`: stock
   movement history, the pending-refunds list, and the **printed/PDF receipt** all show

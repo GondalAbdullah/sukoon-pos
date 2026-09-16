@@ -69,6 +69,12 @@ Windows generally needs libusb and a WinUSB driver in place of the vendor's (e.g
 **(verify)** — which can break the vendor's own tools. A network (Ethernet) printer avoids it.
 (D9)
 
+**U7 — A backup on the shop PC dies with the shop PC, and nothing has asked whether the
+shop's data may leave the shop.** D7 as first written keeps every copy on the same machine, so
+theft, fire, a dead disk or ransomware loses everything; the client raised this in session 29
+and asked for **Neon**. Copying customer names, numbers and debts to a third-party service is
+also the first time anything but a consented WhatsApp message would leave the building. (D7a, D7b)
+
 ## 4. Decisions for the grill
 
 ### D1 — Where the program is built and tested (U1)
@@ -138,6 +144,49 @@ in the data folder (never shipped, never in the database). The installer **never
 - **Restore:** an Admin-only, step-up "Restore from backup" that stops the server, keeps a copy
   of the current database first, restores, and restarts. **Tested as a drill** (edge-case matrix;
   Phase 8 repeats it).
+
+### D7a — Offsite backup: the client's Neon request (raised session 29) — 🛑 gate item
+
+D7 keeps every backup on the shop PC, with an optional second folder. The client asked for
+the shop's data to be copied to **Neon** (a hosted Postgres service) so that a dead, stolen,
+burnt or ransomwared PC doesn't take the shop's books with it. **The requirement is right and
+D7 does not meet it.** What follows is about the *destination and mechanism*, not the need.
+
+**What any offsite backup here must satisfy** (from existing ADRs, not new opinions):
+
+- It **never blocks or slows a sale** (ADR-0003: a secondary action never breaks a primary one).
+- It **survives days without internet** and catches up — the shop's connection is unreliable,
+  which is why the whole app is offline-first (ADR-0001).
+- Its **restore is drilled, not assumed** (D7, and the spec's edge-case matrix). An untested
+  backup is a belief, not a backup.
+- It is **encrypted before it leaves the PC**, and its key/credentials live in the DPAPI store,
+  never in the database or the backup itself (ADR-0033 §1).
+- Its freshness is **visible** — a "last backup" line and an alert when it goes stale — because
+  a silently broken backup is worse than none.
+
+| Option | For | Against |
+|---|---|---|
+| **A. Encrypted database-file backup to object storage** (SQLite online-backup → compress → encrypt → upload to an S3-compatible bucket, e.g. Cloudflare R2 or Backblaze B2) *(recommended)* | One format, one schema, no second copy of the data model; restore is "download, decrypt, put the file back" and can be drilled in minutes; tiny (a shop-year of data is small); works with the D7 machinery already proposed; a day's worth of history is a rotation setting, not new code. | Recovery point is the last upload (recommend **hourly during trading hours plus one at close**); needs a storage account and a key the client must keep safe **outside** the shop. |
+| B. Continuous replication of SQLite's write-ahead log (Litestream-style) to the same object storage | Near-zero data loss; point-in-time restore ("the state at 4:05 pm"). | Another moving part running beside the app; **Windows support must be confirmed (verify)**; still object storage — it does not answer "Neon". |
+| C. **Mirror the rows into Neon Postgres** — what was asked for | A remote, queryable copy; Neon has a free tier **(verify)**; the data is readable without restoring anything. | Every table then exists in **two different databases with two different type systems**, so **every future migration must be written and tested twice**, forever. Needs a sync engine nobody has specified: change tracking, ordering, foreign keys, deletes, resumption after days offline. The restore path is a Postgres→SQLite converter that must be **written and drilled** — needed exactly once, in the worst hour of the shop's life. Its characteristic failure is **silent drift**: the mirror looks healthy and isn't. Buys nothing for recovery that A doesn't, unless remote querying is itself a requirement — and nobody has asked for one. |
+| D. Move the whole app to Neon (Postgres as the live database) | No sync at all; one database. | **Rejected by ADR-0001**: the shop must keep selling with no internet. A hosted database makes every sale depend on a connection this shop does not reliably have. |
+
+**Recommend A**, with **B as a later upgrade** if the client wants a tighter recovery point, and
+**C only if remote access to the data becomes a real requirement of its own** — in which case it
+is a *reporting mirror*, and A remains the restore path. **Gate questions for the client:**
+(1) is an hourly offsite copy enough, or is "no more than a few minutes lost" required?
+(2) who holds the encryption key and the storage login, given the developer hands the shop over?
+
+### D7b — The shop's data leaving the shop (U7)
+
+Nothing in the project has yet asked whether the shop's records *may* be copied to a
+third-party service. Today only WhatsApp messages leave the PC, only for customers who
+consented (ADR-0028). An offsite backup is different in kind: **every customer's name, phone
+number, purchase history and debt**, continuously, to a company in another country
+**(verify where the chosen provider stores data)**. This needs the client's informed agreement
+recorded — not the developer's assumption — plus encryption before upload so the provider
+holds only ciphertext. **Question for the client, in plain terms: may the shop's books be kept,
+encrypted, on a server outside Pakistan, so they survive the PC?**
 
 ### D8 — How tills find the server (step 6)
 
