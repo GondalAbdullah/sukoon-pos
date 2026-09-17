@@ -20,17 +20,26 @@ from sukoon.jobs.scheduler import start_scheduler
 log = logging.getLogger("sukoon.run")
 
 
+def _refuse(exc: Exception, app=None) -> int:
+    if sys.stderr is not None:  # None in a windowed build
+        print(f"Sukoon did not start: {exc}", file=sys.stderr)
+    # app.logger is the one that writes data\logs\sukoon.log. The module logger alone reached
+    # only the console — found when the first Windows build refused to start and the reason
+    # was nowhere in the log. Under Task Scheduler there is no console to read.
+    (app.logger if app is not None else log).error("Sukoon did not start: %s", exc)
+    return 2
+
+
 def main() -> int:
     try:
         app = startup.build_app()
+    except DataFolderError as exc:  # no data folder means no log file: stderr is all there is
+        return _refuse(exc)
+    try:
         if app.config.get("DATA_DIR"):
             startup.prepare_database(app)
-    except (DataFolderError, startup.StartupError) as exc:
-        # Before logging exists (a data folder problem) this is the only place it can go.
-        if sys.stderr is not None:  # None in a windowed build
-            print(f"Sukoon did not start: {exc}", file=sys.stderr)
-        log.error("Sukoon did not start: %s", exc)
-        return 2
+    except startup.StartupError as exc:
+        return _refuse(exc, app)
 
     start_scheduler(app)
     port = int(os.environ.get("SUKOON_PORT", "5000"))

@@ -1279,6 +1279,61 @@ This list grows as new cases are found.
 
 *Reverse-chronological. Newest first.*
 
+### 2026-09-17 — Session 33: go-live day 2 — the Windows program, the installer, and proof on a real Windows
+
+Built and tested on the Windows 11 VM, from source to a silent install, a reboot, an upgrade over real
+data and a restore.
+
+**Built.** `packaging/`: `sukoon.spec` (PyInstaller 6.22.3, onedir; `sukoon-server.exe` console build
+for the boot task, `Sukoon.exe` pywebview 6.2.1 window), `sukoon.iss` (Inno Setup 6.7.3, unsigned),
+`install-sukoon.ps1` (account, batch-logon right, data-folder ACL, boot task with watchdog, firewall,
+WebView2 check, start-and-verify), `uninstall-sukoon.ps1` (keeps the data), `restore-backup.ps1`.
+`requirements-build.txt`. `docs/handover/install-checklist.md` for go-live day. Installer: 27 MB.
+
+**Proven on Windows, not assumed:**
+- **Suite:** 579 passed, 1 skipped (the off-Windows-only test).
+- **The packaged server** started from `C:\Windows\System32` (where Task Scheduler starts tasks),
+  migrated, backed up, served through Waitress, wrote nothing into System32.
+- **Silent install**, then **a reboot with nobody signed in: Sukoon served 21 s after Windows started**,
+  as `edgar\SukoonService`, and answered **from another machine over the network** (the laptop got
+  403 — the setup screen correctly refusing a non-local request).
+- **Setup on the packaged build** over local HTTP with CSRF tokens; **the WhatsApp key encrypted under the
+  boot task's stored-password logon** — file in `dpapi` format, plain key absent. This settles
+  ADR-0035's central "(verify)" for *protect*; *unprotect after a reboot* stays unproven until O-23.
+- **Upgrade over real data:** the account, its password, the task, the WhatsApp key and the session key
+  byte-for-byte unchanged; the owner signs in; `sukoon.db` inherits the right ACL.
+- **Restore drill** (local, the go-live form of ADR-0037 §7): back up → change → restore in ~11 s →
+  change gone, owner signs in, server back as SukoonService, and the pre-restore database kept and
+  still holding the change, so a restore can itself be undone.
+
+**Found by the Windows run — each would have failed at the shop:**
+1. **`No module named 'logging.config'`** — `migrations/env.py` is read at run time, invisible to
+   PyInstaller. The safe start-up refused correctly; **but its reason reached only the console**, which
+   a boot task doesn't have. Fixed both: hidden import, and refusals written to `sukoon.log` (test fails
+   without it).
+2. **The installer reported success after its script failed** — Inno Setup's `[Run]` ignores exit codes,
+   and the first script died on Windows' 48-character account-description limit. The script now traps
+   and logs every failure; the installer runs it from `[Code]` and checks the result.
+3. **`icacls … /grant (OI)(CI) /T` stripped every existing file's permissions** — `install.log` ended
+   with an empty ACL, readable by nobody. **On an upgrade it would have locked Sukoon out of `sukoon.db`
+   and `secret.key`.** Now: grant on the folder, `/reset` the children to inherit. The crash it caused
+   exited 1 — PowerShell's own failure code — which the installer read as "finished with warnings";
+   exit codes are now 0 / 10 / 20.
+4. **The task never ran** — last result `0x41303` "has not yet run", no process, no log. **Registering a
+   task with a stored password through PowerShell does not grant "Log on as a batch job".** Granted
+   explicitly with `secedit` on every run. Its first verification was itself wrong: secedit lists a
+   local user by *name*, not SID — now translated before comparing.
+5. **Every upgrade would have reported "Sukoon did not answer"** — the probe hit `/setup`, which redirects
+   once an owner exists, and PowerShell 5.1 turns that redirect into an error. Now probes the stylesheet.
+
+Also designed out before testing: Task Scheduler's **72-hour default time limit** (would stop the shop
+every three days), group names that break on non-English Windows (SIDs used), the watchdog restarting the
+server mid-upgrade (task paused during file copy), and a problem dialog that would hang a silent install.
+
+**Not done yet:** uninstall test; the clean-machine test on a reverted snapshot with Python removed
+(ADR-0038 §2); the owner-facing note; the Phase 7 🛑 closing gate. The window (`Sukoon.exe`) is built but
+not yet opened on a desktop.
+
 ### 2026-09-17 — Session 32: go-live in two days — day 1: safe start-up, backups, CSRF
 
 The client set **go-live for 2026-09-19, replacing paper** (O-27, recorded with its risks after

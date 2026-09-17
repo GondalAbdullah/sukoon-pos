@@ -21,7 +21,10 @@ datas += collect_data_files("escpos")
 hidden = (
     collect_submodules("sukoon")                # blueprints are imported inside create_app
     + collect_submodules("alembic")
-    + ["waitress", "flask_migrate", "sqlalchemy.dialects.sqlite"]
+    + ["waitress", "flask_migrate", "sqlalchemy.dialects.sqlite",
+       # migrations/env.py is read from disk at start-up, so PyInstaller never sees its imports.
+       # Without this the first real build refused to start: "No module named 'logging.config'".
+       "logging.config"]
 )
 
 server = Analysis([ROOT + "\\packaging\\server_entry.py"], pathex=[ROOT], datas=datas,

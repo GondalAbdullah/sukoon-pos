@@ -1,0 +1,5 @@
+# Building the Windows program and installer (ADR-0001, ADR-0038). Windows only; not needed to
+# run or test Sukoon. Inno Setup itself is installed separately (winget: JRSoftware.InnoSetup).
+-r requirements.txt
+pyinstaller==6.22.3
+pywebview==6.2.1

@@ -206,3 +206,24 @@ def test_a_port_already_in_use_is_written_to_the_log_not_lost(tmp_path):
     assert proc.returncode == 3
     log = (data / "logs" / "sukoon.log").read_text(encoding="utf-8")
     assert f"could not serve on 127.0.0.1:{port}" in log
+
+
+@pytest.mark.slow
+def test_a_refusal_to_start_is_written_to_the_log_file(tmp_path):
+    """The first Windows build refused to start — correctly — but the reason went only to the
+    console. Under Task Scheduler that would have left the shop with tills saying 'can't
+    connect' and nothing in the log."""
+    data = tmp_path / "data"
+    data.mkdir()
+    con = sqlite3.connect(data / "sukoon.db")
+    con.execute("CREATE TABLE sale (id INTEGER PRIMARY KEY)")  # tables, no schema version
+    con.commit()
+    con.close()
+    env = {**os.environ, "SUKOON_CONFIG": "production", "SUKOON_DATA_DIR": str(data),
+           "SUKOON_PORT": str(_free_port()), "SUKOON_SCHEDULER": "0",
+           "WHATSAPP_PROVIDER": "fake", "PYTHONPATH": str(REPO_ROOT)}
+    proc = subprocess.run([sys.executable, "-m", "sukoon.run"], cwd=tmp_path, env=env,
+                          capture_output=True, text=True, timeout=90)
+    assert proc.returncode == 2
+    log = (data / "logs" / "sukoon.log").read_text(encoding="utf-8")
+    assert "Sukoon did not start" in log and "no record of its schema version" in log
