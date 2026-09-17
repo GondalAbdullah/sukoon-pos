@@ -57,3 +57,49 @@ def test_seed_all_is_idempotent(app):
     seed_all(with_sample_data=True)
     assert db.session.query(User).count() == 2
     assert db.session.query(Product).count() == 3
+
+
+def test_a_changed_description_is_refreshed_without_touching_the_row(app):
+    seed_permissions()
+    perm = db.session.scalars(db.select(Permission).where(Permission.code == "sale.ring")).one()
+    original_id = perm.id
+    perm.description = "stale wording from an older release"
+    db.session.commit()
+    seed_permissions()
+    db.session.expire_all()
+    perm = db.session.scalars(db.select(Permission).where(Permission.code == "sale.ring")).one()
+    assert perm.id == original_id and perm.description == PERMISSIONS["sale.ring"]
+
+
+def test_two_processes_seeding_at_the_same_instant_both_succeed(tmp_path):
+    """Setup (and, from Phase 7 part 2, every start-up) seeds permissions. The old
+    read-then-insert raised UNIQUE constraint failed when two ran at once."""
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+
+    from sukoon.app import create_app
+
+    file_app = create_app("development", config_overrides={
+        "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path / 'seed.db'}",
+        "SECRET_KEY": "concurrency-test-only", "TESTING": True})
+    with file_app.app_context():
+        db.create_all()
+    start = threading.Barrier(4)
+
+    def seed():
+        with file_app.app_context():
+            start.wait()
+            try:
+                seed_permissions()
+            finally:
+                db.session.remove()
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        for future in [pool.submit(seed) for _ in range(4)]:
+            future.result()  # re-raises an IntegrityError from any thread
+
+    with file_app.app_context():
+        assert db.session.query(Permission).count() == len(PERMISSIONS)
+        assert db.session.query(RolePermission).count() == sum(
+            len(codes) for codes in ROLE_PERMISSIONS.values())
+        db.drop_all()

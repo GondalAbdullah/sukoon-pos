@@ -84,6 +84,24 @@ developer tools, which our VM no longer is.
     **Trigger to revisit:** a second shop wanting to install Sukoon, which makes a
     code-signing certificate worth its annual cost.
 
+### Settled while building §6 (2026-09-17, session 30) — recorded so they can be overturned
+13. **Setup exists only while there are no users at all** — not "no Admin" as §6 first said. A
+    database holding only a cashier must never offer anyone on the network a way to mint an
+    owner. Equivalent in practice (setup's first user is always an Admin), strictly safer.
+14. **Setup is accepted only from the shop PC itself**: the connection must come from a local
+    address *and* name a local host, which also defeats DNS rebinding; posts from another
+    website's page (a foreign `Origin`) are refused. A till elsewhere is told to finish setup
+    on the shop PC.
+15. **Exactly once, under concurrency**: completing setup claims a marker row with an atomic
+    insert before counting users, so two simultaneous submissions make one owner. Proven by
+    removing the claim — the two-thread test then creates two owners 5 runs out of 5.
+16. **Setup fills in the permission table itself.** Found in the browser, not by a test: on a
+    database never seeded, the first owner was an Admin with no Khata, Insights or Messages.
+17. **The first password rule in Sukoon: at least 8 characters, no composition rules** (NIST SP
+    800-63B), configurable as `PASSWORD_MIN_LENGTH`. Until now every account came from a seed
+    script, so no person had ever chosen a password. **Trigger to revisit:** the client wants
+    stronger rules, or staff management (adding users in-app) is built.
+
 ## Alternatives Considered
 
 - **GitHub Actions `windows-latest` for builds and scripted install tests** (proposal D1-A,

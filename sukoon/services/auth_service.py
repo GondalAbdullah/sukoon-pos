@@ -41,6 +41,20 @@ def _aware(value: datetime | None) -> datetime | None:
     return value
 
 
+class WeakPasswordError(ValueError):
+    """A new password doesn't meet the rule. The message says what to change."""
+
+
+def check_new_password(password: str, confirm: str, *, min_length: int) -> None:
+    """Length only — no 'must contain a symbol' rules, which push people toward predictable
+    passwords (NIST SP 800-63B). Leading and trailing spaces count: they're part of what the
+    person typed, and trimming them would make a password that can never be typed back."""
+    if len(password or "") < min_length:
+        raise WeakPasswordError(f"Choose a password of at least {min_length} characters.")
+    if password != confirm:
+        raise WeakPasswordError("The two passwords don't match. Type them again.")
+
+
 def hash_password(plain: str) -> str:
     return generate_password_hash(plain)
 

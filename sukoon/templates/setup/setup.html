@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Set up Sukoon</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
+</head>
+{#
+  First run on a new shop PC (ADR-0038 §6). Same calm wash and card as the sign-in
+  screen, so the first thing an owner sees already looks like the rest of Sukoon.
+  Shown only while no account exists, and only on the shop PC itself.
+#}
+<body class="min-h-screen bg-paper text-ink font-sans antialiased
+             flex items-center justify-center p-6
+             bg-[radial-gradient(circle_at_50%_38%,#E7F3EF_0%,#FAF9F6_60%)]">
+
+  <div class="w-full max-w-md">
+    <div class="text-center">
+      <div class="text-[26px] font-extrabold tracking-[-0.03em] mb-1">
+        <span>suk</span><span class="text-teal">oon</span>
+      </div>
+    </div>
+
+    {% if elsewhere %}
+      <div class="panel p-6 mt-6 text-center">
+        <h1 class="text-lg font-bold mb-2">Finish setting up on the shop PC</h1>
+        <p class="text-sm text-muted font-medium">
+          Sukoon hasn't been set up yet. Setting it up creates the owner's account, so it can
+          only be done on the computer Sukoon is installed on — not from another till.
+        </p>
+      </div>
+    {% else %}
+      <p class="text-sm text-muted font-medium mb-6 text-center">
+        Welcome. Two things before the first sale: the shop's name, and the owner's account.
+      </p>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="mb-4 rounded-[12px] px-4 py-2.5 text-sm font-semibold
+                      {{ 'bg-coral text-white' if category == 'error' else 'bg-ink text-white' }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endwith %}
+
+      <form method="post" action="{{ url_for('setup.setup') }}" class="panel p-6 text-left">
+        <label class="label" for="shop_name">Shop name</label>
+        <input type="text" id="shop_name" name="shop_name" required maxlength="120"
+               value="{{ form.shop_name }}" class="field mb-1" autofocus
+               placeholder="For example, Noor Kiryana Store">
+        <p class="text-xs text-faint font-medium mb-5">Printed on every receipt and statement.</p>
+
+        <label class="label" for="owner_name">Owner's name</label>
+        <input type="text" id="owner_name" name="owner_name" required maxlength="120"
+               value="{{ form.owner_name }}" class="field mb-1" autocomplete="name">
+        <p class="text-xs text-faint font-medium mb-5">
+          This account can do everything in Sukoon, including adding staff.
+        </p>
+
+        <label class="label" for="password">Password</label>
+        <input type="password" id="password" name="password" required
+               minlength="{{ config.PASSWORD_MIN_LENGTH }}" autocomplete="new-password"
+               class="field mb-1">
+        <p class="text-xs text-faint font-medium mb-5">
+          At least {{ config.PASSWORD_MIN_LENGTH }} characters. A short sentence is easier to
+          remember than a jumble.
+        </p>
+
+        <label class="label" for="confirm">Type it again</label>
+        <input type="password" id="confirm" name="confirm" required
+               autocomplete="new-password" class="field mb-6">
+
+        <button type="submit" class="btn-primary btn-lg w-full">Set up Sukoon</button>
+      </form>
+    {% endif %}
+  </div>
+</body>
+</html>

@@ -67,7 +67,8 @@ def test_every_cart_swap_also_refreshes_the_top_bar_count(till, milk):
     assert 'id="flashes"' in html  # present even with no messages, so oob has a target
 
 
-def test_the_till_requires_a_login(client):
+def test_the_till_requires_a_login(client, seeded):
+    # seeded: with no accounts at all, every page leads to setup instead (test_setup.py)
     resp = client.get("/till/", follow_redirects=False)
     assert resp.status_code == 302 and "/login" in resp.headers["Location"]
 

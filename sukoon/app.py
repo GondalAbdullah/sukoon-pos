@@ -53,6 +53,7 @@ def create_app(
     if not app.config.get("WORKER_LOCK_PATH"):
         app.config["WORKER_LOCK_PATH"] = os.path.join(app.instance_path, "sukoon-worker.lock")
 
+    _ensure_database_folder(app.config["SQLALCHEMY_DATABASE_URI"])
     configure_logging(app)
 
     if app.config["SQLALCHEMY_DATABASE_URI"] == "sqlite://":
@@ -81,6 +82,7 @@ def create_app(
     from sukoon.routes.messages import bp as messages_bp
     from sukoon.routes.refunds import bp as refunds_bp
     from sukoon.routes.reports import bp as reports_bp
+    from sukoon.routes.setup import bp as setup_bp
     from sukoon.routes.stock import bp as stock_bp
     from sukoon.routes.till import bp as till_bp
 
@@ -93,12 +95,21 @@ def create_app(
     app.register_blueprint(khata_bp)
     app.register_blueprint(messages_bp)
     app.register_blueprint(reports_bp)
+    app.register_blueprint(setup_bp)
 
     _register_template_helpers(app)
     _register_cli(app)
 
     app.logger.info("Sukoon application created (config=%s)", config_name or "default")
     return app
+
+
+def _ensure_database_folder(uri: str) -> None:
+    """A file database's folder must exist before SQLite can create the file. Done here,
+    at app creation, rather than when ``config`` is imported (see ``config._sqlite_uri``)."""
+    prefix = "sqlite:///"
+    if uri.startswith(prefix):
+        os.makedirs(os.path.dirname(uri[len(prefix):]), exist_ok=True)
 
 
 def _register_template_helpers(app: Flask) -> None:

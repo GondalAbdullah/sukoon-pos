@@ -11,16 +11,23 @@ import os
 import secrets
 import tempfile
 from datetime import timedelta
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
 def _sqlite_uri(path: str) -> str:
     """Build an absolute-path SQLite URI. Relative paths are resolved against the
     project root so `flask db` and the app agree on one database file regardless
-    of the working directory they are launched from."""
+    of the working directory they are launched from.
+
+    Pure: it creates nothing. It used to ``makedirs`` here, at import time and against
+    the *current* directory — so an installed copy started by Windows from
+    ``C:\\Windows\\System32`` would crash on import, before the launcher could point it at
+    its data folder (ADR-0036). ``create_app`` creates the database's folder instead."""
     if path == ":memory:":
         return "sqlite://"
-    abs_path = os.path.abspath(path)
-    os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+    abs_path = Path(path) if os.path.isabs(path) else PROJECT_ROOT / path
     return f"sqlite:///{abs_path}"
 
 
@@ -43,6 +50,18 @@ class Config:
         minutes=int(os.environ.get("SESSION_LIFETIME_MINUTES", "600"))
     )
     SESSION_REFRESH_EACH_REQUEST = True
+    # Said explicitly rather than left to the browser. A cookie with *no* SameSite attribute
+    # gets Chromium's "Lax, except top-level POSTs within two minutes of being set" — and a
+    # cashier who has just signed in holds exactly that cookie. Explicit Lax closes the window,
+    # so another site's page can't submit a form into Sukoon on the cashier's session. This
+    # matters from Phase 7, when Sukoon leaves localhost for the shop's network.
+    SESSION_COOKIE_SAMESITE = "Lax"
+    SESSION_COOKIE_HTTPONLY = True
+
+    # The first password a person chooses in Sukoon is on the setup screen (ADR-0038 §6).
+    # Length only, no composition rules — per NIST SP 800-63B, which found character-class
+    # rules push people toward predictable passwords rather than strong ones.
+    PASSWORD_MIN_LENGTH = int(os.environ.get("PASSWORD_MIN_LENGTH", "8"))
 
     # Brute-force lockout (ADR-0008). Numbers are config, not schema — tunable
     # without a migration. Defaults recorded in ADR-0017.

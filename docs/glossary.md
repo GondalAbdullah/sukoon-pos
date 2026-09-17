@@ -507,3 +507,12 @@ unverified.
 of asked for from a router. Sukoon's second supported network setup, for a shop wired
 through a plain switch or with a router nobody can get into
 ([ADR-0038](adr/0038-packaging-installation-and-delivery.md) §10-B).
+
+**Setup screen** *(Settled)* — The page a brand-new Sukoon shows on the shop PC before anyone
+has an account: the shop's name and the owner's name and password. It creates the first
+Admin, and disappears for good once any account exists
+([ADR-0038](adr/0038-packaging-installation-and-delivery.md) §6, §13–17).
+
+**CSRF (cross-site request forgery)** *(Open issue)* — A web page from somewhere else quietly
+submitting a form to Sukoon using the cashier's signed-in session. Partly guarded against;
+full protection is due before Sukoon goes on the shop's network (context.md §4).

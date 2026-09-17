@@ -18,6 +18,8 @@ import logging
 import os
 from datetime import UTC, datetime
 
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+
 from sukoon.extensions import db
 from sukoon.models import (
     Category,
@@ -37,29 +39,31 @@ _DEV_PLACEHOLDER = "sukoon-dev-only-change-me"
 
 
 def seed_permissions() -> None:
-    """Idempotent: upserts every permission code and its role mappings."""
-    by_code: dict[str, Permission] = {
-        p.code: p for p in db.session.scalars(db.select(Permission)).all()
-    }
-    for code, description in PERMISSIONS.items():
-        perm = by_code.get(code)
-        if perm is None:
-            perm = Permission(code=code, description=description)
-            db.session.add(perm)
-            db.session.flush()
-            by_code[code] = perm
-        else:
-            perm.description = description
+    """Idempotent, and safe when two processes run it at once.
 
-    existing = {
-        (rp.role, rp.permission_id)
-        for rp in db.session.scalars(db.select(RolePermission)).all()
-    }
+    It used to read the existing rows and then insert the missing ones. That was fine while
+    only ``flask seed`` called it; Phase 7's setup screen calls it too, and two people
+    submitting setup at the same instant both saw no permissions and both inserted —
+    ``UNIQUE constraint failed: permission.code``, found by the setup concurrency test. The
+    same read-then-insert race Phase 5 found in ``settings_service.set``, fixed the same way:
+    each row is one insert that lets the unique constraint decide.
+    """
+    for code, description in PERMISSIONS.items():
+        db.session.execute(
+            sqlite_insert(Permission)
+            .values(code=code, description=description)
+            .on_conflict_do_update(index_elements=[Permission.code],
+                                   set_={"description": description})
+        )
+    ids = dict(db.session.execute(db.select(Permission.code, Permission.id)).all())
     for role, codes in ROLE_PERMISSIONS.items():
         for code in codes:
-            pid = by_code[code].id
-            if (role, pid) not in existing:
-                db.session.add(RolePermission(role=role, permission_id=pid))
+            db.session.execute(
+                sqlite_insert(RolePermission)
+                .values(role=role, permission_id=ids[code])
+                .on_conflict_do_nothing(
+                    index_elements=[RolePermission.role, RolePermission.permission_id])
+            )
     db.session.commit()
 
 

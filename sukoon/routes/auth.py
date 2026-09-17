@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from urllib.parse import urlsplit
 
 from flask import (
     Blueprint,
@@ -18,7 +19,7 @@ from flask_login import current_user, login_required, login_user, logout_user
 
 from sukoon.extensions import db
 from sukoon.models import User
-from sukoon.services import auth_service
+from sukoon.services import auth_service, settings_service
 
 bp = Blueprint("auth", __name__)
 
@@ -32,13 +33,24 @@ def _greeting(now: datetime) -> str:
     return "Good evening"
 
 
+def _safe_next(target: str | None) -> str | None:
+    """Only a path inside Sukoon. ``?next=`` used to be followed wherever it pointed, so a
+    link could send a cashier who had just signed in to any site — say, a copy of this
+    sign-in page. ``//evil.example`` and ``/\\evil.example`` are other sites to a browser."""
+    if not target or not target.startswith("/") or target.startswith(("//", "/\\")):
+        return None
+    parts = urlsplit(target)
+    return target if not parts.scheme and not parts.netloc else None
+
+
 def _login_page(status: int = 200):
     users = db.session.scalars(
         db.select(User).where(User.is_active.is_(True)).order_by(User.name)
     ).all()
     return (
         render_template(
-            "auth/login.html", staff=users, greeting=_greeting(datetime.now(UTC))
+            "auth/login.html", staff=users, greeting=_greeting(datetime.now(UTC)),
+            shop_name=settings_service.get("shop.name", "Al-Rehman General Store"),
         ),
         status,
     )
@@ -72,8 +84,7 @@ def login():
         db.session.commit()
         login_user(user)
         current_app.logger.info("login ok user=%s", user.id)
-        next_url = request.args.get("next")
-        return redirect(next_url or url_for("main.placeholder"))
+        return redirect(_safe_next(request.args.get("next")) or url_for("main.placeholder"))
 
     return _login_page()
 

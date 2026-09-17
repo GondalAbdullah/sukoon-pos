@@ -284,6 +284,21 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   shows it — it does not corrupt or half-save the key. Full suite on Windows: **494 passed, 2 failed, 1 skipped**
   — and **both failures are in the tests, not in Sukoon** (see the two entries below). The
   installer itself is still unbuilt and untested (Phase 7).
+- **No form in Sukoon carries a CSRF token.** Found 2026-09-17 while building the setup screen:
+  every state-changing form trusts the session cookie alone. Harmless on the developer's
+  localhost; Phase 7 puts Sukoon on the shop's network, where a till is an ordinary browser.
+  **Partly mitigated now:** the session cookie is explicitly `SameSite=Lax` and `HttpOnly`
+  (previously left to Chromium's default, which allows top-level cross-site POSTs for two
+  minutes after a cookie is set — exactly the state of a cashier who has just signed in), and
+  the unauthenticated setup form checks `Origin` and local host. **Not done:** per-form tokens,
+  which touch every template and every htmx request. **Trigger: before Sukoon is installed on
+  the shop's network** — a Phase 7 task, not a Phase 8 one.
+- **Two sign-in weaknesses fixed on the way (2026-09-17):** `/login?next=` followed any address,
+  so a link could send a cashier who had just signed in to another site (an open redirect) —
+  now only paths inside Sukoon; and `config._sqlite_uri` created `instance/` **at import time,
+  in the current directory**, which would have crashed an installed copy started by Windows from
+  `System32` before it knew where its data lives — now pure, and its docstring's claim about
+  resolving against the project root is finally true.
 - **Client-reported facts the Phase 7 decisions rest on, not verified by the developer:** the
   shop is on **fixed broadband** (which is why ADR-0037 keeps a 15-minute backup cadence at
   ~5 GB/month), the tills are wired **Ethernet** into a router whose settings can be reached
@@ -1247,6 +1262,50 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-17 — Session 31: Phase 7 part 1 — data folder, generated key, first-run setup
+
+Built the parts of Phase 7 that no client answer blocks, in ADR-0038's order.
+
+- **`sukoon/datadir.py`** — ADR-0036's `C:\ProgramData\Sukoon\` (overridable with
+  `SUKOON_DATA_DIR`), created and write-probed at start-up with a message naming the folder;
+  and the **generated `SECRET_KEY`** (ADR-0038 §7), created with `O_EXCL` so two starting
+  processes can't write different keys — and, since the loser of that race can find the file
+  created but not yet written, it waits for the key instead of calling it empty. Called by the
+  launcher, never by `create_app`, so tests can't touch a real data folder.
+- **First-run setup** (`services/setup_service.py`, `routes/setup.py`, `templates/setup/`):
+  shop name, owner's name and password → the first Admin, signed straight in. Every page leads
+  there while there are no users. Decisions made while building it are recorded in ADR-0038
+  §13–17.
+- **Security found and fixed along the way:** no password rule existed; the session cookie's
+  cross-site behaviour was left to the browser; `?next=` was an open redirect; and **no form has
+  a CSRF token** — mitigated, not fixed, and recorded in §4 with a trigger.
+- **`config._sqlite_uri` made pure** — it created directories at import time in the current
+  directory, which would have crashed an installed copy started from `System32`.
+
+**Verification, including what the tests missed:**
+- **Mutation-checked every security test** by breaking each protection on purpose: 7 of 8 went
+  red. The eighth — the concurrency test — stayed green because the mutation removed a redundant
+  layer, not the load-bearing claim; removing the claim itself was caught 5 runs out of 5, and
+  the code comment now says which part carries the weight.
+- **A real browser found what 49 passing tests didn't:** the first owner was an Admin with no
+  Khata, Insights or Messages, because a fresh database has no permission rows. Fixed by seeding
+  in setup, with a test that fails without the fix.
+- **That fix introduced a race** — two simultaneous setups both seeded permissions with the old
+  read-then-insert and one crashed on `UNIQUE constraint failed: permission.code`. The existing
+  concurrency test caught it. `seed_permissions` now inserts each row atomically (Phase 5's
+  settings fix, same pattern); a new four-thread test fails against the old code 5 out of 5.
+- Real HTTP against a throwaway server: `/` → setup on this PC, **403 from the laptop's LAN
+  address**; screenshots at desktop and phone width, the mistake message keeps names but never the
+  password, and a placeholder that looked pre-filled was reworded.
+- **Linux 546 passed; Windows 545 passed, 1 skipped** (the skip only applies off Windows), ruff
+  clean.
+
+**Honest limits:** the developer's laptop restarted mid-session and ran short of memory with the VM,
+the suite and Chrome together — the VM's SSH hung under swap until work was serialised. Not yet
+built: the Waitress launcher, migrate-with-backup on start-up, start-up permission seeding, the
+worker's key check (part 2); the installer and boot task (need the VM work); printing (O-25) and
+the backup upload (O-26).
 
 ### 2026-09-17 — Session 30: the Phase 7 grill — 11 questions, 5 ADRs, and a fact that killed the best option
 
