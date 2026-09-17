@@ -33,6 +33,10 @@ PERMISSIONS: dict[str, str] = {
     "whatsapp.manage": "See the message log; switch sending, set the key, cap, test (ADR-0033)",
     # Phase 6
     "report.view": "See Insights and reports, and export them (ADR-0034: Admin only)",
+    # Phase 7 — the shop runs itself (found missing the day before go-live: a shop with cashiers
+    # had no way to give them accounts at all)
+    "staff.manage": "Add staff, set their password, make them active or not (Admin, step-up)",
+    "settings.manage": "See and change shop settings: the receipt printer, the shop's details",
 }
 
 # role -> the codes it holds. Admin holds every code; Cashier holds the subset
@@ -55,5 +59,7 @@ ROLE_PERMISSIONS: dict[str, set[str]] = {
 # action, even for an Admin (ADR-0008 §5). Creating a price-override barcode is
 # also step-up (ADR-0009) but is gated in its route, not by a permission code.
 STEP_UP_PERMISSIONS: frozenset[str] = frozenset(
-    {"product.edit_price", "sale.refund", "khata.override_limit"}
+    # staff.manage: an account is a key to the shop's money — adding one, or resetting someone's
+    # password, asks the Admin for their own password again.
+    {"product.edit_price", "sale.refund", "khata.override_limit", "staff.manage"}
 )

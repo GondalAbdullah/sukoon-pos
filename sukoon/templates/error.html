@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ heading }} — Sukoon</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
+</head>
+{#
+  Every error a person can reach needs a way out. The desktop window has no address bar and no
+  Back button, so Flask's bare error pages trapped the user in the window until they closed
+  Sukoon itself — found on the VM, 2026-09-18.
+#}
+<body class="min-h-screen bg-paper text-ink font-sans antialiased
+             flex items-center justify-center p-6
+             bg-[radial-gradient(circle_at_50%_38%,#E7F3EF_0%,#FAF9F6_60%)]">
+  <div class="w-full max-w-md text-center">
+    <div class="text-[26px] font-extrabold tracking-[-0.03em] mb-6">
+      <span>suk</span><span class="text-teal">oon</span>
+    </div>
+    <div class="panel p-7">
+      <h1 class="text-lg font-bold mb-2">{{ heading }}</h1>
+      <p class="text-sm text-muted font-medium mb-6">{{ message }}</p>
+      <div class="flex gap-2 justify-center">
+        <button type="button" onclick="history.back()" class="btn-ghost">Go back</button>
+        <a href="{{ url_for('main.placeholder') }}" class="btn-primary">Back to Sukoon</a>
+      </div>
+    </div>
+    <p class="mt-5 text-xs text-faint font-medium">Nothing was saved by this page.</p>
+  </div>
+</body>
+</html>

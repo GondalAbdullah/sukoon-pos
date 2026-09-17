@@ -17,7 +17,8 @@ from sukoon.services import settings_service
 log = logging.getLogger(__name__)
 
 # setting keys
-_KIND = "receipt.printer.kind"  # 'none' | 'network' | 'usb' | 'serial' | 'file'
+_KIND = "receipt.printer.kind"  # 'none' | 'windows' | 'network' | 'usb' | 'serial' | 'file'
+_WINDOWS_NAME = "receipt.printer.windows_name"  # a printer installed in Windows (ADR-0039)
 _HOST = "receipt.printer.host"
 _PORT = "receipt.printer.port"
 _TIMEOUT = "receipt.printer.timeout_seconds"
@@ -84,10 +85,28 @@ def _build_printer():
     raise PrinterUnavailable(f"Unknown printer kind: {kind!r}")
 
 
+def windows_printer_name() -> str | None:
+    return (settings_service.get(_WINDOWS_NAME) or "").strip() or None
+
+
 def send(data: bytes) -> None:
     """Push raw ESC/POS bytes to the configured printer. Raises
     ``PrinterUnavailable`` for every failure mode — no printer, bad address,
     connection refused, missing USB backend, a timeout."""
+    if printer_kind() == "windows":
+        # Through Windows' own print system (ADR-0039): the shop's USB printer keeps its
+        # manufacturer's driver, and Sukoon needs no libusb.
+        from sukoon.services.receipts import windows_printer
+
+        name = windows_printer_name()
+        if not name:
+            raise PrinterUnavailable("No Windows printer is chosen on the Settings screen.")
+        try:
+            windows_printer.send_raw(name, data)
+        except Exception as exc:  # WindowsPrintError, or anything ctypes raises
+            raise PrinterUnavailable(str(exc)) from exc
+        return
+
     try:
         device = _build_printer()
     except PrinterUnavailable:

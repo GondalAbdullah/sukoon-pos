@@ -11,7 +11,7 @@
       <a href="{{ url_for('khata.statement', customer_id=customer.id, period=p.key) }}"
          class="pill {{ 'bg-teal-tint text-teal-deep' if p.key == period.key else 'bg-sunk text-muted hover:text-ink' }}">{{ p.label }}</a>
     {% endfor %}
-    <a href="{{ url_for('khata.statement_pdf', customer_id=customer.id, period=period.key) }}" target="_blank" rel="noopener"
+    <a href="{{ url_for('khata.statement_pdf', customer_id=customer.id, period=period.key) }}"
        class="btn-primary !py-2 ml-auto">Download PDF</a>
   </div>
 

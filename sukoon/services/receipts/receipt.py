@@ -243,3 +243,21 @@ def render_pdf(data: ReceiptData) -> bytes:
     c.showPage()
     c.save()
     return buf.getvalue()
+
+
+def render_test_escpos(shop_name: str, when: str) -> bytes:
+    """A short slip for the Settings screen's "Print a test receipt". It exists so the printer can
+    be proved at installation without ringing up a real sale (ADR-0039 §3)."""
+    d = Dummy()
+    d.set(align="center", bold=True, double_height=True)
+    d.text(shop_name + "\n")
+    d.set(align="center", bold=False, double_height=False)
+    d.text("Test receipt\n")
+    d.text(when + "\n\n")
+    d.set(align="left")
+    d.text("If you can read this, Sukoon can print.\n")
+    d.text("Receipts will print by themselves after\n")
+    d.text("every sale.\n")
+    d.text("\n\n")
+    d.cut()
+    return d.output

@@ -28,7 +28,7 @@
     {% endif %}
     <div class="flex items-center gap-2 ml-auto">
       <a href="{{ url_for('reports.report_csv', kind=kind, **export_args) }}" class="btn-ghost !py-2 text-sm">Download CSV</a>
-      <a href="{{ url_for('reports.report_pdf', kind=kind, **export_args) }}" target="_blank" rel="noopener" class="btn-primary !py-2 text-sm">PDF</a>
+      <a href="{{ url_for('reports.report_pdf', kind=kind, **export_args) }}" class="btn-primary !py-2 text-sm">PDF</a>
     </div>
   </div>
 

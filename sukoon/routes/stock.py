@@ -344,7 +344,9 @@ def label_sheet():
         specs.extend([labels.LabelSpec(code=row.barcode, caption=caption)] * copies)
 
     if not specs:
-        abort(400, description="No barcodes selected.")
+        # Not abort(400): in the desktop window that is a dead-end page with no way back.
+        flash("Tick at least one barcode to put on the label sheet.", "error")
+        return redirect(request.referrer or url_for("stock.index"))
 
     pdf = labels.render_label_sheet(specs, geometry=labels.load_geometry())
     return send_file(

@@ -546,9 +546,13 @@ def complete(sale_id: int):
 @permission_required("sale.ring")
 def receipt_pdf(sale_id: int):
     sale = db.session.get(Sale, sale_id) or abort(404)
+    # as_attachment: the desktop window has no address bar and no Back button, so a PDF opened
+    # in place is a dead end — the only way out was closing Sukoon (found on the VM, 2026-09-18).
+    # Downloaded, it appears in the window's download bar and opens in the PC's own PDF viewer.
     return send_file(
         io.BytesIO(receipts.receipt_pdf(sale)),
         mimetype="application/pdf",
+        as_attachment=True,
         download_name=f"{sale.invoice_number}.pdf",
     )
 

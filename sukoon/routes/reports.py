@@ -167,7 +167,7 @@ def _export(kind: str, ext: str):
             rpt.to_pdf(doc, shop_name=settings_service.get("shop.name", "Al-Rehman General Store"))
         )
         resp.mimetype = "application/pdf"
-        resp.headers["Content-Disposition"] = f'inline; filename="{stem}.pdf"'
+        resp.headers["Content-Disposition"] = f'attachment; filename="{stem}.pdf"'
     return resp
 
 

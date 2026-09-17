@@ -9,7 +9,7 @@ from __future__ import annotations
 import os
 
 import click
-from flask import Flask
+from flask import Flask, request
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 from sqlalchemy.pool import StaticPool
@@ -68,6 +68,7 @@ def create_app(
     login_manager.init_app(app)
     csrf.init_app(app)
     _register_csrf_error(app)
+    _register_error_pages(app)
 
     # Import models so their tables are registered on db.metadata for both
     # Alembic autogenerate and the test database's create_all().
@@ -84,7 +85,9 @@ def create_app(
     from sukoon.routes.messages import bp as messages_bp
     from sukoon.routes.refunds import bp as refunds_bp
     from sukoon.routes.reports import bp as reports_bp
+    from sukoon.routes.settings import bp as settings_bp
     from sukoon.routes.setup import bp as setup_bp
+    from sukoon.routes.staff import bp as staff_bp
     from sukoon.routes.stock import bp as stock_bp
     from sukoon.routes.till import bp as till_bp
 
@@ -98,12 +101,42 @@ def create_app(
     app.register_blueprint(messages_bp)
     app.register_blueprint(reports_bp)
     app.register_blueprint(setup_bp)
+    app.register_blueprint(staff_bp)
+    app.register_blueprint(settings_bp)
 
     _register_template_helpers(app)
     _register_cli(app)
 
     app.logger.info("Sukoon application created (config=%s)", config_name or "default")
     return app
+
+
+def _register_error_pages(app: Flask) -> None:
+    """Flask's bare error pages are dead ends in the desktop window, which has no address bar and
+    no Back button: the only way out was closing Sukoon (found on the VM, 2026-09-18)."""
+    from flask import render_template
+    from werkzeug.exceptions import HTTPException
+
+    headings = {
+        403: ("Not allowed", "This account can't open that screen. An Admin can."),
+        404: ("Not found", "That page or record doesn't exist — it may have been removed."),
+    }
+
+    def page(error):
+        code = error.code if isinstance(error, HTTPException) else 500
+        heading, message = headings.get(code, (
+            "Something went wrong",
+            "Sukoon couldn't finish that. Try again; if it keeps happening, tell the person who "
+            "looks after Sukoon for the shop."))
+        if isinstance(error, HTTPException) and error.description and code not in headings:
+            message = error.description
+        if code >= 500:
+            app.logger.exception("Unhandled error on %s %s", request.method, request.path)
+        return render_template("error.html", heading=heading, message=message), code
+
+    for code in (400, 403, 404, 405, 500):
+        app.register_error_handler(code, page)
+    app.register_error_handler(Exception, page)
 
 
 def _register_csrf_error(app: Flask) -> None:
@@ -152,10 +185,11 @@ def _register_template_helpers(app: Flask) -> None:
         from sukoon.services.auth_service import role_has_permission
 
         ctx = {"pending_refund_count": 0, "khata_enabled": False, "messages_enabled": False,
-               "whatsapp_pause": None, "reports_enabled": False}
+               "whatsapp_pause": None, "reports_enabled": False, "settings_enabled": False}
         if current_user.is_authenticated:
             ctx["khata_enabled"] = role_has_permission(current_user.role, "khata.view")
             ctx["reports_enabled"] = role_has_permission(current_user.role, "report.view")
+            ctx["settings_enabled"] = role_has_permission(current_user.role, "settings.manage")
             if role_has_permission(current_user.role, "whatsapp.manage"):
                 # ADR-0029 §8: an Admin sees a banner on every screen while paused
                 from sukoon.services.notifications import queue

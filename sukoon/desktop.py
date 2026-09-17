@@ -74,8 +74,21 @@ def storage_path() -> Path:
     return Path(base) / "Sukoon" / "window"
 
 
+WEBVIEW_SETTINGS: dict[str, bool] = {
+    # Without this, pywebview silently discards downloads: the label sheet's "Download PDF"
+    # did nothing at all, with no message and no file (found on the VM, 2026-09-18). With it,
+    # the window shows its own download bar and saves to the signed-in user's Downloads folder.
+    "ALLOW_DOWNLOADS": True,
+    # A link that opens "in a new window" would otherwise open the system browser, which has no
+    # Sukoon session — the Khata statement asked the owner to sign in again just to get a PDF.
+    "OPEN_EXTERNAL_LINKS_IN_BROWSER": False,
+}
+
+
 def main() -> None:  # pragma: no cover — needs a desktop session; exercised on Windows
     import webview
+
+    webview.settings.update(WEBVIEW_SETTINGS)
 
     window = webview.create_window("Sukoon", html=STARTING_HTML, maximized=True,
                                    min_size=(1024, 700))

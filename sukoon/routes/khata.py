@@ -317,5 +317,5 @@ def statement_pdf(customer_id: int):
     resp = make_response(pdf)
     resp.mimetype = "application/pdf"
     safe = "".join(ch if ch.isalnum() else "-" for ch in customer.name).strip("-") or "customer"
-    resp.headers["Content-Disposition"] = f'inline; filename="khata-{safe}-{period.key}.pdf"'
+    resp.headers["Content-Disposition"] = f'attachment; filename="khata-{safe}-{period.key}.pdf"'
     return resp

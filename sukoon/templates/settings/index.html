@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Settings — Sukoon{% endblock %}
+{% block heading %}Settings{% endblock %}
+{% block subheading %}The receipt printer, the other tills, and the backups{% endblock %}
+{% block content %}
+{# The printer (ADR-0039), the address the tills use (ADR-0038 §10) and backup health (ADR-0037 §6). #}
+<div class="max-w-3xl flex flex-col gap-6">
+
+  <div class="panel p-6">
+    <h2 class="text-base font-bold mb-1">Staff</h2>
+    <p class="text-sm text-muted font-medium mb-4">Who can sign in at the tills, and what they may do.</p>
+    <a href="{{ url_for('staff.index') }}" class="btn-primary">Manage staff</a>
+  </div>
+
+  <div class="panel p-6">
+    <h2 class="text-base font-bold mb-1">The other tills</h2>
+    {% if till_address %}
+      <p class="text-sm text-muted font-medium mb-3">
+        On another counter's computer, open a browser and go to this address. Bookmark it.
+      </p>
+      <div class="bg-sunk rounded-[12px] px-4 py-3 font-mono text-base font-semibold">{{ till_address }}</div>
+      <p class="text-xs text-faint font-medium mt-3">
+        If this address changes, the other tills stop working — ask whoever set up the router to
+        reserve it for this computer.
+      </p>
+    {% else %}
+      <p class="text-sm text-muted font-medium">This computer isn't on a network right now.</p>
+    {% endif %}
+  </div>
+
+  <div class="panel p-6">
+    <h2 class="text-base font-bold mb-1">Receipt printer</h2>
+    <p class="text-sm text-muted font-medium mb-5">
+      With a printer chosen, a receipt prints by itself after every sale. Without one, Sukoon
+      offers a PDF receipt instead — a sale is never held up by a printer.
+    </p>
+    <form method="post" action="{{ url_for('settings.save_printer') }}" class="grid gap-4"
+          x-data="{ kind: '{{ kind }}' }">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div>
+        <label class="label" for="kind">How is it connected?</label>
+        <select id="kind" name="kind" x-model="kind" class="field">
+          {% for code, label in kinds %}
+            <option value="{{ code }}" {{ 'selected' if kind == code }}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div x-show="kind === 'windows'" x-cloak>
+        <label class="label" for="windows_name">Which printer</label>
+        {% if windows_printers %}
+          <select id="windows_name" name="windows_name" class="field">
+            {% for name in windows_printers %}
+              <option value="{{ name }}" {{ 'selected' if windows_name == name }}>{{ name }}</option>
+            {% endfor %}
+          </select>
+        {% else %}
+          <input type="text" id="windows_name" name="windows_name" class="field"
+                 value="{{ windows_name or '' }}" placeholder="The printer's name in Windows">
+          <p class="text-xs text-faint font-medium mt-2">
+            {% if on_windows %}Windows lists no printers on this computer yet.
+            {% else %}This computer isn't Windows, so there is nothing to list.{% endif %}
+          </p>
+        {% endif %}
+      </div>
+
+      <div x-show="kind === 'network'" x-cloak class="grid gap-4 sm:grid-cols-3">
+        <div class="sm:col-span-2">
+          <label class="label" for="host">Printer's address</label>
+          <input type="text" id="host" name="host" class="field" value="{{ host or '' }}"
+                 placeholder="192.168.1.50">
+        </div>
+        <div>
+          <label class="label" for="port">Port</label>
+          <input type="text" id="port" name="port" class="field" value="{{ port_number or '9100' }}">
+        </div>
+      </div>
+
+      <div class="border-t border-hairline pt-4">
+        <button type="submit" class="btn-primary">Save</button>
+      </div>
+    </form>
+    <form method="post" action="{{ url_for('settings.test_print') }}" class="mt-3">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn-ghost">Print a test receipt</button>
+    </form>
+  </div>
+
+  <div class="panel p-6">
+    <h2 class="text-base font-bold mb-1">Backups</h2>
+    {% if backup.configured %}
+      <p class="text-sm {{ 'text-coral font-semibold' if backup.stale else 'text-muted font-medium' }} mb-3">
+        Last backup: {{ backup.last_ok_text }}{% if backup.stale %} — that is too long ago. Tell
+        whoever looks after Sukoon.{% endif %}
+      </p>
+      <p class="text-sm text-muted font-medium">
+        {{ backup.count }} backup{{ '' if backup.count == 1 else 's' }} kept in
+        <span class="font-mono text-xs">{{ backup.folder }}</span>, a new one every 15 minutes while
+        anything changes.
+      </p>
+      {% if backup.last_error %}
+        <p class="text-sm text-coral font-semibold mt-3">Last failure: {{ backup.last_error }}</p>
+      {% endif %}
+      <p class="text-xs text-faint font-medium mt-3">
+        These copies are on this computer only. If it is lost or stolen, they go with it.
+      </p>
+    {% else %}
+      <p class="text-sm text-muted font-medium">Backups run on an installed Sukoon, not in development.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
