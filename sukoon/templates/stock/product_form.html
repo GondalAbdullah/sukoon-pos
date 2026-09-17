@@ -8,6 +8,7 @@
 <div class="max-w-xl">
 <form method="post" class="panel p-7"
       action="{{ url_for('stock.update_product', product_id=product.id) if product else url_for('stock.create_product') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
   <label class="block mb-4">
     <span class="label">Name (required)</span>

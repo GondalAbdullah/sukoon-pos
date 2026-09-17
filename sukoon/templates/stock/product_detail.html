@@ -45,6 +45,7 @@
     <a href="{{ url_for('stock.edit_product', product_id=product.id) }}" class="btn-ghost">Edit details</a>
     <form method="post" action="{{ url_for('stock.delete_product', product_id=product.id) }}"
           onsubmit="return confirm('Delete {{ product.name }}?')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="btn-ghost !text-coral">Delete</button>
     </form>
   {% endif %}
@@ -82,6 +83,7 @@
     </div>
 
     <form method="post" action="{{ url_for('stock.adjust_stock', product_id=product.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="label">What's happening?</div>
       <div class="flex gap-2 mb-5">
         <label class="flex-1 text-center rounded-md py-3 cursor-pointer text-[13.5px] font-semibold transition-colors"
@@ -128,6 +130,7 @@
         <div class="flex-1"></div>
         {% if can_manage and b.is_active %}
           <form method="post" action="{{ url_for('stock.deactivate_barcode', barcode_id=b.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="text-xs font-semibold text-faint hover:text-coral">Deactivate</button>
           </form>
         {% endif %}
@@ -141,6 +144,7 @@
   <div class="card p-5 mb-4">
     <form method="post" action="{{ url_for('stock.add_barcode', product_id=product.id) }}"
           class="flex flex-wrap gap-3 items-end">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <label class="min-w-[160px]"><span class="label">Manufacturer barcode</span><input type="text" name="barcode" class="field"></label>
       <label class="min-w-[140px]"><span class="label">Label (optional)</span><input type="text" name="label" placeholder="Near expiry, Oct" class="field"></label>
       <label class="w-28"><span class="label">Override, Rs</span><input type="number" name="price_override" min="0" step="1" class="field"></label>
@@ -153,6 +157,7 @@
   {% if barcodes %}
   <div class="card p-5">
     <form method="post" action="{{ url_for('stock.label_sheet') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="text-sm font-bold mb-3">Print a label sheet</div>
       {% for b in barcodes if b.is_active %}
         <label class="flex items-center gap-2 mb-2 text-sm">

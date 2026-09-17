@@ -29,3 +29,12 @@ tzdata==2026.4
 # The Meta adapter uses the standard library's urllib (no HTTP dependency to bundle),
 # and Windows DPAPI is reached through ctypes (ADR-0033) — no pywin32.
 APScheduler==3.11.3
+
+# Phase 7 — Windows packaging (ADR-0035 §7): the production web server. Pure Python, no
+# compiler, Windows-supported; Flask's development server never ships.
+waitress==3.0.2
+
+# CSRF protection on every form (context.md §4, before Sukoon is on the shop network).
+# WTF_CSRF_TIME_LIMIT is None in config: the default one-hour expiry would fail a sale on a
+# till screen left open over lunch.
+Flask-WTF==1.3.0

@@ -12,6 +12,7 @@
     {% for c in categories %}
       <tr>
         <form method="post" action="{{ url_for('stock.update_category', category_id=c.id) }}" class="contents">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <td><input type="text" name="name" value="{{ c.name }}" class="field !py-1.5"></td>
           <td><input type="number" name="display_order" value="{{ c.display_order }}" class="field !py-1.5 w-16"></td>
           <td class="text-center">
@@ -29,6 +30,7 @@
 <div class="max-w-md">
   <h2 class="text-base font-bold mb-3">Add a category</h2>
   <form method="post" action="{{ url_for('stock.categories') }}" class="panel p-6 flex flex-wrap items-end gap-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label class="flex-1 min-w-[160px]"><span class="label">Name</span><input type="text" name="name" required class="field"></label>
     <label class="w-24"><span class="label">Order</span><input type="number" name="display_order" value="0" class="field"></label>
     <button type="submit" class="btn-primary">Add</button>

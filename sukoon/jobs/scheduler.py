@@ -13,6 +13,7 @@ import atexit
 import logging
 import os
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -87,6 +88,8 @@ def run_job(app: Flask, name: str):
                 return queue.run_statement_schedule()
             if name == "overdue":
                 return queue.run_overdue_check()
+            if name == "backup":
+                return run_backup(app)
             raise ValueError(f"Unknown job {name!r}")
         except Exception:  # noqa: BLE001
             log.exception("Background job %s failed; it will run again on schedule", name)
@@ -94,6 +97,23 @@ def run_job(app: Flask, name: str):
             return None
         finally:
             db.session.remove()
+
+
+def run_backup(app: Flask, now: datetime | None = None):
+    """The 15-minute local backup (ADR-0037 §2). A failure is recorded where an Admin sees it,
+    not only logged — a backup that quietly stopped is the failure this exists to prevent."""
+    from sukoon import backup
+    from sukoon.startup import database_file
+
+    now = now or datetime.now(UTC)
+    backups_dir = app.config["BACKUP_DIR"]
+    try:
+        result = backup.run_scheduled(database_file(app), backups_dir, now)
+    except Exception as exc:  # noqa: BLE001
+        backup.record_status(backups_dir, now, ok=False, error=str(exc))
+        raise
+    backup.record_status(backups_dir, now, ok=True)
+    return result
 
 
 def start_scheduler(app: Flask) -> BackgroundScheduler | None:
@@ -115,6 +135,9 @@ def start_scheduler(app: Flask) -> BackgroundScheduler | None:
                       args=[app, "statements"], id="whatsapp-statements")
     scheduler.add_job(run_job, CronTrigger(hour=11, minute=0, timezone=zone),
                       args=[app, "overdue"], id="whatsapp-overdue")
+    if app.config.get("BACKUP_DIR"):  # installed copies only (startup.build_app)
+        scheduler.add_job(run_job, IntervalTrigger(minutes=15), args=[app, "backup"],
+                          id="local-backup", next_run_time=datetime.now(zone))
     # ADR-0031 §2: the start-up catch-up, once, as soon as the scheduler runs
     scheduler.add_job(run_job, args=[app, "statements"], id="whatsapp-statements-catch-up")
     scheduler.start()

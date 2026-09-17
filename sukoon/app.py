@@ -15,7 +15,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.pool import StaticPool
 
 from sukoon.config import get_config
-from sukoon.extensions import db, login_manager, migrate
+from sukoon.extensions import csrf, db, login_manager, migrate
 from sukoon.logging_config import configure_logging
 
 
@@ -66,6 +66,8 @@ def create_app(
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
+    csrf.init_app(app)
+    _register_csrf_error(app)
 
     # Import models so their tables are registered on db.metadata for both
     # Alembic autogenerate and the test database's create_all().
@@ -102,6 +104,30 @@ def create_app(
 
     app.logger.info("Sukoon application created (config=%s)", config_name or "default")
     return app
+
+
+def _register_csrf_error(app: Flask) -> None:
+    """A rejected CSRF token means the request never reached its view, so nothing was saved —
+    and the person must be told so. htmx doesn't display a 400 at all: on the till, a
+    rejected 'add to cart' would simply appear to do nothing. So htmx gets a full reload
+    (fresh token) and everyone gets a plain message."""
+    from urllib.parse import urlsplit
+
+    from flask import flash, redirect, request, url_for
+    from flask_wtf.csrf import CSRFError
+
+    @app.errorhandler(CSRFError)
+    def _csrf_rejected(error):
+        app.logger.warning("CSRF token rejected on %s %s: %s", request.method, request.path,
+                           error.description)
+        flash("That page had been open too long, so nothing was saved. Please try again.",
+              "error")
+        if request.headers.get("HX-Request"):
+            return "", 400, {"HX-Refresh": "true"}
+        back = urlsplit(request.referrer or "")
+        target = back.path if back.netloc == request.host and back.path else "/"
+        return redirect(target if target.startswith("/") and not target.startswith("//")
+                        else url_for("main.placeholder"))
 
 
 def _ensure_database_folder(uri: str) -> None:

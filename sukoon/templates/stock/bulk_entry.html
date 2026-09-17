@@ -15,6 +15,7 @@
 
 <div class="grid lg:grid-cols-[1fr,340px] gap-6 items-start">
   <form method="post" action="{{ url_for('stock.bulk_entry') }}" class="panel p-7">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label class="block mb-4">
       <span class="label">Barcode (optional)</span>
       <input type="text" name="barcode" autofocus autocomplete="off" class="field">

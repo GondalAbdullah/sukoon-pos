@@ -58,6 +58,11 @@ class Config:
     SESSION_COOKIE_SAMESITE = "Lax"
     SESSION_COOKIE_HTTPONLY = True
 
+    # CSRF tokens on every form and htmx request (Flask-WTF). The token lives as long as the
+    # session (10 hours) — Flask-WTF's default one-hour expiry would reject a sale rung on a
+    # till screen that had been open since before lunch.
+    WTF_CSRF_TIME_LIMIT = None
+
     # The first password a person chooses in Sukoon is on the setup screen (ADR-0038 §6).
     # Length only, no composition rules — per NIST SP 800-63B, which found character-class
     # rules push people toward predictable passwords rather than strong ones.

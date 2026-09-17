@@ -7,6 +7,15 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
   <script src="{{ url_for('static', filename='js/htmx.min.js') }}" defer></script>
   <script src="{{ url_for('static', filename='js/alpine.min.js') }}" defer></script>
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <script>
+    // htmx requests carry the CSRF token as a header, so a button with hx-post (not only a
+    // form) is protected too. Forms also carry it as a hidden field.
+    document.addEventListener("htmx:configRequest", function (event) {
+      event.detail.headers["X-CSRFToken"] =
+        document.querySelector('meta[name="csrf-token"]').content;
+    });
+  </script>
 </head>
 <body>
 {#
@@ -65,6 +74,7 @@
   <div class="flex-1"></div>
 
   <form method="post" action="{{ url_for('auth.logout') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <button type="submit" class="rail-link" title="Sign out ({{ current_user.name }})">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
     </button>

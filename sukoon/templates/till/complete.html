@@ -84,6 +84,7 @@
         PDF receipt
       </a>
       <form method="post" action="{{ url_for('till.reprint_receipt', sale_id=sale.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="btn-ghost">Print again</button>
       </form>
     </div>

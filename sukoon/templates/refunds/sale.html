@@ -14,6 +14,7 @@
   <div class="card p-6 text-sm text-muted mb-6">Every line on this sale has already been refunded.</div>
 {% else %}
 <form method="post" action="{{ url_for('refunds.initiate') }}" class="mb-8">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <input type="hidden" name="sale_id" value="{{ sale.id }}">
   <div class="panel overflow-hidden mb-5">
     <table class="table">

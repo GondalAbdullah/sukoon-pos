@@ -9,6 +9,7 @@
 
   <form method="post" action="{{ url_for('khata.payment', customer_id=customer.id) }}" class="panel p-7"
         x-data="{ method: '{{ v.get('method', 'cash') }}', amount: '{{ v.get('amount', '') }}' }">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
     {% if excess_paisa %}
     {# ADR-0026 §7: never silently kept, never silently refused. #}

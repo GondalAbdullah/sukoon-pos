@@ -161,6 +161,22 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   a converter-shaped restore path; **Litestream** — the client's first choice, and the better
   design — lost only to its own release notes (Windows not officially supported), which is why
   it was checked rather than assumed.
+- **O-27 — Go-live in two days (2026-09-19), replacing paper from day one — a client decision
+  recorded with its risks.** Asked 2026-09-17 what "delivery" meant; offered a supervised trial
+  alongside paper (recommended), a full go-live, or a demo with installation later. **The client
+  chose full go-live.** Knowingly accepted, and to be revisited if any of these bites:
+  1. **Phase 8 (integration testing and client acceptance) has not happened** — the shop is the
+     first real test.
+  2. **Offsite backup (ADR-0037) cannot exist at go-live** — its storage account is O-26. Until
+     then backups are **local to the shop PC**, so a dead disk, theft or fire loses the books.
+     Local backups are built first; offsite follows as soon as the account exists.
+  3. **Printing on the shop's own printer is unverified** (O-25); PDF receipts are the fallback.
+  4. **WhatsApp stays off** (O-23's hard rule) — which also means ADR-0035's DPAPI/boot-account
+     question cannot break go-live.
+  **Not skipped despite the deadline:** a backup before every migration, CSRF protection before
+  Sukoon is on the shop network, a clean-machine install test, and one rehearsed restore.
+  **Owner: the client and developer. Trigger to revisit: any data loss or wrong balance in the
+  first two weeks — the paper method comes back until the cause is found.**
 - **O-25 — The shop's receipt printer model is unknown.** The client says it is a **USB thermal
   printer** ([ADR-0039](adr/0039-receipt-printing-on-windows.md)); the make and model are still
   needed, and with them the one genuinely untested assumption in the printing path: **whether a
@@ -1262,6 +1278,45 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-17 — Session 32: go-live in two days — day 1: safe start-up, backups, CSRF
+
+The client set **go-live for 2026-09-19, replacing paper** (O-27, recorded with its risks after
+offering a supervised trial). Day 1 built what protects the shop's data first.
+
+- **`sukoon/startup.py` + `sukoon/run.py`** — production builds the app on the data folder, then
+  **migrates with a pre-upgrade backup, restoring it if the migration fails** (ADR-0038 §11), seeds
+  permissions, and serves with **Waitress** (ADR-0035 §7). A port already in use is logged.
+- **`sukoon/backup.py`** — SQLite online-backup snapshots every 15 minutes (kept only when the data
+  changed), `integrity_check` on each, retention 24h + 14 daily, pre-upgrade copies never pruned,
+  status in `backups/status.json` (not the database — writing status there would make every
+  snapshot differ). **Local only until O-26.**
+- **CSRF on every form and htmx request** (Flask-WTF 1.3.0) — the §4 known issue, before the shop
+  network. Tokens inserted into all 42 POST forms by a scanner (a regex had merged a GET form with
+  the POST form after it); a template guard test fails on any future form without one; token
+  lifetime is the session, not Flask-WTF's default hour, which would have failed a sale on a till
+  left open over lunch; a rejected htmx request reloads the page with "nothing was saved" instead
+  of silently doing nothing.
+- **`sukoon/desktop.py`** — the pywebview window (client re-confirmed pywebview over an Edge
+  app-mode shortcut): waits for the server after boot; **not in private mode**, which would have
+  forgotten the till's name cookie on every close.
+- **`migrations/env.py`** — `disable_existing_loggers=False`: with migrations now run in-process, the
+  default switched off Sukoon's own loggers after the first upgrade.
+
+**Found by checking, not assuming:** a plain file copy of a WAL database lost not only recent sales
+but the `sale` table itself; every new safety test mutation-checked (13 of 14 caught first time, the
+14th only after removing both of two redundant safeguards); **a real sale rung in a browser against
+the production server with CSRF on** — setup → product → stock in → till → + → cash →
+`INV-2026-0001`, zero token rejections — because the whole suite runs with CSRF off and cannot see
+a broken htmx path.
+
+**The developer's laptop was force-shut-down** mid-session, most likely memory (7 GB host, 4 GB VM,
+suite and Chrome together). Checked afterwards: `git fsck` clean, no empty or NUL-filled changed
+files, all Python compiles, all templates parse, the VM's NTFS volume not dirty. Heavy work is now
+serialised.
+
+**Linux 580 passed.** Windows run and packaging (PyInstaller spec, installer, boot task) are day 2.
+Noted, not fixed: the product form's unit field keeps its default text when typed into ("unitbottle").
 
 ### 2026-09-17 — Session 31: Phase 7 part 1 — data folder, generated key, first-run setup
 

@@ -7,6 +7,7 @@ from __future__ import annotations
 from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
+from flask_wtf.csrf import CSRFProtect
 from sqlalchemy import MetaData
 
 # A deterministic naming convention for every constraint and index. Without this,
@@ -25,3 +26,4 @@ migrate = Migrate(render_as_batch=True)
 login_manager = LoginManager()
 login_manager.login_view = "auth.login"
 login_manager.login_message = "Please sign in to continue."
+csrf = CSRFProtect()

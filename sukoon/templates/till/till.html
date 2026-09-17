@@ -36,6 +36,7 @@
             hx-post="{{ url_for('till.set_terminal') }}" hx-select="#till-body" hx-select-oob="#topbar-sub,#flashes"
             hx-target="#till-body" hx-swap="outerHTML"
             x-show="renaming" x-cloak class="flex items-center gap-2">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="text" name="label" value="{{ terminal_label }}" maxlength="32" autofocus
                class="field w-40 !py-1.5 !text-xs">
         <button type="submit" class="btn-ghost !py-1.5 !px-2.5 text-xs">Save</button>
@@ -46,6 +47,7 @@
           hx-post="{{ url_for('till.set_terminal') }}" hx-select="#till-body" hx-select-oob="#topbar-sub,#flashes"
           hx-target="#till-body" hx-swap="outerHTML"
           class="card mb-4 p-5 flex flex-wrap items-end gap-3 border border-teal-tint2">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="flex-1 min-w-[200px]">
         <div class="text-sm font-bold mb-1">Name this till</div>
         <div class="text-xs text-muted">Once, per PC — e.g. &ldquo;Till 1&rdquo;. Shows on receipts so a sale can be traced back to it.</div>
@@ -59,6 +61,7 @@
           hx-post="{{ url_for('till.add') }}" hx-select="#till-body" hx-select-oob="#topbar-sub,#flashes"
           hx-target="#till-body" hx-swap="outerHTML"
           class="flex items-center gap-3 card px-5 py-4 border-[1.5px] border-teal-tint2">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#0E6B57" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
       <input type="text" name="code" id="scan-input" autofocus autocomplete="off"
              placeholder="Scan an item, or type a name…"
@@ -74,6 +77,7 @@
             hx-post="{{ url_for('till.new_provisional') }}" hx-select="#till-body" hx-select-oob="#topbar-sub,#flashes"
             hx-target="#till-body" hx-swap="outerHTML"
             class="flex flex-wrap gap-3 items-end">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="code" value="{{ new_code }}">
         <label class="flex-1 min-w-[160px]"><span class="label">Name</span>
           <input type="text" name="name" required autofocus class="field"></label>
@@ -91,6 +95,7 @@
       <form method="post" action="{{ url_for('till.clear') }}"
             hx-post="{{ url_for('till.clear') }}" hx-select="#till-body" hx-select-oob="#topbar-sub,#flashes"
             hx-target="#till-body" hx-swap="outerHTML">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="text-sm font-semibold text-muted hover:text-coral">Clear</button>
       </form>
       {% endif %}
@@ -117,16 +122,19 @@
           <div class="stepper">
             <form method="post" action="{{ url_for('till.update_line', index=i) }}"
                   hx-post="{{ url_for('till.update_line', index=i) }}" hx-select="#till-body" hx-select-oob="#topbar-sub,#flashes"
-                  hx-target="#till-body" hx-swap="outerHTML"><button name="op" value="dec" class="stepper-key">&minus;</button></form>
+                  hx-target="#till-body" hx-swap="outerHTML">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button name="op" value="dec" class="stepper-key">&minus;</button></form>
             <span class="text-sm font-bold min-w-[14px] text-center">{{ (row.quantity_milli // 1000) }}</span>
             <form method="post" action="{{ url_for('till.update_line', index=i) }}"
                   hx-post="{{ url_for('till.update_line', index=i) }}" hx-select="#till-body" hx-select-oob="#topbar-sub,#flashes"
-                  hx-target="#till-body" hx-swap="outerHTML"><button name="op" value="inc" class="stepper-key" {{ 'disabled' if stock[i].at_limit }} title="{{ 'No more in stock' if stock[i].at_limit else 'Add one' }}">+</button></form>
+                  hx-target="#till-body" hx-swap="outerHTML">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button name="op" value="inc" class="stepper-key" {{ 'disabled' if stock[i].at_limit }} title="{{ 'No more in stock' if stock[i].at_limit else 'Add one' }}">+</button></form>
           </div>
           <div class="w-24 text-right text-[14.5px] font-bold">{{ lt | rupees if lt is not none else '—' }}</div>
           <form method="post" action="{{ url_for('till.update_line', index=i) }}"
                 hx-post="{{ url_for('till.update_line', index=i) }}" hx-select="#till-body" hx-select-oob="#topbar-sub,#flashes"
                 hx-target="#till-body" hx-swap="outerHTML">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button name="op" value="remove" class="text-faint hover:text-coral px-1" title="Remove">&times;</button>
           </form>
         </div>
@@ -169,6 +177,7 @@
                 <form method="post" action="{{ url_for('till.update_line', index=i) }}"
                       hx-post="{{ url_for('till.update_line', index=i) }}" hx-select="#till-body" hx-select-oob="#topbar-sub,#flashes"
                       hx-target="#till-body" hx-swap="outerHTML">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button name="op" value="remove" class="text-faint hover:text-coral px-1" title="Remove">&times;</button>
                 </form>
               </div>
@@ -189,6 +198,7 @@
                   hx-post="{{ url_for('till.update_line', index=i) }}" hx-select="#till-body" hx-select-oob="#topbar-sub,#flashes"
                   hx-target="#till-body" hx-swap="outerHTML"
                   x-show="mode === 'manual_weight'" class="flex items-center gap-2">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <input type="hidden" name="op" value="set_weight">
               <input type="number" name="weight" step="0.001" min="0" x-model.number="weight"
                      {% if stock[i].capped %}max="{{ stock[i].row_max_milli / 1000 }}"{% endif %}
@@ -202,6 +212,7 @@
                   hx-post="{{ url_for('till.update_line', index=i) }}" hx-select="#till-body" hx-select-oob="#topbar-sub,#flashes"
                   hx-target="#till-body" hx-swap="outerHTML"
                   x-show="mode === 'manual_amount'" class="flex items-center gap-2">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <input type="hidden" name="op" value="set_amount">
               <span class="text-xs text-muted">Rs</span>
               <input type="number" name="amount" step="1" min="0" x-model.number="amount"
@@ -251,6 +262,7 @@
       <form method="post" action="{{ url_for('till.choose_customer') }}"
             hx-post="{{ url_for('till.choose_customer') }}" hx-select="#till-body" hx-select-oob="#topbar-sub,#flashes"
             hx-target="#till-body" hx-swap="outerHTML">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button name="op" value="clear" class="text-faint hover:text-ink px-1 text-lg leading-none" title="Back to a walk-in customer">&times;</button>
       </form>
     </div>
@@ -280,6 +292,7 @@
     </div>
 
     <form method="post" action="{{ url_for('till.checkout') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="label mb-2.5">How are they paying?</div>
       <div class="flex gap-2.5 mb-5">
         <label class="flex-1 text-center rounded-md py-3.5 cursor-pointer transition-colors"

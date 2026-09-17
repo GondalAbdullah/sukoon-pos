@@ -10,7 +10,10 @@ config = context.config
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
-fileConfig(config.config_file_name)
+# disable_existing_loggers=False: Sukoon runs migrations inside its own process at start-up
+# (ADR-0038 §11). The default would switch off every logger the app had already set up,
+# and an installed copy would silently stop writing its log after its first upgrade.
+fileConfig(config.config_file_name, disable_existing_loggers=False)
 logger = logging.getLogger('alembic.env')
 
 

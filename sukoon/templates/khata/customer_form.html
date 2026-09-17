@@ -11,6 +11,7 @@
 
   <form method="post" class="panel p-7"
         action="{{ url_for('khata.edit', customer_id=customer.id) if customer else url_for('khata.new') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     {% if return_to %}<input type="hidden" name="return" value="{{ return_to }}">{% endif %}
 
     {% if duplicates %}
@@ -85,6 +86,7 @@
   {% if customer and can_manage %}
   <form method="post" action="{{ url_for('khata.credit', customer_id=customer.id) }}" class="panel p-7"
         x-data="{ noLimit: {{ 'true' if customer.credit_limit_paisa is none else 'false' }} }">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="text-[15px] font-bold mb-1">Credit (Admin)</div>
     <p class="text-xs text-muted mb-5">A credit sale past the limit is stopped at the till unless an Admin approves it there.</p>
     <div class="grid sm:grid-cols-2 gap-4 mb-3">
@@ -110,6 +112,7 @@
   <form method="post" action="{{ url_for('khata.remove', customer_id=customer.id) }}" class="panel p-7"
         x-data data-confirm="Archive {{ customer.name }}'s Khata? Their history is kept."
         @submit="if (!confirm($el.dataset.confirm)) $event.preventDefault()">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="text-[15px] font-bold mb-1">Archive this Khata</div>
     <p class="text-xs text-muted mb-4">Only possible at a zero balance. Their purchases and payments stay in the records; they just leave the list and the till.</p>
     <button type="submit" class="btn-ghost !text-coral">Archive Khata</button>

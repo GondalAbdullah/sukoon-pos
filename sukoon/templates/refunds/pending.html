@@ -44,6 +44,7 @@
 
     <div class="flex flex-wrap items-end gap-3">
       <form method="post" action="{{ url_for('refunds.approve', refund_id=r.id) }}" class="flex items-end gap-2">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label>
           <span class="label">Your password</span>
           <input type="password" name="step_up_password" required class="field !py-2 w-44">
@@ -51,6 +52,7 @@
         <button type="submit" class="btn-primary">Approve</button>
       </form>
       <form method="post" action="{{ url_for('refunds.reject', refund_id=r.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="btn-ghost !text-coral">Reject</button>
       </form>
     </div>

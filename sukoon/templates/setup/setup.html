@@ -45,6 +45,7 @@
       {% endwith %}
 
       <form method="post" action="{{ url_for('setup.setup') }}" class="panel p-6 text-left">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label class="label" for="shop_name">Shop name</label>
         <input type="text" id="shop_name" name="shop_name" required maxlength="120"
                value="{{ form.shop_name }}" class="field mb-1" autofocus
