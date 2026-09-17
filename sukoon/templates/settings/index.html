@@ -87,6 +87,77 @@
   </div>
 
   <div class="panel p-6">
+    <h2 class="text-base font-bold mb-1">Offsite backup</h2>
+    <p class="text-sm text-muted font-medium mb-5">
+      A copy of the shop's books, locked so only this shop can read it, kept on the internet — so a
+      dead disk, a theft or a fire doesn't take the books with the computer.
+    </p>
+
+    {% if offsite.configured %}
+      <div class="bg-sunk rounded-[12px] px-4 py-3 mb-4">
+        <p class="text-sm {{ 'text-coral font-semibold' if offsite.stale else 'font-medium' }}">
+          Last sent offsite: {{ offsite.last_ok_text }}{% if offsite.stale %} — too long ago{% endif %}
+        </p>
+        <p class="text-sm {{ 'text-coral font-semibold' if offsite.verification_overdue else 'text-muted font-medium' }}">
+          Last checked by bringing one back: {{ offsite.last_verified_text }}
+          {%- if offsite.last_verified_sales is not none %} ({{ offsite.last_verified_sales }} sales in it){% endif %}
+        </p>
+        {% if offsite.last_error %}
+          <p class="text-sm text-coral font-semibold mt-2">Last failure: {{ offsite.last_error }}</p>
+        {% endif %}
+      </div>
+      <div class="flex flex-wrap gap-2 mb-5">
+        <form method="post" action="{{ url_for('settings.send_offsite') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn-primary">Send one now</button>
+        </form>
+        <form method="post" action="{{ url_for('settings.check_offsite') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn-ghost">Bring one back and check it</button>
+        </form>
+        <a href="{{ url_for('settings.recovery_sheet') }}" class="btn-ghost">Recovery sheet</a>
+      </div>
+    {% endif %}
+
+    <details {{ 'open' if not offsite.configured }}>
+      <summary class="text-sm font-bold cursor-pointer">
+        {{ 'Set it up' if not offsite.configured else 'Change where backups go' }}
+      </summary>
+      <form method="post" action="{{ url_for('settings.save_offsite') }}" class="grid gap-4 mt-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div>
+          <label class="label" for="endpoint">Storage address</label>
+          <input type="text" id="endpoint" name="endpoint" class="field"
+                 value="{{ offsite_form.endpoint or '' }}"
+                 placeholder="https://<account-id>.r2.cloudflarestorage.com">
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label class="label" for="bucket">Bucket name</label>
+            <input type="text" id="bucket" name="bucket" class="field"
+                   value="{{ offsite_form.bucket or '' }}" placeholder="sukoon-backups">
+          </div>
+          <div>
+            <label class="label" for="access_key_id">Access key ID</label>
+            <input type="text" id="access_key_id" name="access_key_id" class="field"
+                   value="{{ offsite_form.access_key_id or '' }}" autocomplete="off">
+          </div>
+        </div>
+        <div>
+          <label class="label" for="secret_access_key">Secret access key</label>
+          <input type="password" id="secret_access_key" name="secret_access_key" class="field"
+                 autocomplete="off"
+                 placeholder="{{ 'Already saved — paste a new one to replace it' if offsite.configured else 'Shown once by Cloudflare' }}">
+          <p class="text-xs text-faint font-medium mt-2">
+            Kept encrypted by Windows on this computer, never in the database and never in a backup.
+          </p>
+        </div>
+        <div><button type="submit" class="btn-primary">Save</button></div>
+      </form>
+    </details>
+  </div>
+
+  <div class="panel p-6">
     <h2 class="text-base font-bold mb-1">Backups</h2>
     {% if backup.configured %}
       <p class="text-sm {{ 'text-coral font-semibold' if backup.stale else 'text-muted font-medium' }} mb-3">

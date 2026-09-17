@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sukoon recovery sheet</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
+  <style>@media print { .no-print { display: none } body { background: #fff } }</style>
+</head>
+{# ADR-0037 §5: without this key, every offsite backup is unreadable. It is meant to leave the shop. #}
+<body class="bg-paper text-ink font-sans p-8">
+  <div class="max-w-2xl mx-auto">
+    <div class="text-[22px] font-extrabold tracking-[-0.03em] mb-6">
+      <span>suk</span><span class="text-teal">oon</span>
+    </div>
+
+    <h1 class="text-xl font-bold mb-2">Backup recovery key — {{ shop_name }}</h1>
+    <p class="text-sm text-muted font-medium mb-6">Made {{ made_at }}</p>
+
+    <div class="panel p-6 mb-6">
+      <p class="text-xs font-bold uppercase tracking-wide text-muted mb-3">The key</p>
+      <p class="font-mono text-lg font-semibold leading-relaxed break-all">{{ key_text }}</p>
+    </div>
+
+    <div class="panel p-6 mb-6 bg-coral-tint">
+      <p class="text-sm font-bold mb-2">Keep this page away from the shop.</p>
+      <p class="text-sm">
+        The offsite backups are locked with this key. Anyone who has both the storage login and this
+        key can read the shop's books — and without this key, <strong>nobody can</strong>, including
+        the person who wrote Sukoon. If the shop's computer is lost, this page is what gets the
+        books back.
+      </p>
+    </div>
+
+    <ol class="text-sm text-inkSoft font-medium list-decimal pl-5 flex flex-col gap-2">
+      <li>Print this page.</li>
+      <li>Keep one copy somewhere safe that is <strong>not</strong> the shop — at home, or with the
+          shop's papers.</li>
+      <li>Don't photograph it, don't put it in WhatsApp, and don't keep it on the shop's computer.</li>
+    </ol>
+
+    <p class="text-xs text-faint font-medium mt-8">
+      This key cannot be changed once backups have been made with it: every copy already sent
+      offsite is locked with this one.
+    </p>
+
+    <div class="no-print mt-8 flex gap-2">
+      <button type="button" onclick="window.print()" class="btn-primary">Print</button>
+      <a href="{{ url_for('settings.index') }}" class="btn-ghost">Back to Settings</a>
+    </div>
+  </div>
+</body>
+</html>

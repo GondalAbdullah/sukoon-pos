@@ -13,7 +13,7 @@ import atexit
 import logging
 import os
 import sys
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -90,6 +90,10 @@ def run_job(app: Flask, name: str):
                 return queue.run_overdue_check()
             if name == "backup":
                 return run_backup(app)
+            if name == "offsite":
+                return run_offsite(app)
+            if name == "offsite-check":
+                return run_offsite_check(app)
             raise ValueError(f"Unknown job {name!r}")
         except Exception:  # noqa: BLE001
             log.exception("Background job %s failed; it will run again on schedule", name)
@@ -116,6 +120,50 @@ def run_backup(app: Flask, now: datetime | None = None):
     return result
 
 
+def _offsite_paths(app: Flask):
+    return (app.config["BACKUP_DIR"], app.config.get("OFFSITE_SECRET_PATH"),
+            app.config.get("BACKUP_KEY_PATH"))
+
+
+def run_offsite(app: Flask, now: datetime | None = None):
+    """Put the newest local backup somewhere that isn't the shop (ADR-0037 §1). Runs right after
+    the local backup, so the offsite copy is at most one cycle behind it."""
+    from sukoon.offsite import OffsiteError
+    from sukoon.services import offsite_service
+
+    now = now or datetime.now(UTC)
+    backups_dir, secret_path, key_path = _offsite_paths(app)
+    if not offsite_service.is_enabled():
+        return None
+    try:
+        return offsite_service.send_latest(backups_dir=backups_dir, secret_path=secret_path,
+                                           key_path=key_path, now=now)
+    except (offsite_service.NotConfigured, OffsiteError) as exc:
+        # A shop's internet drops; that must be visible, not fatal. The Settings screen shows the
+        # failure and how long it has been since a backup last went offsite.
+        offsite_service.record(backups_dir, now, ok=False, error=str(exc))
+        log.warning("Offsite backup did not go out: %s", exc)
+        return None
+
+
+def run_offsite_check(app: Flask, now: datetime | None = None):
+    """The weekly proof (ADR-0037 §6): bring the newest offsite backup back and open it."""
+    from sukoon.offsite import OffsiteError
+    from sukoon.services import offsite_service
+
+    now = now or datetime.now(UTC)
+    backups_dir, secret_path, key_path = _offsite_paths(app)
+    if not offsite_service.is_enabled():
+        return None
+    try:
+        return offsite_service.check(backups_dir=backups_dir, secret_path=secret_path,
+                                     key_path=key_path, now=now)
+    except (offsite_service.NotConfigured, OffsiteError) as exc:
+        offsite_service.record(backups_dir, now, ok=False, error=f"Weekly check failed: {exc}")
+        log.error("The offsite backup could not be checked: %s", exc)
+        return None
+
+
 def start_scheduler(app: Flask) -> BackgroundScheduler | None:
     if not app.config.get("SCHEDULER_ENABLED", False):
         return None
@@ -138,6 +186,12 @@ def start_scheduler(app: Flask) -> BackgroundScheduler | None:
     if app.config.get("BACKUP_DIR"):  # installed copies only (startup.build_app)
         scheduler.add_job(run_job, IntervalTrigger(minutes=15), args=[app, "backup"],
                           id="local-backup", next_run_time=datetime.now(zone))
+        # A minute later, so it sends the backup that has just been taken (ADR-0037 §2).
+        scheduler.add_job(run_job, IntervalTrigger(minutes=15), args=[app, "offsite"],
+                          id="offsite-backup",
+                          next_run_time=datetime.now(zone) + timedelta(minutes=1))
+        scheduler.add_job(run_job, CronTrigger(day_of_week="mon", hour=9, minute=30, timezone=zone),
+                          args=[app, "offsite-check"], id="offsite-check")
     # ADR-0031 §2: the start-up catch-up, once, as soon as the scheduler runs
     scheduler.add_job(run_job, args=[app, "statements"], id="whatsapp-statements-catch-up")
     scheduler.start()

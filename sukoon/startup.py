@@ -57,6 +57,8 @@ def build_app(config_name: str | None = None,
         "LOG_DIR": str(layout.logs),
         "BACKUP_DIR": str(layout.backups),
         "WHATSAPP_KEY_PATH": str(layout.whatsapp_key),
+        "OFFSITE_SECRET_PATH": str(layout.offsite_secret),
+        "BACKUP_KEY_PATH": str(layout.backup_encryption_key),
         "WORKER_LOCK_PATH": str(layout.worker_lock),
         "SECRET_KEY": environ.get("SECRET_KEY")
         or datadir.load_or_create_secret_key(layout.secret_key_file),

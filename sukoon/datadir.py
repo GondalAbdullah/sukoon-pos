@@ -57,6 +57,17 @@ class DataLayout:
     def secret_key_file(self) -> Path:
         return self.root / "secret.key"
 
+    @property
+    def offsite_secret(self) -> Path:
+        """The storage service's secret key (ADR-0037 §1), protected like the WhatsApp key."""
+        return self.root / "offsite.key"
+
+    @property
+    def backup_encryption_key(self) -> Path:
+        """The key the offsite backups are locked with. Also on the printed recovery sheet —
+        this copy dies with the PC, which is exactly why the sheet exists (ADR-0037 §5)."""
+        return self.root / "backup-encryption.key"
+
 
 def resolve(environ: Mapping[str, str] = os.environ, platform: str = sys.platform) -> Path | None:
     """The data folder for this machine, or ``None`` when there isn't one.
