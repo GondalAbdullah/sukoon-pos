@@ -1,4 +1,4 @@
-<#
+﻿<#
 Sets up Sukoon's server on the shop PC. Run by the installer, as Administrator.
 
   ADR-0035  the server starts at boot as a task under a dedicated account with a stored password

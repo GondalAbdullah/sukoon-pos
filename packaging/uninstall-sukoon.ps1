@@ -1,4 +1,4 @@
-<#
+﻿<#
 Removes Sukoon's server from the shop PC. Run by the uninstaller, as Administrator.
 
 KEEPS the shop's data in C:\ProgramData\Sukoon\ (ADR-0036 section 3): uninstalling Sukoon must never

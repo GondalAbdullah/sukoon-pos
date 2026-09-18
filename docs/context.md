@@ -183,11 +183,12 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   machine-installed printer is visible to Sukoon's background account**. If it is not, receipts
   print while the owner is signed in and silently fall back to PDF when they are not.
   **Owner: the developer, with the shop. Trigger: before the printing work in Phase 7 is built.**
-- **O-26 — Storage provider, account and cost for the offsite backup are not chosen.** ADR-0037
-  fixes the *mechanism* (S3-compatible object storage, encrypted client-side) but not the
-  provider, its region, its price, or whose card pays for it after handover. Same question as
-  the WhatsApp account in ADR-0027: it belongs to the owner, not the developer.
-  **Trigger: before the backup upload is built.**
+- ~~**O-26 — Storage provider, account and cost for the offsite backup.**~~ **RESOLVED 2026-09-18:**
+  the client created a **Cloudflare R2** bucket in their own account and set it up in Sukoon. Proven
+  end to end against the real service **by the client, not by a stand-in**: a backup was uploaded,
+  then brought back, decrypted, opened and its **9 sales** counted (`offsite-status.json`, 00:21 and
+  00:36 UTC). Still open in the same sense as ADR-0027's WhatsApp account: whose card pays for it
+  after handover.
 - ~~**O-21 — Every timestamp displays in UTC, including on receipts.**~~ **RESOLVED 2026-09-14** → [ADR-0024](adr/0024-shop-timezone.md): fixed shop timezone (client's choice), default Asia/Karachi; the invoice year follows it too. Stored UTC
   (correct — `models/base.py::utcnow`), but rendered with a bare `strftime`: stock
   movement history, the pending-refunds list, and the **printed/PDF receipt** all show
@@ -1278,6 +1279,61 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-18 — Session 34: the gaps the developer's own testing found, and offsite backup proven
+
+Testing the packaged app as an Admin turned up three things the shop needs that **did not exist**,
+plus four bugs only the real window could show. All fixed, with tests. 643 passed, ruff clean.
+
+**Did not exist:**
+- **Staff accounts.** Sukoon could create exactly one account - the owner's, on the setup screen -
+  so a shop with cashiers had **no way to let them sign in at all**. Now: add staff, reset a
+  password (which also clears a lockout), switch someone off, promote a cashier; every change needs
+  the Admin's own password; **the last active Admin cannot be switched off or demoted**; accounts
+  are deactivated, never deleted.
+- **A Settings screen.** The printer could only be configured by editing the database by hand, so an
+  installed Sukoon never printed. Settings now also shows the address the other tills use (promised
+  by ADR-0038 s10) and backup health.
+- **Printing through Windows** (ADR-0039 s1), via the spooler with ctypes, so the shop's USB printer
+  keeps its manufacturer's driver. **Never tested against hardware - O-25.**
+
+**Found only by running the packaged window:**
+- PDFs opened *in place*: the desktop window has no address bar or Back button, so a receipt trapped
+  the cashier until they closed Sukoon. Every PDF is a download now.
+- Downloads were silently discarded by pywebview (label sheets did nothing at all).
+- The Khata statement's "new window" link opened the system browser, which has no Sukoon session -
+  the owner was asked to sign in again to fetch their own statement.
+- Any error page was a dead end. All now offer "Go back" and "Back to Sukoon".
+
+**Also fixed:** the weigh box showed **ten times** the weight for a typed amount (rupees over paisa,
+x1000 instead of x100) - wrong on screen since Phase 3, though the sale itself was always right
+because the server does its own conversion. Guarded by a pure test and a browser check.
+
+**Insights arithmetic verified independently** (the client asked): a hand-worked scenario in
+`tests/browser/insights_hand_check.py` - all fourteen figures agree, including a restocked refund
+returning its cost and unknown-cost items excluded from profit but counted in sales.
+
+**Offsite backup built and proven** (O-26 closed): encrypted AES-256-GCM on the shop PC, S3 signed
+with the standard library, uploaded after each local backup, verified weekly by bringing one back.
+The client ran it against their own Cloudflare bucket: uploaded, retrieved, decrypted, 9 sales read.
+
+**Windows packaging, tested:** uninstall keeps the data folder and now leaves nothing behind (the
+first run left `sukoon-server.exe`, the same file-handle race as the installer); reinstall after
+uninstall works. **Note for the shop: uninstalling removes the Sukoon account, so every
+DPAPI-protected secret - the WhatsApp key, the storage secret, the backup key - becomes unreadable
+even though the data folder survives. The printed recovery sheet is the only way back to the offsite
+backups.**
+
+**Shipped PowerShell scripts now carry a UTF-8 BOM.** Windows PowerShell 5.1 reads a `.ps1` without
+one as ANSI: a dash inside a string became a character that ended the string early and broke
+parsing. The installer scripts had survived on luck.
+
+**Icons:** the client supplied a JPEG whose transparency had been flattened to a checkerboard; the
+artwork is cropped and given real rounded-corner transparency, then used for both programs, the
+installer, the uninstall entry and every browser tab (`/favicon.ico` had been 404ing).
+
+**Handover documents:** `docs/handover/install-checklist.md` (for whoever installs) and
+`docs/handover/owner-guide.md` (for the shop owner).
 
 ### 2026-09-17 — Session 33: go-live day 2 — the Windows program, the installer, and proof on a real Windows
 

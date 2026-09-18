@@ -1,4 +1,4 @@
-<#
+﻿<#
 Puts one of Sukoon's backups back in place of the shop's database (ADR-0037 §7). Run as Administrator:
 
   powershell -ExecutionPolicy Bypass -File "C:\Program Files\Sukoon\setup\restore-backup.ps1" `
