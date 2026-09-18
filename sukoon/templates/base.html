@@ -4,6 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Sukoon{% endblock %}</title>
+
+  <link rel="icon" href="{{ url_for('static', filename='img/favicon.ico') }}" sizes="any">
+  <link rel="icon" href="{{ url_for('static', filename='img/sukoon-icon.png') }}" type="image/png">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/sukoon-icon.png') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
   <script src="{{ url_for('static', filename='js/htmx.min.js') }}" defer></script>
   <script src="{{ url_for('static', filename='js/alpine.min.js') }}" defer></script>

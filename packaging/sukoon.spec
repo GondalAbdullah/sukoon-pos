@@ -33,10 +33,12 @@ window = Analysis([ROOT + "\\packaging\\window_entry.py"], pathex=[ROOT],
                   hiddenimports=["webview", "clr_loader", "pythonnet"],
                   excludes=["tkinter", "pytest"])
 
+ICON = ROOT + "\\packaging\\sukoon.ico"
+
 server_exe = EXE(PYZ(server.pure), server.scripts, [], exclude_binaries=True,
-                 name="sukoon-server", console=True)
+                 name="sukoon-server", console=True, icon=ICON)
 window_exe = EXE(PYZ(window.pure), window.scripts, [], exclude_binaries=True,
-                 name="Sukoon", console=False)
+                 name="Sukoon", console=False, icon=ICON)
 
 COLLECT(server_exe, server.binaries, server.datas,
         window_exe, window.binaries, window.datas,

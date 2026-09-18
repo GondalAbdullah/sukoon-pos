@@ -22,6 +22,8 @@ Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 UninstallDisplayName=Sukoon
+SetupIconFile=sukoon.ico
+UninstallDisplayIcon={app}\Sukoon.exe
 CloseApplications=no
 
 [Tasks]
@@ -85,6 +87,12 @@ begin
   Exec(ExpandConstant('{sys}\schtasks.exe'), '/End /TN "Sukoon Server"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM sukoon-server.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM Sukoon.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  { taskkill returns before Windows has released the files. Upgrading with the Sukoon window open
+    then failed on a file still in use, and a silent install aborts (exit code 5) with nothing
+    installed and nothing said — seen on the VM, 2026-09-18. Wait for both to be really gone. }
+  Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+       '-NoProfile -Command "1..30 | ForEach-Object { if (-not (Get-Process sukoon-server,Sukoon -ErrorAction SilentlyContinue)) { exit 0 }; Start-Sleep -Milliseconds 500 }"',
+       '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Result := '';
 end;
 

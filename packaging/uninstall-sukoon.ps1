@@ -23,6 +23,13 @@ if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) {
     Say "Removed the '$TaskName' task."
 }
 Get-Process -Name "sukoon-server", "Sukoon" -ErrorAction SilentlyContinue | Stop-Process -Force
+# Stop-Process returns before Windows releases the files, and the uninstaller starts deleting
+# immediately: the first real uninstall left sukoon-server.exe behind (VM, 2026-09-18).
+for ($i = 0; $i -lt 30; $i++) {
+    if (-not (Get-Process -Name "sukoon-server", "Sukoon" -ErrorAction SilentlyContinue)) { break }
+    Start-Sleep -Milliseconds 500
+}
+Start-Sleep -Seconds 2   # the handles close a moment after the process does
 Get-NetFirewallRule -DisplayName "Sukoon" -ErrorAction SilentlyContinue | Remove-NetFirewallRule
 Say "Removed the firewall rule."
 if (Get-LocalUser -Name $Account -ErrorAction SilentlyContinue) {
