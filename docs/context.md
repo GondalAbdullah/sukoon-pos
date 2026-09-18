@@ -58,6 +58,8 @@ work session, not just every phase.
 | [0037](adr/0037-offsite-backup-and-restore.md) | Encrypted SQLite snapshot to object storage **every 15 min** in trading hours + closing + pre-upgrade; printed **recovery sheet**; **weekly self-check**; full restore drill before handover. Neon mirror and Litestream both rejected, with reasons. **Resolves O-24** | **Accepted** |
 | [0038](adr/0038-packaging-installation-and-delivery.md) | PyInstaller + Inno Setup + pywebview; **one-time setup screen** creates the first Admin; generated `SECRET_KEY`; no sample data; **two supported network setups** — router-reserved address, or a fixed Windows address for a shop with no usable router; **no auto-update**; **unsigned** installer; clean-machine test by snapshot-and-revert, with its weakness recorded | **Accepted** |
 | [0039](adr/0039-receipt-printing-on-windows.md) | Print through the **Windows spooler**, not raw USB; the printer must be **machine-installed** or the background account may not see it (**untested — O-25**); failures visible, never blocking a sale | **Accepted** |
+| [0040](adr/0040-staff-accounts.md) | An Admin adds staff (new `staff.manage`, step-up); accounts are **deactivated, never deleted**; the **last active Admin** cannot be switched off or demoted; names and initials stay distinct; a password reset clears a lockout. **No self-service recovery — two Admins required at install** | **Accepted** |
+| [0041](adr/0041-backup-key-recovery.md) | A key this PC can't unlock is explained, never a crash, and **never silently replaced**; the Settings screen takes the key back from the printed **recovery sheet**; "start a new key" is deliberate, behind step-up, and warns that older offsite backups stay locked. Amends ADR-0037 §5 | **Accepted** |
 
 (Historical rule, now satisfied: no ADR could move to **Accepted** until the Phase 0
 grill session had run. It ran on 2026-09-10; ADR-0017 onward are ordinary Phase-N
@@ -998,6 +1000,29 @@ and in the PDF, headings misaligned over number columns and cut off ("WITH KNOWN
 now aligned per column and wrapped.
 
 **Suite:** 497 tests, ruff clean, coverage 95% (reporting service 96%, routes 93%).
+
+## 4n. Phase 7 Definition of Done — checked 2026-09-18
+
+The Development Specification's Phase 7 required tests, each with what was actually run. Everything
+below happened on the Windows 11 VM against the packaged program, not against the source tree.
+
+| Required | Evidence |
+|---|---|
+| Fresh install on a clean Windows with no developer tools | Python, pip and Git uninstalled and the source tree moved aside so nothing could lean on its virtual environment; the installer alone produced a working Sukoon: setup script exit 0, HTTP 200, sign-in page, running as `SukoonService`, favicon served from the bundle. **Weaker than a virgin Windows (ADR-0038 §2) — the machine had once held the tools** |
+| Uninstall preserves the database | Data folder and 16 backups kept; program files, boot task, account and firewall rule removed. The first run left `sukoon-server.exe` behind (a file-handle race); fixed and retested |
+| Upgrade-install keeps data | Ran repeatedly through the day. The account's password, the task, the WhatsApp key and the session key came through **byte-for-byte unchanged**; the owner could still sign in; `sukoon.db` inherits the right permissions |
+| Auto-start after a reboot | Rebooted with **nobody signed in**: serving 21 s after Windows started, as `SukoonService`, and reachable **from another machine over the network** |
+| Full offline smoke test, networking disabled | Adapter disabled: Till, Stock, Khata, Insights, Reports, Settings and Refunds all HTTP 200, and **a real sale completed — INV-2026-0015**. The offsite backup failed gracefully with a plain message |
+| Backup restore, tested as a drill | Local restore rehearsed: change made, restored in ~11 s, change gone, owner signs in, and the pre-restore database kept so the restore itself can be undone. **Offsite** proven separately by the client against their own Cloudflare bucket (uploaded, retrieved, decrypted, 9 sales read) |
+| The LAN address doesn't silently change | Settings shows the machine's own address; ADR-0038 §10 fixes it by router reservation, with a Windows fixed address as a supported fallback |
+| A locked or unexpectedly closed database recovers | WAL plus the online-backup API; the snapshot test proves recent sales sitting in the write-ahead log are included, where a plain file copy loses them |
+
+**Not done, and why:**
+- **Receipt printing on the shop's hardware (O-25).** Written to ADR-0039 and untested against a
+  printer; PDF receipts are the fallback and a sale never waits for a printer.
+- **Phase 8 (integration testing and the client's acceptance testing).** Skipped by the client's
+  decision to go live on 2026-09-19 (O-27); the shop is the first real test.
+- **A virgin Windows for the install test.** ADR-0038 §2's weaker option, with its mitigations run.
 
 ## 5. Edge case and test matrix
 
