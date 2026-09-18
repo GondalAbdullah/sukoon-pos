@@ -146,7 +146,11 @@
                mode: '{{ 'manual_amount' if row.quantity_source == 'manual_amount' else 'manual_weight' }}',
                weight: null, amount: null, unitPrice: {{ row.unit_price_paisa }},
                get approxRs() { return this.weight ? Math.round(this.weight * this.unitPrice / 100) : null },
-               get approxKg() { return this.amount ? (this.amount * 1000 / this.unitPrice).toFixed(3) : null }
+               {# amount is in rupees, unitPrice in paisa: kg = rupees * 100 / paisa. It read
+                  * 1000 and showed ten times the weight — the sale itself was always right,
+                  because the server does its own conversion (pricing.compute_quantity_from_amount),
+                  but the cashier saw a number that didn't match what they got. #}
+               get approxKg() { return this.amount ? (this.amount * 100 / this.unitPrice).toFixed(3) : null }
              }">
           <div class="flex items-center gap-4">
             <div class="w-11 h-11 rounded-[13px] bg-amber-tint shrink-0"></div>
