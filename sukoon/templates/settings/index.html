@@ -119,6 +119,45 @@
       </div>
     {% endif %}
 
+    {% if offsite.key == 'unreadable' or (offsite.configured and offsite.key == 'missing') %}
+      <div class="panel bg-coral-tint p-5 mb-5">
+        <p class="text-sm font-bold mb-1">This computer can't read the backup key</p>
+        <p class="text-sm mb-4">
+          That happens when Windows, or Sukoon itself, has been reinstalled. The backups already
+          saved are fine — they need the key from the recovery sheet you printed.
+        </p>
+        <form method="post" action="{{ url_for('settings.restore_key') }}" class="grid gap-3">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div>
+            <label class="label" for="recovery_key">The key from your recovery sheet</label>
+            <input type="text" id="recovery_key" name="recovery_key" class="field font-mono"
+                   autocomplete="off" placeholder="type it exactly as printed, spaces and all">
+          </div>
+          <div><button type="submit" class="btn-primary">Use this key</button></div>
+        </form>
+        <details class="mt-4">
+          <summary class="text-xs font-semibold text-muted cursor-pointer">
+            I don't have the recovery sheet
+          </summary>
+          <form method="post" action="{{ url_for('settings.restore_key') }}"
+                class="grid gap-3 mt-3 sm:grid-cols-3 items-end">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="new">
+            <p class="sm:col-span-3 text-xs">
+              Starting a new key means every backup saved before today can never be opened again.
+              Only do this if the sheet is truly lost.
+            </p>
+            <div class="sm:col-span-2">
+              <label class="label" for="step_up_password">Your own password</label>
+              <input type="password" id="step_up_password" name="step_up_password" required
+                     class="field">
+            </div>
+            <button type="submit" class="btn-ghost !text-coral">Start a new key</button>
+          </form>
+        </details>
+      </div>
+    {% endif %}
+
     <details {{ 'open' if not offsite.configured }}>
       <summary class="text-sm font-bold cursor-pointer">
         {{ 'Set it up' if not offsite.configured else 'Change where backups go' }}

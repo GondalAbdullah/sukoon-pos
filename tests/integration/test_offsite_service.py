@@ -205,3 +205,74 @@ def test_the_job_does_nothing_when_offsite_is_switched_off(shop):
     db.session.commit()
     assert scheduler.run_offsite(shop["app"], NOW) is None
     assert _Bucket.store == {}
+
+
+# --- losing the key, and getting it back (ADR-0037 §5) -------------------------------------------
+
+def _make_unreadable(path):
+    """What a reinstalled Windows leaves behind: the file is there, this PC can't unlock it."""
+    from sukoon.services.notifications import secret_store
+
+    def refuse(*args, **kwargs):
+        raise secret_store.KeyStoreError("Windows could not protect or unprotect the key.")
+
+    return refuse
+
+
+def test_a_key_this_pc_cannot_unlock_is_explained_not_a_crash(shop, monkeypatch):
+    from sukoon.services.notifications import secret_store
+
+    monkeypatch.setattr(secret_store, "load_key", _make_unreadable(None))
+    path = shop["app"].config["BACKUP_KEY_PATH"]
+    assert offsite_service.key_state(path) == "unreadable"
+    with pytest.raises(offsite_service.KeyUnreadable, match="recovery sheet"):
+        offsite_service.encryption_key(path)
+    with pytest.raises(offsite_service.KeyUnreadable):
+        offsite_service.encryption_key(path, create=True)   # never quietly makes a new one
+
+
+def test_the_printed_sheet_puts_the_same_key_back(shop):
+    path = shop["app"].config["BACKUP_KEY_PATH"]
+    original = offsite_service.encryption_key(path)
+    printed = offsite_service.recovery_sheet_key(path)          # groups of four, as printed
+
+    (shop["tmp"] / "backup-encryption.key").unlink()            # the PC is reinstalled
+    assert offsite_service.key_state(path) == "missing"
+
+    restored = offsite_service.set_key_from_sheet(path, printed)
+    assert restored == original
+    assert offsite_service.encryption_key(path) == original
+
+
+def test_a_backup_made_before_the_key_was_lost_opens_again_afterwards(shop):
+    """The whole point of the sheet: the shop's books come back."""
+    path = shop["app"].config["BACKUP_KEY_PATH"]
+    printed = offsite_service.recovery_sheet_key(path)
+    offsite_service.send_latest(**_paths(shop), now=NOW)
+
+    (shop["tmp"] / "backup-encryption.key").unlink()            # everything on this PC is gone
+    offsite_service.set_key_from_sheet(path, printed)           # only the paper survived
+
+    name, sales = offsite_service.check(**_paths(shop), now=NOW)
+    assert sales == 4                                          # the shop's sales, back
+
+
+@pytest.mark.parametrize("typed,message", [
+    ("", "Type the key"),
+    ("not a key at all!", "doesn't look like"),
+    ("c3VrYQ==", "32 bytes"),
+])
+def test_a_mistyped_recovery_key_says_what_is_wrong(shop, typed, message):
+    with pytest.raises(ValueError, match=message):
+        offsite_service.set_key_from_sheet(shop["app"].config["BACKUP_KEY_PATH"], typed)
+
+
+def test_starting_a_new_key_is_deliberate_and_leaves_the_old_backups_locked(shop):
+    path = shop["app"].config["BACKUP_KEY_PATH"]
+    old = offsite_service.encryption_key(path)
+    offsite_service.send_latest(**_paths(shop), now=NOW)
+
+    new = offsite_service.start_new_key(path)
+    assert new != old
+    with pytest.raises(offsite.OffsiteError, match="could not be unlocked"):
+        offsite_service.check(**_paths(shop), now=NOW)     # the old backup stays locked, loudly

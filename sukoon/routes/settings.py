@@ -21,7 +21,7 @@ from flask_login import login_required
 
 from sukoon.extensions import db
 from sukoon.offsite import OffsiteError
-from sukoon.routes.guards import permission_required
+from sukoon.routes.guards import permission_required, require_step_up
 from sukoon.services import backup_status, clock, offsite_service, settings_service
 from sukoon.services.notifications import secret_store
 from sukoon.services.receipts import printer
@@ -66,7 +66,8 @@ def _page(status: int = 200):
         data_dir=current_app.config.get("DATA_DIR"),
         backup=backup_status.describe(current_app.config.get("BACKUP_DIR")),
         offsite=offsite_service.describe(current_app.config.get("BACKUP_DIR"),
-                                         current_app.config.get("OFFSITE_SECRET_PATH")),
+                                         current_app.config.get("OFFSITE_SECRET_PATH"),
+                                         current_app.config.get("BACKUP_KEY_PATH")),
         offsite_form={
             "endpoint": settings_service.get(offsite_service.ENDPOINT, ""),
             "bucket": settings_service.get(offsite_service.BUCKET, ""),
@@ -163,9 +164,14 @@ def save_offsite():
     settings_service.set(offsite_service.ACCESS_KEY_ID, access_key_id)
     if secret:
         secret_store.save_key(secret_path, secret)
-    offsite_service.encryption_key(key_path, create=True)   # made once, then never changed
     settings_service.set(offsite_service.ENABLED, "1")
     db.session.commit()
+    try:
+        offsite_service.encryption_key(key_path, create=True)   # made once, then never changed
+    except offsite_service.KeyUnreadable as exc:
+        # A reinstalled Windows: the settings are saved, but the key needs the recovery sheet.
+        flash(str(exc), "error")
+        return _page(200)
     flash("Offsite backup set up. Send one now to prove it works.", "info")
     return redirect(url_for("settings.index"))
 
@@ -178,7 +184,8 @@ def send_offsite():
     try:
         name = offsite_service.send_latest(backups_dir=backups_dir, secret_path=secret_path,
                                            key_path=key_path)
-    except (offsite_service.NotConfigured, OffsiteError) as exc:
+    except (offsite_service.NotConfigured, offsite_service.KeyUnreadable,
+            OffsiteError) as exc:
         offsite_service.record(backups_dir, datetime.now(UTC), ok=False, error=str(exc))
         flash(f"Offsite backup failed: {exc}", "error")
         return _page(200)
@@ -195,7 +202,8 @@ def check_offsite():
     try:
         name, sales = offsite_service.check(backups_dir=backups_dir, secret_path=secret_path,
                                             key_path=key_path)
-    except (offsite_service.NotConfigured, OffsiteError) as exc:
+    except (offsite_service.NotConfigured, offsite_service.KeyUnreadable,
+            OffsiteError) as exc:
         offsite_service.record(backups_dir, datetime.now(UTC), ok=False, error=str(exc))
         flash(f"The offsite backup could not be checked: {exc}", "error")
         return _page(200)
@@ -214,6 +222,37 @@ def recovery_sheet():
     except offsite_service.NotConfigured:
         flash("Set up offsite backup first — the key is made then.", "error")
         return _page(400)
+    except offsite_service.KeyUnreadable as exc:
+        flash(str(exc), "error")
+        return _page(400)
     return render_template("settings/recovery_sheet.html", key_text=key_text,
                            shop_name=settings_service.get("shop.name", "the shop"),
                            made_at=clock.format_shop_time(datetime.now(UTC)))
+
+
+@bp.route("/offsite/key", methods=["POST"])
+@login_required
+@permission_required("settings.manage")
+def restore_key():
+    """Take the backup key back from the printed recovery sheet, or deliberately start a new one.
+
+    Without this the recovery sheet was useless inside Sukoon — it existed, and nothing accepted
+    it back. A reinstalled Windows leaves exactly that situation (ADR-0037 §5).
+    """
+    _, _, key_path = _offsite_paths()
+    if request.form.get("action") == "new":
+        require_step_up()   # every backup already offsite stays locked with the old key
+        offsite_service.start_new_key(key_path)
+        current_app.logger.warning("a new backup key was started; older offsite backups need the "
+                                   "previous recovery sheet")
+        flash("A new backup key was made. Print the new recovery sheet now — backups made before "
+              "today can only be opened with the old sheet.", "info")
+        return redirect(url_for("settings.recovery_sheet"))
+    try:
+        offsite_service.set_key_from_sheet(key_path, request.form.get("recovery_key", ""))
+    except ValueError as exc:
+        flash(str(exc), "error")
+        return _page(400)
+    flash("The key from the recovery sheet is in place. Check it by bringing a backup back.",
+          "info")
+    return redirect(url_for("settings.index"))

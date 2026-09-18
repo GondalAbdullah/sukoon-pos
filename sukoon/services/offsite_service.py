@@ -34,8 +34,18 @@ class NotConfigured(RuntimeError):
     """Offsite backup hasn't been set up yet. Not an error — just nothing to do."""
 
 
+class KeyUnreadable(RuntimeError):
+    """The backup key is on this PC but this PC can't unlock it.
+
+    What a reinstalled Windows looks like: the key was encrypted for a Windows account that no
+    longer exists (uninstalling Sukoon removes that account). The backups themselves are fine —
+    they need the key from the printed recovery sheet.
+    """
+
+
 @dataclass(frozen=True)
 class OffsiteStatus:
+    key: str                 # 'missing' | 'ready' | 'unreadable'
     configured: bool
     enabled: bool
     last_ok_at: datetime | None
@@ -74,7 +84,15 @@ def target(secret_path: str | Path) -> offsite.Target:
     endpoint = (settings_service.get(ENDPOINT) or "").strip()
     bucket = (settings_service.get(BUCKET) or "").strip()
     access_key_id = (settings_service.get(ACCESS_KEY_ID) or "").strip()
-    secret = secret_store.load_key(secret_path)
+    try:
+        secret = secret_store.load_key(secret_path)
+    except secret_store.KeyStoreError as exc:
+        # Same story as the backup key: a reinstalled Windows can no longer unlock what the old
+        # account encrypted. This one is replaceable — it lives in the Cloudflare dashboard.
+        raise KeyUnreadable(
+            "The storage service's secret key saved on this computer can't be read — that happens "
+            "when Windows or the Sukoon account has been reinstalled. Paste it again below; you "
+            "can make a new one in your storage account if you no longer have it.") from exc
     if not (endpoint and bucket and access_key_id and secret):
         raise NotConfigured("Offsite backup is not set up yet.")
     return offsite.Target(endpoint=endpoint, bucket=bucket, access_key_id=access_key_id,
@@ -82,10 +100,30 @@ def target(secret_path: str | Path) -> offsite.Target:
                           prefix=(settings_service.get(PREFIX) or "sukoon").strip() or "sukoon")
 
 
+def key_state(key_path: str | Path | None) -> str:
+    """'missing', 'ready' or 'unreadable' — what the Settings screen needs to know."""
+    if not key_path or not secret_store.has_key(key_path):
+        return "missing"
+    try:
+        secret_store.load_key(key_path)
+    except secret_store.KeyStoreError:
+        return "unreadable"
+    return "ready"
+
+
 def encryption_key(key_path: str | Path, *, create: bool = False) -> bytes:
     """The key the backups are locked with. Created once, then never changed — every backup
     already offsite was locked with it (ADR-0037 §5)."""
-    stored = secret_store.load_key(key_path)
+    try:
+        stored = secret_store.load_key(key_path)
+    except secret_store.KeyStoreError as exc:
+        # The file is there and this PC cannot unlock it. Never quietly make a new one: every
+        # backup already offsite is locked with the old one, and a new key would strand them
+        # silently. The way back is the recovery sheet.
+        raise KeyUnreadable(
+            "The backup key saved on this computer can't be read — that happens when Windows or "
+            "the Sukoon account has been reinstalled. Enter the key from your printed recovery "
+            "sheet to reach the backups already saved.") from exc
     if stored:
         return base64.b64decode(stored)
     if not create:
@@ -93,6 +131,34 @@ def encryption_key(key_path: str | Path, *, create: bool = False) -> bytes:
     key = offsite.new_key()
     secret_store.save_key(key_path, base64.b64encode(key).decode())
     return key
+
+
+def set_key_from_sheet(key_path: str | Path, typed: str) -> bytes:
+    """Take the key back from the printed recovery sheet (ADR-0037 §5).
+
+    Without this the sheet is useless inside Sukoon: it existed, and nothing accepted it back.
+    Spaces and line breaks are ignored, so it can be typed exactly as it is printed.
+    """
+    cleaned = "".join((typed or "").split())
+    if not cleaned:
+        raise ValueError("Type the key from the recovery sheet.")
+    padding = "=" * (-len(cleaned) % 4)
+    try:
+        key = base64.b64decode(cleaned + padding, validate=True)
+    except (ValueError, base64.binascii.Error) as exc:
+        raise ValueError("That doesn't look like a recovery key. Check for a mistyped character."
+                         ) from exc
+    if len(key) != offsite.KEY_BYTES:
+        raise ValueError(f"A recovery key is {offsite.KEY_BYTES} bytes; that one is {len(key)}. "
+                         f"Check the whole key was typed.")
+    secret_store.save_key(key_path, base64.b64encode(key).decode())
+    return key
+
+
+def start_new_key(key_path: str | Path) -> bytes:
+    """Deliberately replace the key. Everything already offsite stays locked with the old one."""
+    secret_store.delete_key(key_path)
+    return encryption_key(key_path, create=True)
 
 
 def recovery_sheet_key(key_path: str | Path) -> str:
@@ -168,14 +234,16 @@ def _when(raw: str | None) -> datetime | None:
         return None
 
 
-def describe(backups_dir: str | Path | None, secret_path: str | Path | None) -> OffsiteStatus:
+def describe(backups_dir: str | Path | None, secret_path: str | Path | None,
+             key_path: str | Path | None = None) -> OffsiteStatus:
     if not backups_dir:
-        return OffsiteStatus(False, False, None, None, None, None, None)
+        return OffsiteStatus("missing", False, False, None, None, None, None, None)
     status = read_status_file(backups_dir)
     configured = bool((settings_service.get(ENDPOINT) or "").strip()
                       and (settings_service.get(BUCKET) or "").strip()
                       and secret_path and secret_store.has_key(secret_path))
     return OffsiteStatus(
+        key=key_state(key_path),
         configured=configured, enabled=configured and is_enabled(),
         last_ok_at=_when(status.get("last_ok_at")), last_error=status.get("last_error"),
         last_object=status.get("last_object"),
@@ -183,5 +251,6 @@ def describe(backups_dir: str | Path | None, secret_path: str | Path | None) -> 
         last_verified_sales=status.get("last_verified_sales"))
 
 
-__all__ = ["OffsiteStatus", "NotConfigured", "backup", "check", "describe", "encryption_key",
-           "is_enabled", "record", "recovery_sheet_key", "send_latest", "target"]
+__all__ = ["KeyUnreadable", "NotConfigured", "OffsiteStatus", "backup", "check", "describe",
+           "encryption_key", "is_enabled", "key_state", "record", "recovery_sheet_key",
+           "send_latest", "set_key_from_sheet", "start_new_key", "target"]
