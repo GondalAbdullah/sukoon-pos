@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sukoon — Owner's Manual</title>
+<style>
+  :root{
+    --ink:#1C1C1E; --ink-soft:#48484D; --muted:#86868B; --faint:#B9B9BE;
+    --hairline:#E8E7E3; --paper:#FAF9F6; --surface:#FFFFFF; --sunk:#F2F1EC;
+    --teal:#0E6B57; --teal-deep:#0A4F41; --teal-tint:#E7F3EF; --teal-tint-2:#D6ECE4;
+    --amber:#B8873B; --amber-tint:#FBF3E4;
+    --coral:#C15B45; --coral-tint:#FBEEEA;
+    --sky:#3E6FBF; --sky-tint:#EAF1FC;
+  }
+
+  @page { size: A4; margin: 18mm 16mm 16mm 16mm; }
+  @page :first { margin: 0; }
+
+  *{ box-sizing:border-box; }
+  html{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  body{
+    font-family:"Noto Sans","Liberation Sans","DejaVu Sans",sans-serif;
+    color:var(--ink); background:var(--surface);
+    font-size:10.4pt; line-height:1.58; margin:0;
+    text-rendering:optimizeLegibility;
+  }
+
+  /* ---------- cover ---------- */
+  .cover{
+    page-break-after:always; height:297mm; width:210mm; position:relative;
+    background:var(--teal); color:#fff; overflow:hidden;
+    display:flex; flex-direction:column; justify-content:space-between;
+    padding:26mm 20mm 18mm 20mm;
+  }
+  .cover::after{
+    content:""; position:absolute; right:-70mm; top:-40mm;
+    width:190mm; height:190mm; border-radius:50%;
+    background:rgba(255,255,255,0.055);
+  }
+  .cover::before{
+    content:""; position:absolute; left:-55mm; bottom:-70mm;
+    width:150mm; height:150mm; border-radius:50%;
+    background:rgba(255,255,255,0.04);
+  }
+  .cover > *{ position:relative; z-index:1; }
+  .cover .shop{
+    font-size:10pt; letter-spacing:.20em; text-transform:uppercase;
+    color:rgba(255,255,255,.72); font-weight:600;
+  }
+  .cover h1{
+    font-size:62pt; line-height:.95; margin:0 0 6mm; font-weight:700; letter-spacing:-.025em;
+  }
+  .cover .sub{
+    font-size:17pt; line-height:1.4; font-weight:400;
+    color:rgba(255,255,255,.93); max-width:125mm; margin:0;
+  }
+  .cover .rule{ width:26mm; height:3px; background:rgba(255,255,255,.55); margin:0 0 8mm; border-radius:2px; }
+  .cover-foot{ display:flex; justify-content:space-between; align-items:flex-end; gap:10mm; }
+  .cover-foot .note{
+    font-size:9.6pt; line-height:1.55; color:rgba(255,255,255,.80); max-width:105mm;
+  }
+  .cover-foot .meta{ font-size:9pt; color:rgba(255,255,255,.62); text-align:right; }
+
+  /* ---------- structure ---------- */
+  h2{
+    font-size:20pt; font-weight:700; letter-spacing:-.02em; color:var(--teal-deep);
+    margin:0 0 1mm; page-break-after:avoid; line-height:1.2;
+  }
+  h2 .num{
+    display:inline-block; min-width:9mm; color:var(--amber); font-weight:700;
+  }
+  .sec-intro{
+    color:var(--ink-soft); font-size:11pt; margin:0 0 6mm; max-width:150mm; line-height:1.5;
+  }
+  h3{
+    font-size:12.2pt; font-weight:700; color:var(--ink); margin:7mm 0 1.5mm;
+    page-break-after:avoid; letter-spacing:-.01em;
+  }
+  h4{ font-size:10.6pt; font-weight:700; color:var(--ink); margin:5mm 0 1mm; page-break-after:avoid; }
+  p{ margin:0 0 2.6mm; }
+  ul,ol{ margin:0 0 3mm; padding-left:5.5mm; }
+  li{ margin-bottom:1.4mm; }
+  strong{ font-weight:700; }
+  em{ font-style:normal; color:var(--teal-deep); font-weight:600; }
+
+  .section{ page-break-before:always; }
+  .divider{ border:0; border-top:1px solid var(--hairline); margin:7mm 0; }
+
+  /* ---------- UI words ---------- */
+  .ui{
+    font-weight:600; color:var(--teal-deep); background:var(--teal-tint);
+    padding:.3mm 1.1mm; border-radius:4px; white-space:nowrap; font-size:9.6pt;
+  }
+  .path{ font-weight:600; color:var(--ink); white-space:nowrap; }
+  .kbd{
+    font-family:"DejaVu Sans Mono",monospace; font-size:9pt; background:var(--sunk);
+    border:1px solid var(--hairline); border-radius:4px; padding:.3mm 1.4mm; white-space:nowrap;
+  }
+
+  /* ---------- callouts ---------- */
+  .box{
+    border-radius:11px; padding:4mm 5mm; margin:4mm 0; page-break-inside:avoid;
+    border:1px solid var(--hairline); background:var(--paper);
+  }
+  .box p:last-child{ margin-bottom:0; }
+  .box .t{ font-weight:700; margin:0 0 1.5mm; font-size:10.4pt; }
+  .box.warn{ background:var(--coral-tint); border-color:#EBC9C0; }
+  .box.warn .t{ color:#8E3B29; }
+  .box.note{ background:var(--amber-tint); border-color:#EAD9B7; }
+  .box.note .t{ color:#7A5A20; }
+  .box.tip{ background:var(--teal-tint); border-color:#C5E0D6; }
+  .box.tip .t{ color:var(--teal-deep); }
+  .box.info{ background:var(--sky-tint); border-color:#C8D8F2; }
+  .box.info .t{ color:#2C5290; }
+
+  /* ---------- steps ---------- */
+  ol.steps{ list-style:none; padding:0; margin:3mm 0 4mm; counter-reset:s; }
+  ol.steps > li{
+    counter-increment:s; position:relative; padding-left:10mm; margin-bottom:3.6mm;
+    page-break-inside:avoid;
+  }
+  ol.steps > li::before{
+    content:counter(s); position:absolute; left:0; top:0.2mm;
+    width:6.4mm; height:6.4mm; border-radius:50%; background:var(--teal); color:#fff;
+    font-size:9pt; font-weight:700; display:flex; align-items:center; justify-content:center;
+  }
+  ol.steps > li .st{ font-weight:700; display:block; }
+
+  /* ---------- tables ---------- */
+  table{ width:100%; border-collapse:collapse; margin:3mm 0 4mm; font-size:9.8pt; page-break-inside:avoid; }
+  thead th{
+    text-align:left; background:var(--teal-deep); color:#fff; font-weight:600;
+    padding:2.2mm 3mm; font-size:9.2pt; letter-spacing:.02em;
+  }
+  thead th:first-child{ border-top-left-radius:7px; }
+  thead th:last-child{ border-top-right-radius:7px; }
+  tbody td{ padding:2.4mm 3mm; border-bottom:1px solid var(--hairline); vertical-align:top; }
+  tbody tr:nth-child(even){ background:var(--paper); }
+  table.compact tbody td{ padding:1.9mm 3mm; }
+
+  /* ---------- contents ---------- */
+  .toc{ margin:0; padding:0; list-style:none; column-count:2; column-gap:12mm; }
+  .toc li{
+    padding:2.1mm 0; border-bottom:1px solid var(--hairline);
+    break-inside:avoid; display:flex; gap:3mm; align-items:baseline;
+  }
+  .toc .n{ color:var(--amber); font-weight:700; min-width:6mm; font-size:9.6pt; }
+  .toc .l{ font-weight:600; font-size:10pt; }
+  .toc .d{ color:var(--muted); font-size:8.8pt; display:block; font-weight:400; }
+
+  /* ---------- misc ---------- */
+  .lede{
+    font-size:12.6pt; line-height:1.5; color:var(--ink-soft);
+    border-left:3px solid var(--teal); padding-left:5mm; margin:0 0 6mm;
+  }
+  .cards{ display:flex; gap:4mm; flex-wrap:wrap; margin:4mm 0; }
+  .card{
+    flex:1 1 44%; border:1px solid var(--hairline); border-radius:11px;
+    padding:3.5mm 4mm; background:var(--surface); page-break-inside:avoid;
+  }
+  .card .h{ font-weight:700; color:var(--teal-deep); margin-bottom:1mm; font-size:10.4pt; }
+  .card p{ margin:0; font-size:9.6pt; color:var(--ink-soft); line-height:1.5; }
+
+  .screen{
+    border:1px solid var(--hairline); border-radius:11px; overflow:hidden;
+    margin:4mm 0; page-break-inside:avoid; background:var(--paper);
+  }
+  .screen .bar{
+    background:var(--sunk); padding:2mm 4mm; font-size:9pt; font-weight:700;
+    color:var(--ink-soft); border-bottom:1px solid var(--hairline);
+  }
+  .screen .body{ padding:3.5mm 4mm; font-size:9.6pt; }
+  .screen .body p{ margin-bottom:1.5mm; }
+  .screen .body p:last-child{ margin-bottom:0; }
+
+  .checklist{ list-style:none; padding:0; margin:3mm 0; }
+  .checklist li{
+    padding-left:7mm; position:relative; margin-bottom:2mm; page-break-inside:avoid;
+  }
+  .checklist li::before{
+    content:""; position:absolute; left:0; top:1.2mm;
+    width:3.6mm; height:3.6mm; border:1.6px solid var(--teal); border-radius:3px;
+  }
+
+  .pill{
+    display:inline-block; font-size:8.4pt; font-weight:700; padding:.6mm 2.4mm;
+    border-radius:999px; letter-spacing:.02em;
+  }
+  .pill.on{ background:var(--teal-tint-2); color:var(--teal-deep); }
+  .pill.off{ background:var(--coral-tint); color:#8E3B29; }
+
+  .big-num{
+    font-size:26pt; font-weight:700; color:var(--teal); line-height:1; letter-spacing:-.02em;
+  }
+  .avoid{ page-break-inside:avoid; }
+  .end{
+    margin-top:8mm; padding:5mm 6mm; background:var(--teal-deep); color:#fff;
+    border-radius:13px; page-break-inside:avoid;
+  }
+  .end .t{ font-size:13pt; font-weight:700; margin-bottom:2mm; }
+  .end p{ color:rgba(255,255,255,.88); margin-bottom:1.5mm; font-size:10pt; }
+  .end p:last-child{ margin-bottom:0; }
+</style>
+</head>
+<body>
+
+<!-- ============ COVER ============ -->
+<div class="cover">
+  <div>
+    <div class="shop">Al-Rehman General Store</div>
+  </div>
+  <div>
+    <div class="rule"></div>
+    <h1>Sukoon</h1>
+    <p class="sub">Your shop's books, your stock and your khata — on one computer. This manual takes you from the empty machine to your first day of trading.</p>
+  </div>
+  <div class="cover-foot">
+    <div class="note">
+      Written for the owner. No computer knowledge is assumed. Read it once from
+      start to finish, then keep it at the counter and use the contents page to
+      find things again.
+    </div>
+    <div class="meta">
+      Owner's Manual<br>
+      Version 1.0 · September 2026
+    </div>
+  </div>
+</div>
+
+<!-- ============ CONTENTS ============ -->
+<div>
+  <h2>What's in this manual</h2>
+  <p class="sec-intro">Sections 1 to 5 get Sukoon running. Sections 6 to 12 are the daily work.
+  Section 13 is the one section you must not skip.</p>
+
+  <ul class="toc">
+    <li><span class="n">1</span><span class="l">What Sukoon is<span class="d">And what it replaces</span></span></li>
+    <li><span class="n">2</span><span class="l">Before you begin<span class="d">What you need ready</span></span></li>
+    <li><span class="n">3</span><span class="l">Installing Sukoon<span class="d">Twenty minutes, once</span></span></li>
+    <li><span class="n">4</span><span class="l">The first time you open it<span class="d">Naming your shop, your password</span></span></li>
+    <li><span class="n">5</span><span class="l">Your staff and their accounts<span class="d">Who may do what</span></span></li>
+    <li><span class="n">6</span><span class="l">Getting your shop into the computer<span class="d">The catalogue — your first big job</span></span></li>
+    <li><span class="n">7</span><span class="l">Stock: deliveries, losses, reordering<span class="d">What is on the shelf, and why</span></span></li>
+    <li><span class="n">8</span><span class="l">Selling: the Till<span class="d">The screen you will use most</span></span></li>
+    <li><span class="n">9</span><span class="l">Receipts and the printer<span class="d">Printed, or as a PDF</span></span></li>
+    <li><span class="n">10</span><span class="l">Khata: your credit book<span class="d">Balances, limits, payments, statements</span></span></li>
+    <li><span class="n">11</span><span class="l">Refunds<span class="d">Why they always take two people</span></span></li>
+    <li><span class="n">12</span><span class="l">Insights and reports<span class="d">How the shop is doing</span></span></li>
+    <li><span class="n">13</span><span class="l">Backups — read this one twice<span class="d">What saves you if the PC dies</span></span></li>
+    <li><span class="n">14</span><span class="l">Adding the other counters<span class="d">Till 2, Till 3</span></span></li>
+    <li><span class="n">15</span><span class="l">What is not switched on yet<span class="d">An honest list</span></span></li>
+    <li><span class="n">16</span><span class="l">Your daily routine<span class="d">Opening, trading, closing</span></span></li>
+    <li><span class="n">17</span><span class="l">When something goes wrong<span class="d">What to do, what never to do</span></span></li>
+    <li><span class="n">18</span><span class="l">The words on the screen<span class="d">Every term explained</span></span></li>
+  </ul>
+
+  <div class="box tip">
+    <p class="t">Three things to know before anything else</p>
+    <p><strong>1. A finished sale is never lost.</strong> If the printer jams, the internet drops
+    or the lights go out after you press <span class="ui">Complete sale</span>, the sale is already
+    saved. Only the printing can fail, never the record.</p>
+    <p><strong>2. There is no "forgot my password" in Sukoon.</strong> Nobody — not even the person
+    who built it — can let you back in. That is why Section 4 makes you create a second owner
+    account, and why that step is not optional.</p>
+    <p><strong>3. One printed page protects everything.</strong> The recovery sheet in Section 13
+    is the only key to your off-site backups. Print it, take it home, and never photograph it.</p>
+  </div>
+</div>
+
+<!-- ============ 1 ============ -->
+<div class="section">
+  <h2><span class="num">1</span>What Sukoon is</h2>
+  <p class="sec-intro">One program that does the job of the register, the khata book and the
+  stock diary — and never forgets, never adds up wrong, and never loses a page.</p>
+
+  <p class="lede">Sukoon runs on one computer in your shop. That computer holds everything: every
+  product, every sale, every customer's balance. The other counters simply look at the same
+  information over the shop's own network.</p>
+
+  <h3>What it does for you</h3>
+  <div class="cards">
+    <div class="card">
+      <div class="h">Rings up sales</div>
+      <p>Scan or type items, take cash, card or put it on the khata. Sukoon works out the total and
+      the change, prints a receipt, and gives every sale a permanent invoice number.</p>
+    </div>
+    <div class="card">
+      <div class="h">Keeps your stock honest</div>
+      <p>Every sale takes items off the shelf count. Every delivery adds to it. Breakages and
+      expiry are recorded separately, so at month end you can see what you lost rather than
+      assuming you sold it.</p>
+    </div>
+    <div class="card">
+      <div class="h">Runs your khata</div>
+      <p>Every regular has a running balance. Purchases and payments are lines in their book.
+      It tells you who is over their limit and who has not paid in a month.</p>
+    </div>
+    <div class="card">
+      <div class="h">Tells you how you are doing</div>
+      <p>Today's sales, what customers owe you, what your shelves are worth, what to reorder, and
+      an estimate of your profit — all on one screen at closing time.</p>
+    </div>
+  </div>
+
+  <h3>Two things it deliberately does not do</h3>
+  <p><strong>It does not need the internet to sell.</strong> The whole shop can trade with the
+  internet down. The internet is used for one thing only: sending a locked copy of your books
+  off the premises for safety (Section 13).</p>
+  <p><strong>It does not let one person quietly change the books.</strong> Every sale, refund,
+  payment and stock change is stamped with the name of the person who did it and the time they did
+  it. Nothing is ever deleted — mistakes are corrected with a new entry that shows what happened.
+  That is what makes the records worth keeping.</p>
+
+  <div class="box note">
+    <p class="t">Why records that cannot be quietly changed matter</p>
+    <p>The most common way a shop loses money is not a burglary. It is small, repeated adjustments
+    that nobody can trace afterwards. Sukoon's refusal to delete anything is not stubbornness —
+    it is the whole point. If a number is wrong, the trail shows you who entered it and when.</p>
+  </div>
+</div>
+
+<!-- ============ 2 ============ -->
+<div class="section">
+  <h2><span class="num">2</span>Before you begin</h2>
+  <p class="sec-intro">Get these five things ready and the installation takes about twenty minutes.
+  Missing one of them is what turns it into an afternoon.</p>
+
+  <h3>What you need</h3>
+  <table>
+    <thead><tr><th style="width:36%">Thing</th><th>What to check</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>The shop computer</strong></td>
+        <td>Windows 10 or Windows 11, 64-bit. This is the machine that will hold your books, so
+        choose the one that stays switched on and is not carried around. Click
+        <span class="path">Start → Settings → System → About</span> to check the version.</td>
+      </tr>
+      <tr>
+        <td><strong>An administrator account on it</strong></td>
+        <td>You must be signed in to Windows as an administrator to install Sukoon. If you are not
+        sure, it is usually the main account that was set up when the computer was bought.</td>
+      </tr>
+      <tr>
+        <td><strong>The installer file</strong></td>
+        <td><span class="kbd">Sukoon-Setup-1.0.0.exe</span>, on a USB stick or downloaded. It is
+        about 27 MB.</td>
+      </tr>
+      <tr>
+        <td><strong>Your receipt printer</strong></td>
+        <td>Plugged into the shop computer by USB, and already working in Windows — meaning
+        Windows can print a test page to it. Sukoon uses Windows' own printing, so if Windows
+        cannot print, Sukoon cannot either.</td>
+      </tr>
+      <tr>
+        <td><strong>Your Cloudflare backup details</strong></td>
+        <td>The four lines from the storage account you set up: access key ID, secret access key,
+        bucket name and storage address. Section 13 explains where they go. If you do not have
+        them to hand, install anyway and add them the same day.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Two settings on the computer, before you install</h3>
+  <p>Both of these cause problems later that look like something else, so it is worth two minutes
+  now.</p>
+
+  <ol class="steps">
+    <li>
+      <span class="st">Check the date, time and time zone are right</span>
+      <span class="path">Start → Settings → Time &amp; language → Date &amp; time</span>. Turn
+      <em>Set time automatically</em> on, and make sure the time zone says Pakistan. Your receipts
+      and your invoice numbering both follow the clock — a wrong time zone puts the wrong time on
+      every receipt you print.
+    </li>
+    <li>
+      <span class="st">Set the network to Private, not Public</span>
+      <span class="path">Start → Settings → Network &amp; internet</span>, click the network you are
+      connected to, and choose <em>Private network</em>. On a Public network, Windows blocks your
+      other counters from reaching Sukoon, and the symptom is a counter that simply says it cannot
+      connect for no visible reason.
+    </li>
+  </ol>
+
+  <div class="box info">
+    <p class="t">If you only have one counter</p>
+    <p>You can skip the network step and ignore Section 14 entirely. Sukoon works perfectly well on
+    a single computer. You can always add a second counter later.</p>
+  </div>
+</div>
+
+<!-- ============ 3 ============ -->
+<div class="section">
+  <h2><span class="num">3</span>Installing Sukoon</h2>
+  <p class="sec-intro">Windows will show you one frightening-looking warning during this. It is
+  expected. Section 3 tells you exactly what it says and what to click.</p>
+
+  <ol class="steps">
+    <li>
+      <span class="st">Double-click <span class="kbd">Sukoon-Setup-1.0.0.exe</span></span>
+      If Windows asks whether to allow the program to make changes, say yes.
+    </li>
+    <li>
+      <span class="st">A blue box appears: "Windows protected your PC"</span>
+      Click the small <em>More info</em> link, then the <em>Run anyway</em> button that appears
+      underneath. This is expected — see the note below.
+    </li>
+    <li>
+      <span class="st">Accept every default, and tick the desktop shortcut</span>
+      There is nothing to choose. Do not change the folder it installs into.
+    </li>
+    <li>
+      <span class="st">Wait for it to finish, and read any box that appears at the end</span>
+      If a box says <em>"Sukoon is installed, but needs attention"</em>, it lists what to do —
+      work through that list. If a box says <em>"setting up its server did not finish"</em>,
+      Sukoon will not run: stop and call your installer rather than trying again.
+    </li>
+  </ol>
+
+  <div class="box warn">
+    <p class="t">About the "Windows protected your PC" warning</p>
+    <p>This appears because the installer is not digitally signed — a signature is a certificate
+    bought from a company Microsoft trusts, and it was a deliberate decision not to buy one for a
+    single-shop program. The warning means Windows has not seen this file before. It does not mean
+    anything is wrong with it.</p>
+    <p>Click <em>More info</em>, then <em>Run anyway</em>. If you never see this warning, you are
+    probably running a different file than the one you were given — stop and check.</p>
+  </div>
+
+  <div class="box note">
+    <p class="t">If your antivirus removes something</p>
+    <p>Some antivirus programs quarantine <span class="kbd">sukoon-server.exe</span> or
+    <span class="kbd">Sukoon.exe</span> for the same reason — they are new and unsigned. If that
+    happens, restore both files in your antivirus, add
+    <span class="kbd">C:\Program Files\Sukoon</span> to its exclusions, and run the installer again.</p>
+  </div>
+
+  <h3>What the installer has done</h3>
+  <p>Three things worth knowing, because they explain how Sukoon behaves afterwards:</p>
+  <ul>
+    <li><strong>Sukoon now starts by itself when the computer starts.</strong> Nobody has to sign in
+    to Windows first. Switch the computer on in the morning and your counters can reach it about a
+    minute later. This was tested: the server was answering 21 seconds after Windows had started,
+    with nobody signed in.</li>
+    <li><strong>Your books live in one fixed place:</strong>
+    <span class="kbd">C:\ProgramData\Sukoon\</span>. This cannot be moved, and it is locked so that
+    only Windows administrators and Sukoon itself can open it.</li>
+    <li><strong>Uninstalling Sukoon keeps your data.</strong> The folder above survives. But read
+    the warning in Section 13 before you ever uninstall — some of your saved keys do not survive,
+    and the recovery sheet becomes the only way back.</li>
+  </ul>
+</div>
+
+<!-- ============ 4 ============ -->
+<div class="section">
+  <h2><span class="num">4</span>The first time you open it</h2>
+  <p class="sec-intro">Five boxes to fill in, then one step that most people skip and later regret.
+  Do not skip it.</p>
+
+  <ol class="steps">
+    <li>
+      <span class="st">Open Sukoon from the desktop shortcut — on the shop computer itself</span>
+      The setup screen deliberately refuses to work from any other counter. If you try it from
+      Till 2, it will tell you to go and finish setup on the shop PC. That is on purpose: the first
+      owner account should not be creatable by whoever happens to be standing at another counter.
+    </li>
+    <li>
+      <span class="st">The screen says <span class="ui">Set up Sukoon</span>. Fill in four boxes.</span>
+      <span class="ui">Shop name</span> — type it exactly as it should appear on every receipt and
+      statement you hand a customer. <span class="ui">Owner's name</span> — your own name, as staff
+      will see it on the sign-in screen. <span class="ui">Password</span> — at least 8 characters —
+      and then <span class="ui">Type it again</span>.
+    </li>
+    <li>
+      <span class="st">Press <span class="ui">Set up Sukoon</span></span>
+      You land on the home screen. Down the side you should see <strong>Till, Stock, Khata,
+      Refunds, Insights, Messages</strong> and <strong>Settings</strong>. If Khata or Insights are
+      missing, something went wrong — stop and call your installer.
+    </li>
+  </ol>
+
+  <h3>Choosing your password</h3>
+  <p>This one password protects your entire business. Treat it like the key to the shop's safe,
+  because that is what it is.</p>
+  <ul>
+    <li>Do not use the shop's phone number, your own number, or the shop name.</li>
+    <li>Do not give it to staff so they can "just do one thing". Give them their own account
+    instead — that takes one minute and is covered in Section 5.</li>
+    <li>Write it down somewhere at home, not at the counter.</li>
+  </ul>
+
+  <div class="box warn">
+    <p class="t">Now create a second owner account. This is the most important thing in this section.</p>
+    <p>Sukoon has <strong>no password recovery</strong>. There is no reset link, no security
+    question, no code to your phone. This is deliberate: anything that could let you back in could
+    let someone else in too.</p>
+    <p>The consequence is simple. If you are the only Admin and you forget your password, or you
+    are away and unreachable, <strong>nobody can get into Sukoon at all</strong> — not your staff,
+    not your installer, not the person who wrote it.</p>
+    <p><strong>So, right now:</strong> go to <span class="path">Settings → Manage staff →
+    Add someone</span>, and create a second <strong>Admin</strong> account for a person you trust
+    completely — a partner, a son, a brother. Two Admins means one can always reset the other.
+    Sukoon will not let you switch off or demote the last remaining Admin, precisely to stop you
+    locking yourself out by accident.</p>
+  </div>
+
+  <h3>While you are in Settings, set two more things</h3>
+  <table class="compact">
+    <thead><tr><th style="width:32%">Setting</th><th>What to do</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="ui">Receipt printer</span></td>
+        <td>Choose your printer under <span class="ui">Which printer</span>, save, then press
+        <span class="ui">Print a test receipt</span>. If paper comes out, you are done. If it does
+        not, see Section 9 — you can still trade.</td>
+      </tr>
+      <tr>
+        <td><span class="ui">Offsite backup</span></td>
+        <td>Type in your four Cloudflare lines and press <span class="ui">Send one now</span>, then
+        <span class="ui">Bring one back and check it</span>. Then print the recovery sheet. All of
+        this is Section 13, and it matters more than anything else on this page.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============ 5 ============ -->
+<div class="section">
+  <h2><span class="num">5</span>Your staff and their accounts</h2>
+  <p class="sec-intro">Everyone signs in as themselves. That single habit is what makes every other
+  record in Sukoon trustworthy.</p>
+
+  <p>Staff do not type an email address or a username. The sign-in screen shows each person's name
+  and initials; they tap their own and type a short password. It takes two seconds, which is the
+  point — a sign-in that is slow is a sign-in that gets shared.</p>
+
+  <h3>The two roles</h3>
+  <table>
+    <thead><tr><th style="width:18%">Role</th><th>Can do</th><th style="width:30%">Cannot do</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Cashier</strong></td>
+        <td>Ring up sales, take khata payments, open a new khata for a customer, look at stock, and
+        <em>request</em> a refund.</td>
+        <td>Change prices, approve refunds, see Insights or reports, add or change staff.</td>
+      </tr>
+      <tr>
+        <td><strong>Admin</strong></td>
+        <td>Everything a cashier can, plus change prices, approve refunds, see Insights and
+        reports, manage staff, and change settings.</td>
+        <td>Nothing is hidden from an Admin.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p><strong>Give each person the smaller role that still lets them do their job.</strong> Your
+  counter staff should be Cashiers. Admin is for you and your second trusted person, and that is
+  all.</p>
+
+  <h3>Managing accounts</h3>
+  <p>Everything is at <span class="path">Settings → Manage staff</span>. Every change here asks for
+  <span class="ui">Your own password</span> first — that is deliberate, so that someone who finds
+  your screen unattended cannot quietly give themselves Admin.</p>
+
+  <table class="compact">
+    <thead><tr><th style="width:34%">What you want</th><th>What to do</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Add a new person</strong></td>
+        <td><span class="ui">Add someone</span> — their name, Cashier or Admin, and a password you
+        choose. Tell them the password face to face, not on WhatsApp.</td></tr>
+      <tr><td><strong>Someone forgot their password</strong></td>
+        <td><span class="ui">Set password</span> on their row. This also clears a lockout.</td></tr>
+      <tr><td><strong>Someone is locked out</strong></td>
+        <td>Five wrong passwords locks an account for 15 minutes. Either wait, or set a new
+        password for them, which unlocks it immediately.</td></tr>
+      <tr><td><strong>Promote a cashier</strong></td>
+        <td><span class="ui">Change role</span> on their row.</td></tr>
+      <tr><td><strong>Someone leaves the shop</strong></td>
+        <td>Switch their account <strong>off</strong>. Do not look for a delete button — there
+        isn't one, on purpose. Their past sales and khata entries must stay in the books, so Sukoon
+        keeps the person and simply stops them signing in.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="box tip">
+    <p class="t">Sukoon signs people out after about ten hours</p>
+    <p>Long enough for a full trading day, short enough that a counter left signed in overnight
+    does not stay open. Staff will need to sign in again the next morning — this is normal.</p>
+  </div>
+</div>
+
+<!-- ============ 6 ============ -->
+<div class="section">
+  <h2><span class="num">6</span>Getting your shop into the computer</h2>
+  <p class="sec-intro">This is the one genuinely large job, and it happens once. Everything after
+  it is quick.</p>
+
+  <p class="lede">Nothing can be sold until it exists in the catalogue. The catalogue is the list of
+  everything your shop sells — separately from whether any of it is on the shelf right now.</p>
+
+  <h3>The fast way in: Bulk entry</h3>
+  <p><span class="path">Stock → Bulk entry</span> is built for exactly this day. Scan a barcode,
+  type a name, type a selling price, press <span class="kbd">Enter</span> — and the cursor jumps
+  straight back to the barcode box, ready for the next item. You can do several hundred items
+  without ever touching the mouse.</p>
+
+  <p><strong>Only two things are required: the name and the selling price.</strong> Everything else
+  — cost price, category, the low-stock warning level — can be filled in later. Sukoon puts an
+  amber <span class="ui">Needs completing</span> badge on anything that is missing them. That badge
+  is a to-do list, not an error. The item sells perfectly well.</p>
+
+  <div class="box tip">
+    <p class="t">How to approach the first day</p>
+    <p>Do not try to enter 2,000 lines perfectly before you start trading. Enter your fastest-moving
+    few hundred items with just name and price, and start selling. When a cashier scans something
+    that is not in the catalogue yet, Sukoon lets them create it on the spot mid-sale — and marks
+    it <span class="ui">Needs completing</span> for you to tidy up later. Within a fortnight your
+    catalogue fills itself.</p>
+  </div>
+
+  <h3>Careful, one at a time</h3>
+  <p><span class="path">Stock → New product</span> is the full form, for when you want to set
+  everything properly:</p>
+  <table class="compact">
+    <thead><tr><th style="width:30%">Field</th><th>What it means</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Name and price</strong></td><td>Required. The price is what you charge.</td></tr>
+      <tr><td><strong>Cost price</strong></td><td>What you paid your supplier. Optional — but until
+      you enter it, Sukoon cannot tell you what your shelves are worth or estimate your profit. It
+      will show nothing rather than guess.</td></tr>
+      <tr><td><strong>Sealed pack or loose</strong></td><td>A bottle of oil is a <strong>sealed
+      pack</strong> — you sell 1, 2, 3, never 1.4. Atta scooped from a sack is <strong>loose</strong>
+      — 1.4 kg is normal. Sukoon refuses fractions on a sealed pack and insists on a weight for a
+      loose item.</td></tr>
+      <tr><td><strong>Unit</strong></td><td>What one of them is: <em>bottle</em>, <em>kg</em>,
+      <em>packet</em>, <em>unit</em>. Purely so the screen reads properly.</td></tr>
+      <tr><td><strong>Category</strong></td><td>Optional. Groups items on reports and generates the
+      internal code.</td></tr>
+      <tr><td><strong>Low-stock level</strong></td><td>"Warn me when this drops to 6." Optional, and
+      worth setting only on items you must never run out of.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Barcodes and labels</h3>
+  <p><strong>One product can have several barcodes.</strong> A 1-litre bottle and its six-pack
+  carton scan differently but are the same product, so you add both barcodes to the one item.</p>
+  <p><strong>Sukoon also gives every product its own internal code</strong> — something like
+  <span class="kbd">GRO-0001</span>. For loose goods and anything that came without a printed
+  barcode, open <span class="path">Stock → Labels</span> and Sukoon produces an A4 sheet of
+  barcodes you print onto sticker paper with an ordinary printer. No special label printer is
+  needed.</p>
+</div>
+
+<!-- ============ 7 ============ -->
+<div class="section">
+  <h2><span class="num">7</span>Stock: deliveries, losses, reordering</h2>
+  <p class="sec-intro">Three words cover everything here: stock in, stock out, and the movement
+  history that ties them together.</p>
+
+  <h3>When a delivery arrives</h3>
+  <p>Open the product, press <span class="ui">Stock in</span>, type how many arrived, and give a
+  reason. Twenty-four bottles of oil arrived: stock in, 24, "supplier delivery". That is the whole
+  job.</p>
+
+  <h3>When goods leave without being sold</h3>
+  <p>Breakage, expiry, theft, or you taking a bottle home — that is a <span class="ui">Stock out</span>,
+  with a reason. <strong>Always record these.</strong> A sale also lowers the shelf count, but
+  Sukoon records it as its own separate kind of movement, and that difference is the entire point:
+  at month end you can see that you lost Rs 3,000 to expiry, instead of quietly believing you sold
+  it.</p>
+
+  <h3>The movement history — your audit trail</h3>
+  <p>Every product page has a <span class="ui">Recent stock movements</span> table. It is that
+  item's whole life story: every delivery, every loss, every sale, who did it, when, and why. When
+  a number looks wrong, this table is where the answer is. Nothing is ever removed from it.</p>
+
+  <h3>The four tiles at the top of the Stock screen</h3>
+  <table class="compact">
+    <thead><tr><th style="width:26%">Tile</th><th>What it counts</th></tr></thead>
+    <tbody>
+      <tr><td><span class="ui">Catalog size</span></td><td>How many different products you sell.</td></tr>
+      <tr><td><span class="ui">Needs attention</span></td><td>Items that are running low — below the
+      warning level you set, but not yet finished.</td></tr>
+      <tr><td><span class="ui">Out of stock</span></td><td>Items that are finished. Reorder these
+      now.</td></tr>
+      <tr><td><span class="ui">Stock value</span></td><td>What everything on your shelves cost
+      <strong>you</strong> — at cost price, not what you sell it for. This answers "how much of my
+      money is sitting in this room?"</td></tr>
+    </tbody>
+  </table>
+
+  <div class="box note">
+    <p class="t">If Stock value says Rs 0 and your shelves are full</p>
+    <p>That is correct behaviour, not a fault. Stock value is measured at <strong>cost price</strong>,
+    and you have not entered cost prices yet — that is what the amber <span class="ui">Needs
+    completing</span> badges are tracking. Sukoon will not value your shelf at the retail price and
+    flatter you with a number that is not true. Enter your cost prices and the figure appears.</p>
+  </div>
+
+  <div class="box tip">
+    <p class="t">The reordering habit</p>
+    <p>At the end of each day, glance at the Stock screen. The items with coral bars are the ones
+    running low or finished. That list is your supplier order. That is the whole loop — everything
+    else in Sukoon hangs off it.</p>
+  </div>
+</div>
+
+<!-- ============ 8 ============ -->
+<div class="section">
+  <h2><span class="num">8</span>Selling: the Till</h2>
+  <p class="sec-intro">The screen your staff will spend the day on. Learn it once yourself before
+  you teach it to anyone.</p>
+
+  <h3>The very first time: name the counter</h3>
+  <p>Each counter asks <span class="ui">Name this till</span> once, and you type
+  <strong>Till 1</strong>, <strong>Till 2</strong> and so on. It never asks again. That name prints
+  on every receipt from that counter — so when Rs 400 is missing at the end of a day, you can tell
+  which counter rang the sale.</p>
+
+  <h3>Ringing up a customer</h3>
+  <ol class="steps">
+    <li>
+      <span class="st">Scan or type each item</span>
+      A <strong>sealed pack</strong> appears with a <span class="kbd">−  3  +</span> stepper for the
+      quantity. A <strong>loose</strong> item opens a small weight box instead, because the assistant
+      has to walk to the scale and come back. You can type the weight in kg, or press
+      <span class="ui">by amount</span> and type the rupees the customer asked for — Sukoon works
+      out the weight.
+    </li>
+    <li>
+      <span class="st">If it says "Waiting on 1 weight", go and weigh it</span>
+      The <span class="ui">Complete sale</span> button stays dead until every weight is filled in.
+      This is deliberate — it stops a sale going through with an item that was never actually
+      weighed.
+    </li>
+    <li>
+      <span class="st">Choose how they are paying</span>
+      <span class="ui">Cash</span>, <span class="ui">Card</span>, or <span class="ui">Khata</span>.
+      A walk-in customer paying cash needs nothing else — no name, no phone number. That is the
+      default because it is the overwhelming majority of a general store's sales.
+    </li>
+    <li>
+      <span class="st">For cash, tap the note they handed you</span>
+      Beside <span class="ui">Cash received</span> are shortcut buttons: <span class="ui">Exact</span>,
+      then the next round Rs 100, Rs 500, Rs 1,000. On a Rs 255 bill they read
+      <em>Exact · Rs 300 · Rs 500</em>. Tap the one matching the note they gave you and
+      <span class="ui">Change to return</span> shows what to hand back — no mental arithmetic with a
+      queue watching.
+    </li>
+    <li>
+      <span class="st">Press <span class="ui">Complete sale</span></span>
+      The sale is now permanent. The receipt prints, the shelf counts come down, and the
+      <span class="ui">Sale complete</span> screen shows the change to return. It moves on to the
+      next sale by itself after a few seconds, or press <span class="ui">Start next sale</span>.
+    </li>
+  </ol>
+
+  <h3>Things the till will stop you doing, and why</h3>
+  <table class="compact">
+    <thead><tr><th style="width:38%">What you see</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td><strong>"Only 4 in stock"</strong></td>
+        <td>You cannot sell more of a counted item than you have. If the shelf really does have
+        more, your count is wrong — do a stock in to correct it, with a reason.</td></tr>
+      <tr><td><strong>An Admin password is demanded mid-sale</strong></td>
+        <td>This khata customer would go past their credit limit. See Section 10.</td></tr>
+      <tr><td><strong><span class="ui">Complete sale</span> stays grey</strong></td>
+        <td>Something is unfinished — usually a weight not yet entered. The amber line above the
+        total says what.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="box info">
+    <p class="t">A cart is not a sale</p>
+    <p>Items scanned but not yet paid for are just a scratchpad. No invoice exists, nothing has
+    left your stock. Closing the browser mid-sale loses the cart — which costs nothing, because
+    nothing had happened yet. Once you press <span class="ui">Complete sale</span>, it is permanent.</p>
+  </div>
+
+  <h3>Invoice numbers</h3>
+  <p>Every completed sale gets a number like <span class="kbd">INV-2026-0001</span>. They are never
+  reused and never skipped, even if two counters complete a sale at the same instant. That gap-free
+  run of numbers is what makes your books auditable — and it is what a customer quotes when they
+  come back for a refund.</p>
+</div>
+
+<!-- ============ 9 ============ -->
+<div class="section">
+  <h2><span class="num">9</span>Receipts and the printer</h2>
+  <p class="sec-intro">Set the printer up once. If it ever fails, your sales carry on regardless.</p>
+
+  <h3>Setting it up</h3>
+  <p>Go to <span class="path">Settings → Receipt printer</span>, pick your printer under
+  <span class="ui">Which printer</span>, save, and press <span class="ui">Print a test receipt</span>.
+  If paper comes out, you are finished.</p>
+
+  <p>Sukoon prints through Windows' own printing system, using your printer's own driver. This means
+  two things: your printer must be installed and working in Windows first, and it should be
+  installed <strong>for the whole computer</strong>, not just for your Windows user — if it was
+  added under one Windows account only, Sukoon may not be able to see it.</p>
+
+  <div class="box note">
+    <p class="t">Honest note: printing has never been tested on your actual printer</p>
+    <p>Everything in the printing path was built and tested, but never against the physical printer
+    in your shop, because its make and model were not known while Sukoon was being written. Your
+    first test receipt is genuinely the first test.</p>
+    <p>If it does not work, nothing is lost — see below. Tell your installer the printer's make and
+    model and it will be sorted out.</p>
+  </div>
+
+  <h3>If the printer does not work</h3>
+  <p>You will see <span class="ui">Printer unavailable</span> after a sale. Note carefully what this
+  does <strong>not</strong> mean:</p>
+  <ul>
+    <li><strong>The sale is complete and saved.</strong> Stock has come down, the khata is updated,
+    the invoice number is issued. Only the paper failed.</li>
+    <li><strong>You can still give the customer a receipt.</strong> Sukoon offers it as a PDF, which
+    you can open and print on any ordinary printer, or show on screen.</li>
+    <li><strong>A sale is never held up by a printer.</strong> Keep serving customers and deal with
+    the printer afterwards.</li>
+  </ul>
+  <p>You can also reprint any receipt later with <span class="ui">Print again</span> on the
+  <span class="ui">Sale complete</span> screen.</p>
+</div>
+
+<!-- ============ 10 ============ -->
+<div class="section">
+  <h2><span class="num">10</span>Khata: your credit book</h2>
+  <p class="sec-intro">The same book you have always kept, with three things added: it adds up by
+  itself, it warns you before someone goes too far, and it prints a statement the customer cannot
+  argue with.</p>
+
+  <h3>Opening a khata</h3>
+  <p>In <span class="path">Khata → Add customer</span>: name, and their phone number. Sukoon will
+  warn you if another customer already has that number — but it will still let you save it, because
+  in a real neighbourhood a father and son genuinely do share a phone.</p>
+
+  <p><strong>Confirming the number matters.</strong> When you know the number is genuinely theirs —
+  because they showed you the phone, or you rang it in front of them — mark it confirmed with
+  <span class="ui">They showed it</span> or <span class="ui">I rang it</span>. Until a number is
+  confirmed, Sukoon will never send balances or amounts to it. An unconfirmed number is treated as
+  possibly belonging to a stranger, and a stranger must not learn what your customer owes.</p>
+
+  <h3>Credit limits</h3>
+  <p>Every new khata starts at <strong>Rs 10,000</strong>. You can change it per customer.</p>
+  <p>When a sale would push a customer past their limit, the till <strong>stops</strong>. A cashier
+  cannot go past it on their own. An Admin standing at the counter can approve it by typing their
+  own name and password — and that approval is written permanently into the customer's book, with
+  the Admin's name against it.</p>
+
+  <div class="box tip">
+    <p class="t">Why a limit that can be overridden is still worth having</p>
+    <p>The limit does not exist to refuse your customers. It exists so that extending more credit is
+    a <em>decision someone made</em>, on the record, rather than something that happened quietly
+    over four months because nobody was adding up. That is the difference between a bad debt you
+    chose and a bad debt you discovered.</p>
+  </div>
+
+  <h3>Taking a payment</h3>
+  <p>Open the customer and press <span class="ui">Record payment</span>. Enter the amount, choose
+  how they paid — cash, bank transfer, JazzCash or Easypaisa, or card — and add a reference if there
+  is one. The balance updates immediately.</p>
+  <ul>
+    <li><strong>Any amount is fine.</strong> They owe Rs 4,000 and hand you Rs 1,500 — record
+    Rs 1,500.</li>
+    <li><strong>If they pay more than they owe</strong>, Sukoon asks you to confirm, then keeps the
+    extra as <span class="ui">In credit</span>, shown on their page and used up automatically by
+    their next purchase.</li>
+  </ul>
+
+  <h3>Overdue customers</h3>
+  <p>You can set credit terms per customer — "settle within 30 days". If they owe money and have not
+  made any payment in that many days, their khata is flagged <strong>overdue</strong> on the Khata
+  screen. Any payment, even a small one, restarts the count. This is the list you work through when
+  you have a quiet hour.</p>
+
+  <h3>Statements</h3>
+  <p>Open a customer, choose a month, and press <span class="ui">Statement</span>. You get a printable
+  page showing what they owed at the start, every purchase and payment in between, and what they owe
+  at the end. Download it as a PDF to print or send. This is the document that ends arguments.</p>
+
+  <div class="box info">
+    <p class="t">The Khata screen at a glance</p>
+    <p><span class="ui">Currently owed</span> is the money out on the street right now.
+    <span class="ui">Near credit limit</span> and <span class="ui">Settled</span> let you filter the
+    list. <span class="ui">Recent activity</span> shows the last purchases and payments across all
+    customers — a quick way to see that the day's credit sales were recorded properly.</p>
+  </div>
+</div>
+
+<!-- ============ 11 ============ -->
+<div class="section">
+  <h2><span class="num">11</span>Refunds</h2>
+  <p class="sec-intro">A refund always needs two people. This is the single most deliberate design
+  decision in Sukoon, and it is there to protect you.</p>
+
+  <p class="lede">A cashier records the refund. An Admin approves it. Until it is approved, nothing
+  moves — no cash out, no stock back, no change to anyone's khata.</p>
+
+  <h3>How a refund is recorded</h3>
+  <ol class="steps">
+    <li>
+      <span class="st">The cashier opens <span class="path">Refunds</span> and types the invoice
+      number</span>
+      From the customer's receipt. The original sale must be found — Sukoon will not refund money
+      against nothing.
+    </li>
+    <li>
+      <span class="st">Pick the lines and the quantities coming back</span>
+      You do not have to undo the whole sale. If they bought three bottles and brought one back,
+      refund one.
+    </li>
+    <li>
+      <span class="st">Decide per item whether it can be sold again</span>
+      There is a <strong>restock</strong> tickbox on each line. Ticked, the item goes back on the
+      shelf count. Unticked — because it came back broken or expired — the customer gets their money
+      and your shelf count correctly does <strong>not</strong> go up.
+    </li>
+    <li>
+      <span class="st">Give a reason, and save</span>
+      The cashier's job ends here. The refund now sits as <strong>pending approval</strong>.
+    </li>
+    <li>
+      <span class="st">An Admin opens <span class="path">Refunds → pending</span> and approves it</span>
+      With their own password. Only now does the money, the stock and the khata actually move.
+    </li>
+  </ol>
+
+  <div class="box warn">
+    <p class="t">Why this is worth the extra thirty seconds</p>
+    <p>A false refund is the most common way staff take money from a shop: ring a refund for goods
+    nobody returned, and take the cash out of the drawer. If one person can do that alone, it is
+    invisible. Requiring a second person's password makes it a conspiracy rather than an
+    opportunity — and the approval is recorded with that person's name against it.</p>
+    <p>Do not be tempted to give your cashiers Admin rights so they can approve their own refunds.
+    That single shortcut removes the protection entirely.</p>
+  </div>
+
+  <div class="box info">
+    <p class="t">"Refundable 0.1" when they bought 1.4 kg</p>
+    <p>Refundable means what is still available to refund on that line: sold, minus what has already
+    been refunded, minus anything already requested but not yet approved. If it reads lower than you
+    expect, there are pending requests waiting for an Admin. Approve or reject those first.</p>
+  </div>
+</div>
+
+<!-- ============ 12 ============ -->
+<div class="section">
+  <h2><span class="num">12</span>Insights and reports</h2>
+  <p class="sec-intro">Admin only. Five minutes at closing time, and you will know your shop better
+  than a month of guessing.</p>
+
+  <h3>Insights — the closing-time screen</h3>
+  <p><span class="path">Insights</span> shows the day on one page: what you sold, where the sales
+  came from (cash, card, khata), what customers owe you, and an estimate of your profit. You can
+  switch it between <strong>Today</strong>, <strong>This week</strong>, <strong>This month</strong>
+  or your own dates, and it compares against the same point in the previous period so you can see
+  whether you are up or down.</p>
+
+  <h3>The five reports</h3>
+  <table class="compact">
+    <thead><tr><th style="width:30%">Report</th><th>Answers</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Sales</strong></td><td>What sold, when, and how it was paid for.</td></tr>
+      <tr><td><strong>Estimated profit</strong></td><td>Roughly what you made — see the note
+      below.</td></tr>
+      <tr><td><strong>Stock value</strong></td><td>What is on your shelves, at what it cost
+      you.</td></tr>
+      <tr><td><strong>Low stock</strong></td><td>Your reorder list.</td></tr>
+      <tr><td><strong>Outstanding credit</strong></td><td>Every customer who owes you money, and
+      how much.</td></tr>
+    </tbody>
+  </table>
+
+  <p>Every report can be downloaded as a <strong>PDF</strong> to print, or as a <strong>CSV</strong>
+  to open in Excel. What you see on screen, what prints, and what downloads are always the same
+  figures.</p>
+
+  <div class="box note">
+    <p class="t">Why it says "estimated" profit</p>
+    <p>Profit is worked out using <strong>today's</strong> cost prices, not the cost price on the day
+    each item actually sold — Sukoon does not track what you paid for each individual delivery. If
+    your supplier's prices have moved, the figure drifts.</p>
+    <p>Also, any item with no cost price entered is <strong>left out of the profit figure entirely</strong>
+    (though its sale still counts in your sales total). The report tells you what proportion of your
+    sales it could actually cost, so you always know how much to trust it. The more cost prices you
+    fill in, the truer the number becomes.</p>
+    <p>This is deliberate. A profit figure that quietly guessed at the missing costs would look more
+    confident and be worth less.</p>
+  </div>
+
+  <div class="box tip">
+    <p class="t">The closing routine that costs one minute</p>
+    <p>Open Insights. Look at three numbers: today's sales, today's credit given, and today's cash.
+    If any of them is not roughly what your day felt like, something is worth checking tonight rather
+    than at the end of the month.</p>
+  </div>
+</div>
+
+<!-- ============ 13 ============ -->
+<div class="section">
+  <h2><span class="num">13</span>Backups — read this one twice</h2>
+  <p class="sec-intro">Everything else in this manual is about running your shop well. This section
+  is about not losing it.</p>
+
+  <p class="lede">A computer can be stolen, dropped, flooded or simply die one morning with no
+  warning. If that happens and your only copy of the books was inside it, your khata is gone and
+  there is no way to reconstruct it. Sukoon's answer is two layers, and one printed page.</p>
+
+  <h3>Layer one: on the shop computer, every 15 minutes</h3>
+  <p>Throughout trading hours, Sukoon saves a complete copy of your books into a folder on the shop
+  PC, and again at closing. This protects you against the ordinary things — a mistake, a power cut
+  mid-sale, a file going wrong. It does <strong>not</strong> protect you against the computer
+  itself being lost, because the copies are inside it.</p>
+
+  <h3>Layer two: off the premises, over the internet</h3>
+  <p>Each of those copies is then <strong>locked with a key that only your shop holds</strong>, and
+  sent to your own Cloudflare storage account on the internet. If the shop PC is stolen or burns,
+  your books are still safe somewhere else — and locked, so the storage company cannot read them
+  either.</p>
+
+  <p>Set this up in <span class="path">Settings → Offsite backup</span>, where you type in four
+  things from your Cloudflare account: <span class="ui">Access key ID</span>,
+  <span class="ui">Secret access key</span>, <span class="ui">Bucket name</span> and
+  <span class="ui">Storage address</span>. Then press <span class="ui">Send one now</span>, and then
+  <span class="ui">Bring one back and check it</span> — which fetches a copy back, unlocks it and
+  confirms it can actually be read. Sukoon repeats that check by itself once a week.</p>
+
+  <h3>The recovery sheet — the single most important page you own</h3>
+  <div class="box warn">
+    <p class="t">Print it today. Take it home today.</p>
+    <p>Go to <span class="path">Settings → Recovery sheet</span> and press <span class="ui">Print</span>.
+    That one page carries the key that unlocks your off-site backups.</p>
+    <p><strong>Without it, those backups can never be opened — by anyone.</strong> Not by you, not
+    by your installer, not by the person who built Sukoon, not by Cloudflare. There is no master
+    key and no back door. That is exactly why the backups are safe to keep on the internet at all.</p>
+    <p><strong>What to do:</strong> keep it at home or with your property papers, away from the shop.
+    Keep a second copy in a different safe place if you can.</p>
+    <p><strong>What never to do:</strong> do not photograph it. Do not send it on WhatsApp or email.
+    Do not keep it in the shop, where the same fire or the same thief would take both it and the
+    computer.</p>
+  </div>
+
+  <h3>Check it now and then</h3>
+  <p><span class="path">Settings → Backups</span> shows when the last backup worked. Glance at it
+  once a week. <strong>If it turns red, tell your installer that day</strong> — a backup that quietly
+  stopped working three months ago is the same as having no backup, and you only find out on the
+  day you need it.</p>
+
+  <h3>Two warnings worth knowing in advance</h3>
+  <div class="box note">
+    <p class="t">If Sukoon says this computer cannot read the backup key</p>
+    <p>This can happen after certain repairs to Windows or a change to the computer. Sukoon will
+    tell you plainly rather than crash, and it will <strong>never quietly make a new key</strong> —
+    because a new key would leave all your older backups locked forever without telling you.</p>
+    <p>The fix is the recovery sheet: type the key from it back in at
+    <span class="path">Settings → Offsite backup → Use this key</span>. There is also a
+    <span class="ui">Start a new key</span> button — do not press it unless your installer tells you
+    to. It warns you first, because your older off-site backups stay locked to the old key.</p>
+  </div>
+
+  <div class="box warn">
+    <p class="t">Never uninstall Sukoon to "fix" something</p>
+    <p>Uninstalling keeps your books, but it removes the Windows account Sukoon uses — and the saved
+    keys (your storage secret, the backup key) are tied to that account and become unreadable. Your
+    data survives, but the route back to your off-site backups would be the printed recovery sheet
+    and nothing else. If something is wrong, call your installer.</p>
+  </div>
+</div>
+
+<!-- ============ 14 ============ -->
+<div class="section">
+  <h2><span class="num">14</span>Adding the other counters</h2>
+  <p class="sec-intro">Skip this section entirely if you only have one counter.</p>
+
+  <p>The other counters do not have Sukoon installed on them. They simply open a web browser —
+  Edge or Chrome — and look at the shop computer. That is why the shop computer must stay switched
+  on, and why everything you read on Till 2 is instantly the same as on Till 1.</p>
+
+  <ol class="steps">
+    <li>
+      <span class="st">Find the shop computer's address</span>
+      It is shown on the <span class="path">Settings</span> screen, under
+      <span class="ui">The other tills</span>. It looks like
+      <span class="kbd">http://192.168.1.50:5000</span>.
+    </li>
+    <li>
+      <span class="st">Type that address into the browser on each other counter, and bookmark it</span>
+      Make it the browser's home page so it opens there every morning.
+    </li>
+    <li>
+      <span class="st">Name each counter when it asks</span>
+      <strong>Till 2</strong>, <strong>Till 3</strong>. Once only.
+    </li>
+    <li>
+      <span class="st">Ring one real sale from every counter before you rely on it</span>
+      Then refund it. It is worth five minutes to find a problem now rather than with customers
+      waiting.
+    </li>
+  </ol>
+
+  <div class="box note">
+    <p class="t">One job for your installer: fixing the address</p>
+    <p>That address is handed out by your router, and routers sometimes hand out a different one
+    after a power cut — at which point the other counters point at nothing and say they cannot
+    connect. The fix is to tell the router to always give the shop PC the same address. It takes
+    five minutes but needs the router's password, so ask your installer to do it. Until it is done,
+    a power cut may mean re-typing the address on the other counters.</p>
+  </div>
+
+  <div class="box tip">
+    <p class="t">Worth proving once: the morning restart</p>
+    <p>Restart the shop computer and <strong>do not sign in to Windows</strong>. Within about a
+    minute, the other counters should reach Sukoon again by themselves. If they do, your mornings
+    will always work, whoever opens up.</p>
+  </div>
+</div>
+
+<!-- ============ 15 ============ -->
+<div class="section">
+  <h2><span class="num">15</span>What is not switched on yet</h2>
+  <p class="sec-intro">An honest list. Everything here is built and tested, but held back until
+  something outside the software is ready.</p>
+
+  <table>
+    <thead><tr><th style="width:26%">Feature</th><th style="width:14%">Status</th><th>What is waiting</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>WhatsApp messages to customers</strong></td>
+        <td><span class="pill off">Off</span></td>
+        <td>Sukoon can message khata customers when they buy on credit, when they pay, when a
+        statement is due, and when they fall overdue. It is written and tested. It stays switched
+        off until your WhatsApp Business account exists and <strong>one real message has been sent
+        and seen arriving on a real phone</strong>. Nothing is sent to anyone until you have
+        watched it work.</td>
+      </tr>
+      <tr>
+        <td><strong>Printing on your printer</strong></td>
+        <td><span class="pill off">Untested</span></td>
+        <td>Built and tested, but never against your actual printer — its model was not known while
+        Sukoon was written. Your first test receipt is the real test. PDF receipts work regardless,
+        and a sale is never blocked by a printer.</td>
+      </tr>
+      <tr>
+        <td><strong>Discounts</strong></td>
+        <td><span class="pill off">Not built</span></td>
+        <td>Deliberately not built, and confirmed twice. The till shows both
+        <span class="ui">Subtotal</span> and <span class="ui">Total due</span> and today they are
+        always identical — the line is there so the screen does not jump if discounts are ever
+        added.</td>
+      </tr>
+      <tr>
+        <td><strong>Tax calculation</strong></td>
+        <td><span class="pill on">By design</span></td>
+        <td>Your prices already include tax, so Sukoon calculates nothing. Receipts say
+        <em>Tax included</em>.</td>
+      </tr>
+      <tr>
+        <td><strong>Weighing scale connected to the PC</strong></td>
+        <td><span class="pill off">Not built</span></td>
+        <td>Weights are typed in by hand. The groundwork for connecting a scale later is in place,
+        but no scale hardware was bought.</td>
+      </tr>
+      <tr>
+        <td><strong>Automatic updates</strong></td>
+        <td><span class="pill off">Not built</span></td>
+        <td>Sukoon will never update itself behind your back. New versions are installed by hand,
+        deliberately, with a backup taken first.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="box info">
+    <p class="t">One thing you should know about going live</p>
+    <p>Sukoon is going into your shop without a supervised trial period alongside your paper books.
+    That was your decision and it was recorded as such — but it means your shop is the first real
+    test of the whole system working together.</p>
+    <p><strong>What to do about it:</strong> for the first two weeks, keep a rough paper note of
+    each day's takings and check it against Insights at closing. If anything ever disagrees — a
+    balance that looks wrong, a figure that does not match — <strong>write down the invoice number
+    and what you expected, and call your installer. Do not delete anything.</strong> The trail is
+    what makes the problem findable.</p>
+  </div>
+</div>
+
+<!-- ============ 16 ============ -->
+<div class="section">
+  <h2><span class="num">16</span>Your daily routine</h2>
+  <p class="sec-intro">Five minutes a day is all Sukoon asks of you.</p>
+
+  <div class="cards">
+    <div class="card">
+      <div class="h">Opening</div>
+      <p><strong>Leave the shop computer switched on</strong>, or switch it on and wait a minute.
+      Nobody needs to sign in to Windows. Each person signs in to Sukoon as themselves at their own
+      counter.</p>
+    </div>
+    <div class="card">
+      <div class="h">During the day</div>
+      <p>Ring every sale through the till, including the small ones. Record deliveries as they
+      arrive rather than at the end of the week. Record breakages and expiry the moment they
+      happen.</p>
+    </div>
+    <div class="card">
+      <div class="h">Closing</div>
+      <p>Open <span class="path">Insights</span>. Check today's sales, today's credit and today's
+      cash against what the day felt like. Glance at the Stock screen for your reorder list.</p>
+    </div>
+    <div class="card">
+      <div class="h">Once a week</div>
+      <p>Check <span class="path">Settings → Backups</span> is green. Work through the overdue
+      customers on the Khata screen. Fill in cost prices for a few more products.</p>
+    </div>
+  </div>
+
+  <h3>The rules worth insisting on with staff</h3>
+  <ul>
+    <li><strong>Nobody uses anyone else's account.</strong> Ever. The moment two people share a
+    login, every record in Sukoon becomes an opinion.</li>
+    <li><strong>Every sale goes through the till</strong>, including "just one packet for the boy
+    outside". An item that leaves without being rung up is a stock count that drifts, and a
+    difference you can never explain later.</li>
+    <li><strong>Breakage and expiry get recorded as stock out, with a reason.</strong> Nobody is
+    in trouble for a broken bottle. They should be in trouble for hiding it, because a hidden loss
+    looks exactly like theft in the figures.</li>
+    <li><strong>Cashiers request refunds; you approve them.</strong> No exceptions, and no giving a
+    cashier Admin rights to save a walk to the counter.</li>
+  </ul>
+
+  <div class="box tip">
+    <p class="t">A monthly habit worth starting</p>
+    <p>On the first of the month, print statements for your khata customers who owe the most and
+    hand them over. It takes fifteen minutes, it is far harder to argue with than a handwritten
+    page, and shops that do this get paid noticeably faster.</p>
+  </div>
+</div>
+
+<!-- ============ 17 ============ -->
+<div class="section">
+  <h2><span class="num">17</span>When something goes wrong</h2>
+  <p class="sec-intro">Most problems are one of these six. The last column is the one that matters.</p>
+
+  <table>
+    <thead><tr><th style="width:30%">What you see</th><th>What to do</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>A counter says it cannot connect</strong></td>
+        <td>Is the shop computer switched on? Restart it and wait a minute. If only one counter is
+        affected, check that counter's network cable or wifi. If all of them are, check the shop
+        PC's network is still set to <em>Private</em> (Section 2).</td>
+      </tr>
+      <tr>
+        <td><strong>"Printer unavailable" after a sale</strong></td>
+        <td><strong>The sale is complete and saved.</strong> Use the PDF receipt button. Carry on
+        serving customers and tell your installer afterwards.</td>
+      </tr>
+      <tr>
+        <td><strong>Sukoon says its server is not running</strong></td>
+        <td>Restart the computer. If it says it again after restarting, call your installer.
+        <strong>Do not uninstall or reinstall anything yourself</strong> — see Section 13.</td>
+      </tr>
+      <tr>
+        <td><strong>A balance or a figure looks wrong</strong></td>
+        <td>Write down the invoice number, the customer, and what you expected. Then call your
+        installer. <strong>Do not delete or adjust anything first</strong> — the trail is what makes
+        it findable, and adjusting it destroys the evidence.</td>
+      </tr>
+      <tr>
+        <td><strong>Someone is locked out</strong></td>
+        <td>Five wrong passwords locks an account for 15 minutes. Wait, or set them a new password
+        at <span class="path">Settings → Manage staff</span>.</td>
+      </tr>
+      <tr>
+        <td><strong>The backups panel has turned red</strong></td>
+        <td>Tell your installer the same day. Everything still works, but you are running without a
+        safety net until it is fixed.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="box warn">
+    <p class="t">Four things never to do</p>
+    <p><strong>1.</strong> Never uninstall or reinstall Sukoon to try to fix a problem.<br>
+    <strong>2.</strong> Never delete a customer, a product or a sale to make a number look right.
+    Correct it with a new entry instead.<br>
+    <strong>3.</strong> Never share an Admin password with counter staff.<br>
+    <strong>4.</strong> Never keep the recovery sheet in the shop, and never photograph it.</p>
+  </div>
+
+  <div class="box tip">
+    <p class="t">What to have ready when you call</p>
+    <p>What you were doing, what the screen said (word for word if you can, or a photo of it), and
+    the invoice number if a sale was involved. That is usually enough to find the answer without
+    anyone visiting the shop.</p>
+  </div>
+</div>
+
+<!-- ============ 18 ============ -->
+<div class="section">
+  <h2><span class="num">18</span>The words on the screen</h2>
+  <p class="sec-intro">Every term Sukoon uses, in plain English. Most of them are the words of the
+  trade already — that is deliberate.</p>
+
+  <h3>At the counter</h3>
+  <table class="compact">
+    <tbody>
+      <tr><td style="width:27%"><strong>Till</strong></td><td>A checkout counter — the counter plus
+      the computer on it. Each one names itself once so you can tell which counter rang a sale.</td></tr>
+      <tr><td><strong>Cart</strong></td><td>Items scanned but not yet paid for. Nothing has left
+      your stock and no invoice exists — it is a scratchpad until you press Complete sale.</td></tr>
+      <tr><td><strong>Walk-in customer</strong></td><td>Someone who pays now and leaves. No account,
+      no name needed. The default, because it is most of your sales.</td></tr>
+      <tr><td><strong>Cash received</strong></td><td>The note the customer actually handed you.
+      Rs 2,000 for a Rs 1,700 bill.</td></tr>
+      <tr><td><strong>Change to return</strong></td><td>What you hand back. Rs 300 in that
+      example.</td></tr>
+      <tr><td><strong>Exact</strong></td><td>A shortcut meaning they gave you the precise amount.
+      The buttons beside it are the next round notes.</td></tr>
+      <tr><td><strong>Invoice number</strong></td><td>Like INV-2026-0001. Permanent, never reused,
+      never skipped. What a customer quotes for a refund.</td></tr>
+      <tr><td><strong>Subtotal / Total due</strong></td><td>The goods added up, and what they owe.
+      Identical today, because there are no discounts.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>The goods</h3>
+  <table class="compact">
+    <tbody>
+      <tr><td style="width:27%"><strong>Catalogue</strong></td><td>Everything your shop sells —
+      whether or not any is on the shelf today. Oil stays in the catalogue at zero stock; you have
+      not stopped selling it, you have run out.</td></tr>
+      <tr><td><strong>Sealed pack / loose</strong></td><td>A bottle you sell whole, versus atta you
+      scoop by weight. Sukoon refuses fractions on the first and insists on a weight for the
+      second.</td></tr>
+      <tr><td><strong>Stock in / Stock out</strong></td><td>Goods arriving, and goods leaving for any
+      reason other than a sale — breakage, expiry, theft, your own use.</td></tr>
+      <tr><td><strong>Stock level</strong></td><td>How many are on the shelf right now. Never goes
+      below zero.</td></tr>
+      <tr><td><strong>Low-stock level</strong></td><td>"Warn me when this drops to 6." Optional, per
+      product.</td></tr>
+      <tr><td><strong>Stock value</strong></td><td>What your shelves cost <em>you</em>, at cost
+      price — not at what you sell for.</td></tr>
+      <tr><td><strong>SKU / barcode</strong></td><td>The SKU (GRO-0001) is Sukoon's own code for the
+      item. The barcode is the manufacturer's printed one. A product can have several barcodes.</td></tr>
+      <tr><td><strong>Needs completing</strong></td><td>An amber badge: this item was created in a
+      hurry and is missing its cost price, category or warning level. It sells fine. It is a to-do
+      list, not a fault.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Credit and refunds</h3>
+  <table class="compact">
+    <tbody>
+      <tr><td style="width:27%"><strong>Khata</strong></td><td>The credit book. Each regular has a
+      running balance; every purchase and payment is a line in it.</td></tr>
+      <tr><td><strong>Credit limit</strong></td><td>The most a customer may owe. Rs 10,000 by
+      default. Going past it needs an Admin's password at the counter.</td></tr>
+      <tr><td><strong>Credit terms / overdue</strong></td><td>"Settle within 30 days." If they owe
+      and have not paid in that long, they are flagged overdue. Any payment restarts the
+      count.</td></tr>
+      <tr><td><strong>In credit</strong></td><td>They paid more than they owed, so you owe them.
+      Used up by their next purchase.</td></tr>
+      <tr><td><strong>Statement</strong></td><td>A printable page for one customer and one month:
+      opening balance, every line, closing balance.</td></tr>
+      <tr><td><strong>Confirmed number</strong></td><td>A phone number you have verified is really
+      theirs. Unconfirmed numbers are never sent balances or amounts.</td></tr>
+      <tr><td><strong>Restock</strong></td><td>The tickbox on a refund. Ticked: it goes back on the
+      shelf. Unticked: it came back broken, so the customer is paid but your shelf count correctly
+      does not rise.</td></tr>
+      <tr><td><strong>Pending approval</strong></td><td>A refund a cashier has recorded and an Admin
+      has not yet approved. Nothing has moved yet.</td></tr>
+      <tr><td><strong>Refundable</strong></td><td>How much of a line can still be refunded: sold,
+      less already refunded, less already requested.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="end">
+    <div class="t">That is all of it.</div>
+    <p>If you have read this far, you know Sukoon better than most people know the software they use
+    every day. You do not need to remember it — the contents page will find any of it again in about
+    ten seconds.</p>
+    <p>Three things to do today, before anything else: <strong>create the second Admin account</strong>,
+    <strong>print the recovery sheet and take it home</strong>, and <strong>ring one real sale from
+    every counter</strong>.</p>
+    <p>Everything else can wait until tomorrow.</p>
+  </div>
+</div>
+
+</body>
+</html>

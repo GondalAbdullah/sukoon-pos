@@ -6,8 +6,20 @@
 |---|---|
 | `Sukoon-Setup-1.0.0.exe` | built on the Windows VM at `dist\installer\` |
 | The install checklist | [install-checklist.md](install-checklist.md) — print it |
+| **The owner's manual** | **[Sukoon-Owner-Manual.pdf](Sukoon-Owner-Manual.pdf)** — the single document the client is sent. 32 pages, install to daily use. Source: [sukoon-owner-manual.html](sukoon-owner-manual.html) |
 | The owner's guide | [owner-guide.md](owner-guide.md) — print it and leave it at the counter |
 | The shop's Cloudflare keys | from the owner's own Cloudflare account, typed into Sukoon on the day |
+
+**Since 2026-09-23 the owner installs Sukoon himself** (the go-live meeting was postponed —
+context.md, session 35). The manual above is written for that: it covers the install checklist's
+steps in plain language. Two items still need someone with the router password and the printer in
+front of them — the router reservation and O-25.
+
+To regenerate the PDF after editing `sukoon-owner-manual.html`:
+
+```bash
+node docs/handover/render-manual.js   # writes Sukoon-Owner-Manual.pdf
+```
 
 ## What the shop ends up holding
 

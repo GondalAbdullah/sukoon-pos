@@ -12,7 +12,7 @@ work session, not just every phase.
 |---|---|
 | **Phase** | **Phase 6 — Reports & Dashboard — functionally complete** (session 27, [ADR-0034](adr/0034-phase-6-reporting-policy.md); DoD §4m; no gate in the spec). **Phase 7 — Windows Packaging & Offline Installable App — next, opening with a scheduled `grill-with-docs` session.** Phase 5 closed 2026-09-15 (real send under O-23). |
 | **Status** | **Session 27:** Phase 6 built — Insights dashboard, five reports (sales, estimated profit, stock value, low stock, outstanding credit) with CSV and PDF exports, Admin only; profit estimated at today's cost prices with coverage stated; every figure checked against a hand-calculated scenario; 10,000-sale performance test. 497 tests. **Session 26:** Phase 5 built against ADR-0027…0033 in three parts — queue/consent/rules, Meta adapter/key store/scheduler, screens — 475 tests, and an end-to-end browser run where the real background worker in `python -m sukoon.run` sent a credit-sale notice by itself (fake provider). Three real bugs found by the tests and fixed (§6). **Session 25:** the Phase 5 `grill-with-docs` session ran on the session-24 proposal — 26 questions, 7 ADRs (0027–0033), O-20 resolved, O-18's trigger sharpened, O-23 opened for Meta facts that must be checked when the account exists. **Session 23:** Phase 4 built — customers with duplicate-number and in-person confirmation (ADR-0013), a single ledger writer that sales, refunds and payments all go through, full/partial/over-payments, credit limits with Admin approval at the till (ADR-0014), overdue flags (ADR-0015), month statements on shop time with an A4 PDF, the Khata screen, and a Khata picker replacing the till's raw customer ID. 363 tests pass; verified in real Chrome. **Session 22:** the client answered O-21/O-22 — shop timezone (ADR-0024) and stock limits at the till (ADR-0025) built; along the way found and fixed a latent bug (items created at the till could never be sold) and B9 (htmx swaps silently dropped every till error message). **Session 21:** a bug sweep driven by the developer's own walkthrough screenshots — 8 real bugs fixed and verified in a real browser (session 21 changelog), plus a plain-language field manual at `docs/field-manual.html` (untracked). Phase 3.5 built out sessions 13–19 (toolchain, Login, Till, Sale Complete, terminal ID, Stock, Refunds, landing page, htmx pass — §4i), then the Design System §13 DoD side-by-side (session 20, §4j) — fresh screenshots of every screen plus an actually-rendered receipt PDF against all 9 reference images, not a documentation exercise. Found and fixed three real issues (two undersized/no-hover buttons, a receipt footer line that ran off the page, fixed with real word-wrapping + regression tests) and restored two missing Login details. One genuine tension between ADR-0006 (prototype pixel-fidelity) and the Design System's written 44px touch-target rule was put to the client rather than picked unilaterally: **keep the prototype-exact stepper size, no change** — recorded with rationale. **Phase 3.5 is now formally closed.** `ruff` clean, **245 tests green, 95% coverage**. |
-| **Last session** | 2026-09-15 (session 28) |
+| **Last session** | 2026-09-23 (session 35) |
 | **Next action** | **Phase 7 CLOSED 2026-09-18 (§4o), go-live 2026-09-19.** On the day, work through `docs/handover/install-checklist.md`: network Private, router reservation, install, first-run setup as the owner, **two Admin accounts**, cashier accounts, name each till, a real sale from every counter, a reboot with nobody signed in, printer chosen and test receipt (**first contact with hardware, O-25**), offsite backup set up with the shop's own keys and **the recovery sheet printed and taken away**. Then Phase 8 becomes the shop's first two weeks, watched. Before WhatsApp is switched on: O-23. |
 
 ## 2. Decisions made so far
@@ -1330,6 +1330,46 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-09-23 — Session 35: the owner's manual, and the owner now installs Sukoon himself
+
+**The go-live meeting and acceptance testing were postponed by the client.** Go-live was
+2026-09-19 (O-27); it did not happen on the day. The client asked instead for **one document he
+can be sent directly**, so he can install and start using Sukoon **without the developer present**.
+
+This changes an assumption baked into `docs/handover/install-checklist.md`, which was written for
+"the person installing" meaning the developer, on site. **The owner is now the installer.** Recorded
+here rather than silently absorbed, because two things in the checklist genuinely need a second
+person and are now the owner's to arrange:
+
+1. **The router reservation** (ADR-0038 §10-A) needs the router password. The manual tells the owner
+   to have the installer do it and explains the symptom if it is not done — after a power cut the
+   other tills may point at nothing.
+2. **The printer is still O-25.** The owner's first test receipt is now literally the first contact
+   between Sukoon and any physical printer, with nobody there to diagnose it. The manual says so
+   plainly and leans on the PDF fallback.
+
+**Written:** `docs/handover/Sukoon-Owner-Manual.pdf` — 32 pages, A4, English, for a non-technical
+reader, and its source `docs/handover/sukoon-owner-manual.html` (rendered with headless Chrome +
+`puppeteer-core`; the HTML is the editable original, the PDF is what the client is sent). It covers
+what Sukoon is, the two Windows settings that must be right first, installing (including the
+unsigned-installer warning), first run, staff and roles, catalogue, stock, till, receipts, khata,
+refunds, insights, backups, the other counters, what is switched off, the daily routine,
+troubleshooting and a full glossary.
+
+**It states the uncomfortable things rather than omitting them** (Building Software The Right Way):
+no password recovery exists and two Admins are therefore mandatory; printing has never met the
+shop's hardware; WhatsApp is off until O-23; profit is estimated at today's cost prices and excludes
+lines with no cost price; going live without Phase 8 means the shop is the first real test; and
+uninstalling makes every DPAPI-protected secret unreadable, leaving the recovery sheet as the only
+route back to the offsite backups.
+
+**Relationship to the existing handover docs:** `owner-guide.md` (one page, for the counter) and
+`install-checklist.md` (for whoever installs) both stand — the manual is the single self-contained
+document for the client and repeats their content deliberately. No code changed; no ADR affected.
+
+**Next action unchanged in substance:** the install checklist still governs go-live day whenever it
+happens. Before WhatsApp: O-23. Before relying on printing: O-25.
 
 ### 2026-09-18 — Session 34: the gaps the developer's own testing found, and offsite backup proven
 
