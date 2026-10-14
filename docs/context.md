@@ -12,8 +12,8 @@ work session, not just every phase.
 |---|---|
 | **Phase** | **Phase 6 — Reports & Dashboard — functionally complete** (session 27, [ADR-0034](adr/0034-phase-6-reporting-policy.md); DoD §4m; no gate in the spec). **Phase 7 — Windows Packaging & Offline Installable App — next, opening with a scheduled `grill-with-docs` session.** Phase 5 closed 2026-09-15 (real send under O-23). |
 | **Status** | **Session 27:** Phase 6 built — Insights dashboard, five reports (sales, estimated profit, stock value, low stock, outstanding credit) with CSV and PDF exports, Admin only; profit estimated at today's cost prices with coverage stated; every figure checked against a hand-calculated scenario; 10,000-sale performance test. 497 tests. **Session 26:** Phase 5 built against ADR-0027…0033 in three parts — queue/consent/rules, Meta adapter/key store/scheduler, screens — 475 tests, and an end-to-end browser run where the real background worker in `python -m sukoon.run` sent a credit-sale notice by itself (fake provider). Three real bugs found by the tests and fixed (§6). **Session 25:** the Phase 5 `grill-with-docs` session ran on the session-24 proposal — 26 questions, 7 ADRs (0027–0033), O-20 resolved, O-18's trigger sharpened, O-23 opened for Meta facts that must be checked when the account exists. **Session 23:** Phase 4 built — customers with duplicate-number and in-person confirmation (ADR-0013), a single ledger writer that sales, refunds and payments all go through, full/partial/over-payments, credit limits with Admin approval at the till (ADR-0014), overdue flags (ADR-0015), month statements on shop time with an A4 PDF, the Khata screen, and a Khata picker replacing the till's raw customer ID. 363 tests pass; verified in real Chrome. **Session 22:** the client answered O-21/O-22 — shop timezone (ADR-0024) and stock limits at the till (ADR-0025) built; along the way found and fixed a latent bug (items created at the till could never be sold) and B9 (htmx swaps silently dropped every till error message). **Session 21:** a bug sweep driven by the developer's own walkthrough screenshots — 8 real bugs fixed and verified in a real browser (session 21 changelog), plus a plain-language field manual at `docs/field-manual.html` (untracked). Phase 3.5 built out sessions 13–19 (toolchain, Login, Till, Sale Complete, terminal ID, Stock, Refunds, landing page, htmx pass — §4i), then the Design System §13 DoD side-by-side (session 20, §4j) — fresh screenshots of every screen plus an actually-rendered receipt PDF against all 9 reference images, not a documentation exercise. Found and fixed three real issues (two undersized/no-hover buttons, a receipt footer line that ran off the page, fixed with real word-wrapping + regression tests) and restored two missing Login details. One genuine tension between ADR-0006 (prototype pixel-fidelity) and the Design System's written 44px touch-target rule was put to the client rather than picked unilaterally: **keep the prototype-exact stepper size, no change** — recorded with rationale. **Phase 3.5 is now formally closed.** `ruff` clean, **245 tests green, 95% coverage**. |
-| **Last session** | 2026-10-13 (session 36 — several Khatas on one number, ADR-0042; awaiting the developer's own test on Ubuntu) |
-| **Next action** | **Session 36 (2026-10-13): several Khatas on one number built (ADR-0042) — the developer tests it on Ubuntu first; then a new installer is built on the Windows VM before it reaches the shop (startup migrates and backs up by itself).** **Phase 7 CLOSED 2026-09-18 (§4o), go-live 2026-09-19.** On the day, work through `docs/handover/install-checklist.md`: network Private, router reservation, install, first-run setup as the owner, **two Admin accounts**, cashier accounts, name each till, a real sale from every counter, a reboot with nobody signed in, printer chosen and test receipt (**first contact with hardware, O-25**), offsite backup set up with the shop's own keys and **the recovery sheet printed and taken away**. Then Phase 8 becomes the shop's first two weeks, watched. Before WhatsApp is switched on: O-23. |
+| **Last session** | 2026-10-14 (session 36 — several Khatas on one number, ADR-0042; **Sukoon 1.1.0 released**, tag `v1.1.0`) |
+| **Next action** | **Sukoon 1.1.0 is the release for the shop** (tag `v1.1.0`, commit `ca2fcc1`; installer `Sukoon-Setup-1.1.0.exe`, SHA-256 `f32ff279…97fd1`, built on the VM, copy in the developer's `dist/installer/`). It replaces 1.0.0, which the client never installed. Send the owner the 1.1.0 installer with the regenerated owner's manual. Go-live itself still follows `docs/handover/install-checklist.md` (O-25 printing, O-27 acceptance). Before WhatsApp: O-23, submitting ADR-0042 §7's wording. |
 
 ## 2. Decisions made so far
 
@@ -271,6 +271,16 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   Phase 6 or not?
 
 ## 4. Known issues and deferred work
+
+- **The Windows test run is slow and timing-sensitive when the VM is busy (found 2026-10-14).**
+  The same suite took 31.5 min with 2 timing failures (the 1 s report budget; the 90 s startup
+  refusal), then 9 min 40 s with none, on identical code. A third timing test failed once inside a
+  file run, and 12 isolated startup runs, 6 on the 1.0.0 code, all passed. Not a code regression;
+  if it recurs, check what else the VM is doing (an installed Sukoon was running beside the tests).
+- **A successful upgrade's "Backed up …" and "Database upgraded …" lines don't reach `sukoon.log`**
+  (found 2026-10-14). `startup.prepare_database` logs through the module logger, which reaches the
+  console only; the same gap `run.py` fixed for refusals. The backup file itself is proof it was
+  taken, and a *failed* upgrade is logged. Small fix; not done in the release.
 
 - **Deferred permission codes (from ADR-0017 / ADR-0008 §4).** Product/stock codes
   were assigned in Phase 2 (ADR-0019). The Phase 3 gate assigned **refund**
@@ -1401,6 +1411,39 @@ README's `flask db upgrade && flask seed` after pulling covers both. That line i
 "Could not locate a Flask application": the README's quick-start never set `FLASK_APP` (only the
 longer setup section did). Added a committed `.flaskenv` (`FLASK_APP=sukoon.app`, no secrets), read
 only by the `flask` command, so the packaged app is unaffected. Dropped the README's `export` step.
+
+**Released 1.1.0 (2026-10-14), and the upgrade test caught a bug that would have stranded the
+shop.** Committed and pushed in four commits: the feature (`10f8c22`), the version bump to 1.1.0
+(`21c13a8`, in `sukoon/__init__.py`, `packaging/sukoon.iss`, `package.json` and the installer name
+in the handover docs and owner's manual), and two fixes found while releasing:
+
+1. **`54430ef`: 1.0.0 shipped a stale stylesheet.** The compiled Tailwind file was last rebuilt
+   15 Sep. Settings, Staff and the backup recovery sheet came later, so classes only they used
+   compiled to nothing. That included `font-mono` and `break-all` on the printed backup key. The
+   rebuild only adds rules. A new test compiles the stylesheet and fails if the committed copy is
+   stale (skipped where `node_modules` is absent, e.g. the VM).
+2. **`ca2fcc1`: the 1.1.0 migration failed on real data.** Upgrading the VM's installed 1.0.0
+   (3 customers, 15 sales, 10 ledger entries) failed with `FOREIGN KEY constraint failed` on
+   `DROP TABLE customer`. SQLite rebuilds a table to add a foreign-key column, and Sukoon enforces
+   foreign keys on every connection, migrations included. **Startup's safety net worked:** backup
+   restored, Sukoon refused to start, data unchanged (verified). The watchdog retried three times,
+   each refused and restored, which left three extra `pre-upgrade-*` backups on the VM. Fix in
+   `migrations/env.py`, per SQLite's documented rebuild procedure: enforcement off for the
+   migration, then `PRAGMA foreign_key_check`, failing the upgrade if anything broke. This covers
+   every future rebuild, not only this one. **Every earlier check had used a database with no
+   customers, or customers nothing pointed at.** That is why only the real upgrade found it, and
+   it is the strongest argument for keeping that step in every release. A new migration test
+   upgrades a customer with a credit sale, a payment and ledger entries; it failed before the fix.
+   The Phase 5 migration (`de48cca91869`) also rebuilt `customer` and would have failed the same
+   way on a populated database; it was never run on one.
+
+**Proven on Windows for the release:** full suite 681 passed / 3 skipped / 0 failed (9 min 40 s;
+see §4 on an earlier slow run). After the fix: migration and startup tests 14 passed. A copy of the
+VM's real database upgraded cleanly. Then the rebuilt installer, run silently over the installed
+1.0.0, took its backup, migrated, and served: installer exit 0, "setup finished with no problems",
+sign-in page 200, all counts unchanged, balances equal to the ledger. Linux: 685 passed.
+
+Tagged **`v1.1.0`** on `ca2fcc1`, the commit the installer was built from.
 
 ### 2026-09-23 — Session 35: the owner's manual, and the owner now installs Sukoon himself
 
