@@ -4,7 +4,7 @@
 ; The installer is unsigned (ADR-0038 section 12): Windows shows "Windows protected your PC";
 ; choose More info > Run anyway.
 
-#define AppVersion "1.0.0"
+#define AppVersion "1.1.0"
 
 [Setup]
 AppId={{8E0B2F4C-2C7B-4F3C-9D55-5B1D0E7A6C31}

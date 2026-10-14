@@ -6,7 +6,7 @@ installer (context.md, sessions 32–33).
 
 ## Before you go
 
-- [ ] `Sukoon-Setup-1.0.0.exe` on a USB stick, plus this checklist printed.
+- [ ] `Sukoon-Setup-1.1.0.exe` on a USB stick, plus this checklist printed.
 - [ ] The shop PC's Windows edition and version (Settings → System → About). Windows 10 or 11, 64-bit.
 - [ ] The router's admin password (usually on a sticker on the router), for the reserved address.
 - [ ] The receipt printer's make and model (O-25).
@@ -22,7 +22,7 @@ installer (context.md, sessions 32–33).
 
 ## 2. Run the installer
 
-- [ ] Double-click `Sukoon-Setup-1.0.0.exe`. Windows shows **"Windows protected your PC"** because the
+- [ ] Double-click `Sukoon-Setup-1.1.0.exe`. Windows shows **"Windows protected your PC"** because the
       installer isn't signed (ADR-0038 §12): **More info → Run anyway**.
 - [ ] Accept the defaults. Tick the desktop shortcut.
 - [ ] If a **"Sukoon is installed, but needs attention"** box appears, do what it lists. The same list

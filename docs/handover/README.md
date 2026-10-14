@@ -4,7 +4,7 @@
 
 | Item | Where it is |
 |---|---|
-| `Sukoon-Setup-1.0.0.exe` | built on the Windows VM at `dist\installer\` |
+| `Sukoon-Setup-1.1.0.exe` | built on the Windows VM at `dist\installer\` |
 | The install checklist | [install-checklist.md](install-checklist.md) — print it |
 | **The owner's manual** | **[Sukoon-Owner-Manual.pdf](Sukoon-Owner-Manual.pdf)** — the single document the client is sent. 32 pages, install to daily use. Source: [sukoon-owner-manual.html](sukoon-owner-manual.html) |
 | The owner's guide | [owner-guide.md](owner-guide.md) — print it and leave it at the counter |
