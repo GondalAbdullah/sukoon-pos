@@ -7,7 +7,10 @@ pointer and looked clickable. Hover must be guarded by ``:not(:disabled)``.
 from __future__ import annotations
 
 import re
+import subprocess
 from pathlib import Path
+
+import pytest
 
 CSS = Path(__file__).resolve().parents[2] / "sukoon" / "static" / "css" / "tailwind.css"
 
@@ -43,3 +46,21 @@ def test_a_table_column_can_right_align_its_heading():
     css = CSS.read_text(encoding="utf-8")
     assert ":where(.table th){text-align:left}" in css
     assert ".table th{text-align:left" not in css
+
+
+_ROOT = Path(__file__).resolve().parents[2]
+_TAILWIND = _ROOT / "node_modules" / ".bin" / "tailwindcss"
+
+
+@pytest.mark.skipif(not _TAILWIND.exists(), reason="tailwindcss not installed (npm install)")
+def test_the_committed_stylesheet_is_built_from_the_current_templates(tmp_path):
+    """Tailwind only emits classes it finds in a template, and the compiled file is committed.
+    Phase 7's Settings, Staff and recovery-sheet screens shipped in 1.0.0 without a rebuild,
+    so classes they used (the backup key's font-mono and break-all among them) did nothing.
+    Run scripts/build_css.sh and commit the result."""
+    out = tmp_path / "tailwind.css"
+    subprocess.run([str(_TAILWIND), "-c", "tailwind.config.js",
+                    "-i", "sukoon/static/css/input.css", "-o", str(out), "--minify"],
+                   cwd=_ROOT, check=True, capture_output=True)
+    assert out.read_text(encoding="utf-8") == CSS.read_text(encoding="utf-8"), (
+        "sukoon/static/css/tailwind.css is stale: run scripts/build_css.sh and commit it")
