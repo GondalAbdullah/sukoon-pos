@@ -1,5 +1,17 @@
 # Handover — what goes to the shop, and what must not
 
+## Upgrading a shop already running 1.0.0 (the client's case, as of 2026-10-14)
+
+Send exactly two files:
+
+| Item | Where it is |
+|---|---|
+| `Sukoon-Setup-1.1.0.exe` | built on the Windows VM at `dist\installer\`; a copy in the developer's `dist/installer/` (gitignored). SHA-256 `f32ff27989b4bcb2820ef780ea33fcdedf5d46a46d4a12db870263273ac97fd1` |
+| **The upgrade sheet** | **[Sukoon-Upgrade-to-1.1.0.pdf](Sukoon-Upgrade-to-1.1.0.pdf)**, 2 pages: the steps, what to check, **reprinting the recovery sheet**, and what to do if it fails. Source: [upgrade-to-1.1.0.html](upgrade-to-1.1.0.html); `node docs/handover/render-upgrade.js` |
+
+The owner's manual is unchanged apart from the installer name, a several-khatas paragraph and a
+corrected button name. Resending it is optional.
+
 ## What to take on install day
 
 | Item | Where it is |

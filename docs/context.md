@@ -13,7 +13,7 @@ work session, not just every phase.
 | **Phase** | **Phase 6 — Reports & Dashboard — functionally complete** (session 27, [ADR-0034](adr/0034-phase-6-reporting-policy.md); DoD §4m; no gate in the spec). **Phase 7 — Windows Packaging & Offline Installable App — next, opening with a scheduled `grill-with-docs` session.** Phase 5 closed 2026-09-15 (real send under O-23). |
 | **Status** | **Session 27:** Phase 6 built — Insights dashboard, five reports (sales, estimated profit, stock value, low stock, outstanding credit) with CSV and PDF exports, Admin only; profit estimated at today's cost prices with coverage stated; every figure checked against a hand-calculated scenario; 10,000-sale performance test. 497 tests. **Session 26:** Phase 5 built against ADR-0027…0033 in three parts — queue/consent/rules, Meta adapter/key store/scheduler, screens — 475 tests, and an end-to-end browser run where the real background worker in `python -m sukoon.run` sent a credit-sale notice by itself (fake provider). Three real bugs found by the tests and fixed (§6). **Session 25:** the Phase 5 `grill-with-docs` session ran on the session-24 proposal — 26 questions, 7 ADRs (0027–0033), O-20 resolved, O-18's trigger sharpened, O-23 opened for Meta facts that must be checked when the account exists. **Session 23:** Phase 4 built — customers with duplicate-number and in-person confirmation (ADR-0013), a single ledger writer that sales, refunds and payments all go through, full/partial/over-payments, credit limits with Admin approval at the till (ADR-0014), overdue flags (ADR-0015), month statements on shop time with an A4 PDF, the Khata screen, and a Khata picker replacing the till's raw customer ID. 363 tests pass; verified in real Chrome. **Session 22:** the client answered O-21/O-22 — shop timezone (ADR-0024) and stock limits at the till (ADR-0025) built; along the way found and fixed a latent bug (items created at the till could never be sold) and B9 (htmx swaps silently dropped every till error message). **Session 21:** a bug sweep driven by the developer's own walkthrough screenshots — 8 real bugs fixed and verified in a real browser (session 21 changelog), plus a plain-language field manual at `docs/field-manual.html` (untracked). Phase 3.5 built out sessions 13–19 (toolchain, Login, Till, Sale Complete, terminal ID, Stock, Refunds, landing page, htmx pass — §4i), then the Design System §13 DoD side-by-side (session 20, §4j) — fresh screenshots of every screen plus an actually-rendered receipt PDF against all 9 reference images, not a documentation exercise. Found and fixed three real issues (two undersized/no-hover buttons, a receipt footer line that ran off the page, fixed with real word-wrapping + regression tests) and restored two missing Login details. One genuine tension between ADR-0006 (prototype pixel-fidelity) and the Design System's written 44px touch-target rule was put to the client rather than picked unilaterally: **keep the prototype-exact stepper size, no change** — recorded with rationale. **Phase 3.5 is now formally closed.** `ruff` clean, **245 tests green, 95% coverage**. |
 | **Last session** | 2026-10-14 (session 36 — several Khatas on one number, ADR-0042; **Sukoon 1.1.0 released**, tag `v1.1.0`) |
-| **Next action** | **Sukoon 1.1.0 is the release for the shop** (tag `v1.1.0`, commit `ca2fcc1`; installer `Sukoon-Setup-1.1.0.exe`, SHA-256 `f32ff279…97fd1`, built on the VM, copy in the developer's `dist/installer/`). It replaces 1.0.0, which the client never installed. Send the owner the 1.1.0 installer with the regenerated owner's manual. Go-live itself still follows `docs/handover/install-checklist.md` (O-25 printing, O-27 acceptance). Before WhatsApp: O-23, submitting ADR-0042 §7's wording. |
+| **Next action** | **The client already runs 1.0.0** (corrected 2026-10-14; the records had said he never installed it). Send him `Sukoon-Setup-1.1.0.exe` (tag `v1.1.0`, commit `ca2fcc1`, SHA-256 `f32ff279…97fd1`, copy in the developer's `dist/installer/`) **with the upgrade sheet** `docs/handover/Sukoon-Upgrade-to-1.1.0.pdf`. Its step 6, **reprinting the recovery sheet**, matters: 1.0.0 printed the key in a font where I and l look alike. Still open: O-25 printing, O-27 acceptance, and before WhatsApp, O-23 (submit ADR-0042 §7's wording). |
 
 ## 2. Decisions made so far
 
@@ -1444,6 +1444,28 @@ VM's real database upgraded cleanly. Then the rebuilt installer, run silently ov
 sign-in page 200, all counts unchanged, balances equal to the ledger. Linux: 685 passed.
 
 Tagged **`v1.1.0`** on `ca2fcc1`, the commit the installer was built from.
+
+**Correction (2026-10-14): the client had already installed 1.0.0.** This file, the 1.1.0
+release commit and the `v1.1.0` tag message all say he never installed it. They are wrong. The tag
+is left as pushed rather than rewritten, and this note is the record. What changes:
+
+- **1.1.0 reaches the shop as an upgrade over live data**, which is the path the VM proved
+  (silent install over a populated 1.0.0: backup, migrate, serve, every row kept). The migration
+  fix (`ca2fcc1`) was therefore essential, not precautionary. The faulty first 1.1.0 build never left
+  the VM.
+- **His printed recovery sheet came from 1.0.0's stale stylesheet.** I had said the key "could run
+  off the page". That was wrong: it is printed in space-separated groups of four and wraps normally.
+  The real defect is the font. Without `font-mono` it printed in Inter, where capital I and lowercase l
+  are indistinguishable (confirmed by rendering one sample key under both stylesheets). Base64 keys
+  contain both, and a wrong letter typed back from paper leaves the offsite backups unreadable. The
+  key itself is unchanged, so **a reprint from 1.1.0 is the whole fix**.
+- **A two-page upgrade sheet for the owner**, `docs/handover/Sukoon-Upgrade-to-1.1.0.pdf` (source
+  `upgrade-to-1.1.0.html`, `node docs/handover/render-upgrade.js`): a quiet moment, main PC only, the
+  SmartScreen click-through, what to check after (Khata balances, Insights, F5 on the other counters),
+  the reprint with the reason, and on failure "your data is safe, don't reinstall, send these two logs".
+  The manual had no upgrade instructions; a section for future upgrades is worth adding.
+- **Manual corrected:** "Khata → Add customer" is "Khata → **Open a Khata**" (the real button).
+  Found while checking the upgrade sheet's wording against the templates. PDF regenerated (32 pages).
 
 ### 2026-09-23 — Session 35: the owner's manual, and the owner now installs Sukoon himself
 
