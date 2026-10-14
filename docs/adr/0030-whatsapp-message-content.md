@@ -1,6 +1,7 @@
 # 0030 — WhatsApp Message Content: Language, Detail, Replies, and Approved Wording
 
 Status: **Accepted** 2026-09-14 — Phase 5 grill session; wording approved by the developer for the client
+Amended by: [ADR-0042](0042-several-khatas-on-one-number.md) (2026-10-13) — every money message now names the Khata; §6's wording is superseded by ADR-0042 §7 for credit sale, statement and reminder
 Date: 2026-09-14
 Phase: 5
 Amended by: [ADR-0032](0032-payment-receipt-message.md) (adds the payment receipt as a fifth message type)

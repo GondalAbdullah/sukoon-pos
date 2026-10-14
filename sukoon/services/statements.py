@@ -140,7 +140,7 @@ def build_statement(
     return StatementDoc(
         shop_name=settings_service.get("shop.name", "Al-Rehman General Store"),
         shop_contact=settings_service.get("shop.contact"),
-        customer_name=customer.name,
+        customer_name=customer.display_name,
         customer_phone=customer.phone_raw or customer.phone_normalised,
         period_label=period.label,
         generated=clock.format_shop_time(now or datetime.now(UTC), "%d %b %Y %H:%M"),

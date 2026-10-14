@@ -113,7 +113,8 @@ def test_ticked_unconfirmed_gets_one_account_notice_and_no_money_messages(shop):
     assert notice.notification_type == "account_notice"
     khata.set_whatsapp_opt_in(c, opted_in=True, user_id=shop["cashier"].id)  # saved again
     assert len(rows()) == 1  # once per number
-    khata.update_contact(c, name=c.name, phone_raw="0321 9874512", address=None, notes=None)
+    khata.update_contact(c, name=c.name, phone_raw="0321 9874512", address=None, notes=None,
+                         label=None)
     khata.set_whatsapp_opt_in(c, opted_in=True, user_id=shop["cashier"].id)
     assert [r.dedupe_key for r in rows(notification_type="account_notice")] == [
         f"account_notice:{c.id}:+923005541298", f"account_notice:{c.id}:+923219874512"]
@@ -127,7 +128,8 @@ def test_a_confirmed_customer_needs_no_account_notice(shop):
 
 def test_changing_the_number_clears_the_tick(shop):
     c = customer(shop)
-    khata.update_contact(c, name=c.name, phone_raw="0321 9874512", address=None, notes=None)
+    khata.update_contact(c, name=c.name, phone_raw="0321 9874512", address=None, notes=None,
+                         label=None)
     assert (c.whatsapp_opt_in, c.whatsapp_opt_in_at, c.whatsapp_opt_in_by_user_id) == (
         False, None, None)
 
@@ -193,7 +195,8 @@ def test_a_payment_queues_a_receipt_and_overpayment_reads_as_credit(shop):
                              allow_overpayment=True)
     [row] = rows(notification_type="payment_receipt")
     payload = json.loads(row.payload_json)
-    assert payload == {"amount": "Rs 800", "as_of": payload["as_of"], "new": "Rs 200 in credit"}
+    assert payload == {"amount": "Rs 800", "khata": "Haji Usman", "as_of": payload["as_of"],
+                       "new": "Rs 200 in credit"}
     assert "TX-1" not in row.payload_json and row.dedupe_key == f"payment:{p.id}"
 
 
@@ -215,7 +218,8 @@ def test_ok_sends_the_exact_wording_to_the_customer(shop):
     assert queue.process_due(provider, now=NOW).sent == 1
     [msg] = provider.sent
     assert msg.to == "+923005541298" and msg.template == "sukoon_credit_sale"
-    assert msg.text.startswith("Al-Rehman General Store: 1 item, Rs 600, added to your Khata")
+    assert msg.text.startswith(
+        "Al-Rehman General Store: 1 item, Rs 600, added to the Khata of Haji Usman as of")
     assert msg.text.endswith("For questions, contact the shop on 0300 1234567.")
     db.session.refresh(row)
     assert (row.status, row.attempt_count, row.provider_message_id) == ("sent", 1, "fake-1")
@@ -415,7 +419,8 @@ def test_statement_window_is_9am_on_the_1st_to_9am_on_the_8th_shop_time(shop):
     assert queue.run_statement_schedule(now=_pk(2026, 10, 1, 9, 5)) == "already"
     [row] = rows(notification_type="statement")
     payload = json.loads(row.payload_json)
-    assert payload == {"month": "September 2026", "closing": "Rs 600 owed", "period": "2026-09"}
+    assert payload == {"month": "September 2026", "closing": "Rs 600 owed",
+                       "khata": "Haji Usman", "period": "2026-09"}
     assert row.dedupe_key == f"statement:{c.id}:2026-09"
 
 
@@ -471,7 +476,8 @@ def test_the_overdue_check_reminds_at_most_weekly(shop):
     c = _overdue(shop)
     assert queue.run_overdue_check(now=NOW) == 1
     [row] = rows(notification_type="overdue_reminder")
-    assert json.loads(row.payload_json) == {"balance": "Rs 600", "as_of": "15 Sep 2026"}
+    assert json.loads(row.payload_json) == {"balance": "Rs 600", "khata": "Haji Usman",
+                                            "as_of": "15 Sep 2026"}
     assert queue.run_overdue_check(now=NOW + timedelta(days=6)) == 0
     assert queue.reminder_block(c, now=NOW + timedelta(days=6)) == "Reminded 6 days ago"
     assert queue.run_overdue_check(now=NOW + timedelta(days=8)) == 1

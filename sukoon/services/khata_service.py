@@ -38,12 +38,14 @@ class CustomerValidationError(KhataError):
 
 
 class DuplicatePhoneError(KhataError):
-    """Same normalised number already on another Khata (ADR-0013 §1) — confirmable."""
+    """Same normalised number already on another Khata (ADR-0013 §1) — confirmable.
+    Opening another is a normal choice: one person may keep several (ADR-0042 §3)."""
 
     def __init__(self, existing: list[Customer]):
         self.existing = existing
-        names = ", ".join(c.name for c in existing)
-        super().__init__(f"This number is already on {names}'s Khata. Same person?")
+        names = ", ".join(c.display_name for c in existing)
+        super().__init__(f"This number already has a Khata: {names}. "
+                         "Open another Khata on it?")
 
 
 class OverpaymentError(KhataError):
@@ -67,7 +69,7 @@ class CreditLimitExceededError(KhataError):
         self.customer = customer
         self.over_by_paisa = over_by_paisa
         super().__init__(
-            f"This takes {customer.name} Rs {over_by_paisa // 100:,} over their "
+            f"This takes {customer.display_name} Rs {over_by_paisa // 100:,} over their "
             f"Rs {customer.credit_limit_paisa // 100:,} limit. An Admin can approve it."
         )
 
@@ -141,6 +143,49 @@ def _clean_phone(phone_raw: str | None) -> tuple[str | None, str | None]:
     return raw, normalised
 
 
+LABEL_MAX = 40
+
+
+def _clean_label(label: str | None) -> str | None:
+    clean = " ".join((label or "").split()) or None
+    if clean and len(clean) > LABEL_MAX:
+        raise CustomerValidationError(f"Keep the label under {LABEL_MAX} characters.",
+                                      field="label")
+    return clean
+
+
+def _require_distinct(name: str, label: str | None, normalised: str | None, *,
+                      exclude_id: int | None = None) -> None:
+    """ADR-0042 §2: two Khatas on one number can't share a name and a label, or the till
+    couldn't tell them apart."""
+    def key(n: str, lbl: str | None) -> tuple[str, str]:
+        return n.casefold(), (lbl or "").casefold()
+
+    if any(key(c.name, c.label) == key(name, label)
+           for c in find_duplicates(normalised, exclude_id=exclude_id)):
+        raise CustomerValidationError(
+            f"{name} already has a Khata on this number. Give this one a label, "
+            "e.g. Home or Office, so the two can be told apart.",
+            field="label",
+        )
+
+
+def _confirmed_elsewhere(normalised: str | None, *,
+                         exclude_id: int | None = None) -> Customer | None:
+    """Another active Khata on which this number is already confirmed (ADR-0042 §5)."""
+    return next((c for c in sorted(find_duplicates(normalised, exclude_id=exclude_id),
+                                   key=lambda c: c.id) if c.phone_verified), None)
+
+
+def _carry_verification(customer: Customer, source: Customer, user_id: int | None,
+                        now: datetime | None) -> None:
+    customer.phone_verified = True
+    customer.phone_verified_method = "same_number"
+    customer.phone_verified_from_customer_id = source.id
+    customer.phone_verified_by_user_id = user_id
+    customer.phone_verified_at = now or datetime.now(UTC)
+
+
 def find_duplicates(normalised: str | None, *, exclude_id: int | None = None) -> list[Customer]:
     if normalised is None:
         return []
@@ -157,6 +202,7 @@ def create_customer(
     name: str,
     phone_raw: str | None,
     user_id: int,
+    label: str | None = None,
     address: str | None = None,
     notes: str | None = None,
     verified_method: str | None = None,
@@ -167,14 +213,17 @@ def create_customer(
     clean_name = (name or "").strip()
     if not clean_name:
         raise CustomerValidationError("A name is required.", field="name")
+    clean_label = _clean_label(label)
     raw, normalised = _clean_phone(phone_raw)
     if not confirm_duplicate:
         dupes = find_duplicates(normalised)
         if dupes:
             raise DuplicatePhoneError(dupes)
+    _require_distinct(clean_name, clean_label, normalised)
 
     customer = Customer(
         name=clean_name,
+        label=clean_label,
         phone_raw=raw,
         phone_normalised=normalised,
         address=(address or "").strip() or None,
@@ -186,6 +235,8 @@ def create_customer(
     db.session.flush()
     if verified_method and normalised:
         _mark_verified(customer, verified_method, user_id, now)
+    elif source := _confirmed_elsewhere(normalised, exclude_id=customer.id):
+        _carry_verification(customer, source, user_id, now)
     if whatsapp_opt_in and normalised:
         _mark_opted_in(customer, user_id, now)
     db.session.commit()
@@ -235,6 +286,7 @@ def _mark_verified(customer: Customer, method: str, user_id: int, now: datetime 
     customer.phone_verified = True
     customer.phone_verified_method = method
     customer.phone_verified_by_user_id = user_id
+    customer.phone_verified_from_customer_id = None
     customer.phone_verified_at = now or datetime.now(UTC)
 
 
@@ -253,25 +305,36 @@ def update_contact(
     phone_raw: str | None,
     address: str | None,
     notes: str | None,
+    label: str | None,
     confirm_duplicate: bool = False,
+    user_id: int | None = None,
+    now: datetime | None = None,
 ) -> Customer:
     clean_name = (name or "").strip()
     if not clean_name:
         raise CustomerValidationError("A name is required.", field="name")
+    clean_label = _clean_label(label)
     raw, normalised = _clean_phone(phone_raw)
-    if normalised != customer.phone_normalised:
-        if not confirm_duplicate:
-            dupes = find_duplicates(normalised, exclude_id=customer.id)
-            if dupes:
-                raise DuplicatePhoneError(dupes)
+    number_changed = normalised != customer.phone_normalised
+    if number_changed and not confirm_duplicate:
+        dupes = find_duplicates(normalised, exclude_id=customer.id)
+        if dupes:
+            raise DuplicatePhoneError(dupes)
+    if number_changed or (clean_name, clean_label) != (customer.name, customer.label):
+        _require_distinct(clean_name, clean_label, normalised, exclude_id=customer.id)
+    if number_changed:
         # a different number is an unconfirmed number (ADR-0026 §9), and agreement given
         # for the old number never carries to it (ADR-0028 §6)
         _clear_opt_in(customer)
         customer.phone_verified = False
         customer.phone_verified_method = None
         customer.phone_verified_by_user_id = None
+        customer.phone_verified_from_customer_id = None
         customer.phone_verified_at = None
+        if source := _confirmed_elsewhere(normalised, exclude_id=customer.id):
+            _carry_verification(customer, source, user_id, now)
     customer.name = clean_name
+    customer.label = clean_label
     customer.phone_raw = raw
     customer.phone_normalised = normalised
     customer.address = (address or "").strip() or None
@@ -301,12 +364,12 @@ def remove_customer(customer: Customer) -> str:
     state = ledger.describe_balance(customer.balance_paisa)
     if state.kind == "owes":
         raise CustomerHasBalanceError(
-            f"{customer.name} still owes Rs {state.amount_paisa // 100:,}. "
+            f"{customer.display_name} still owes Rs {state.amount_paisa // 100:,}. "
             "Settle the Khata before removing it."
         )
     if state.kind == "in_credit":
         raise CustomerHasBalanceError(
-            f"{customer.name} is Rs {state.amount_paisa // 100:,} in credit. "
+            f"{customer.display_name} is Rs {state.amount_paisa // 100:,} in credit. "
             "That has to be settled before the Khata can be removed."
         )
     has_history = any(
@@ -420,7 +483,8 @@ def list_customers(*, query: str | None = None, filter_: str = "all",
     if q:
         like = f"%{q}%"
         digits = normalise_phone(q) or "".join(ch for ch in q if ch.isdigit())
-        conds = [Customer.name.ilike(like), Customer.phone_raw.ilike(like)]
+        conds = [Customer.name.ilike(like), Customer.label.ilike(like),
+                 Customer.phone_raw.ilike(like)]
         if digits:
             conds.append(Customer.phone_normalised.like(f"%{digits.lstrip('+')[-7:]}%"))
         stmt = stmt.where(db.or_(*conds))
@@ -452,7 +516,7 @@ def list_customers(*, query: str | None = None, filter_: str = "all",
 
     rows.sort(key=lambda r: (r.last_activity is None,
                              -(r.last_activity.timestamp() if r.last_activity else 0),
-                             r.customer.name.lower()))
+                             r.customer.display_name.lower()))
     return rows, counts
 
 

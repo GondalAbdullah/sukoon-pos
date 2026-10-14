@@ -34,7 +34,7 @@ def index():
     if tab not in STATUS_TABS:
         tab = "all"
     rows = queue.log_rows(None if tab == "all" else tab, limit=200)
-    names = {c.id: c.name for c in db.session.scalars(
+    names = {c.id: c.display_name for c in db.session.scalars(
         db.select(Customer).where(Customer.id.in_({r.customer_id for r in rows if r.customer_id})))}
     return render_template(
         "messages/index.html", rows=rows, names=names, tab=tab, tabs=STATUS_TABS,

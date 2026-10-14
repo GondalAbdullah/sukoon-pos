@@ -46,7 +46,7 @@ def test_the_form_asks_before_a_duplicate_number(client, login, setup):
     _as(client, login, "cashier")
     html = client.post("/khata/new", data={"name": "Usman Traders", "phone": "+923005541298"}
                        ).get_data(as_text=True)
-    assert "already on Haji Usman's Khata. Same person?" in html
+    assert "This number already has a Khata: Haji Usman. Open another Khata on it?" in html
     assert db.session.query(Customer).count() == 1
     client.post("/khata/new", data={"name": "Usman Traders", "phone": "+923005541298",
                                     "confirm_duplicate": "1"})
@@ -219,7 +219,7 @@ def test_editing_contact_details(client, login, setup):
 
     html = client.post(f"/khata/{c.id}/edit", data={"name": c.name, "phone": other.phone_raw}
                        ).get_data(as_text=True)
-    assert "already on Bilal's Khata" in html
+    assert "already has a Khata: Bilal." in html
 
     resp = client.post(f"/khata/{c.id}/edit", data={"name": "", "phone": ""})
     assert resp.status_code == 400 and "A name is required." in resp.get_data(as_text=True)

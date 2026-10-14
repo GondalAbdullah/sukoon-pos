@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}{{ 'Edit ' ~ customer.name if customer else 'Open a Khata' }} — Sukoon{% endblock %}
-{% block heading %}{{ customer.name if customer else 'Open a Khata' }}{% endblock %}
+{% block title %}{{ 'Edit ' ~ customer.display_name if customer else 'Open a Khata' }} — Sukoon{% endblock %}
+{% block heading %}{{ customer.display_name if customer else 'Open a Khata' }}{% endblock %}
 {% block subheading %}{{ 'Contact details and credit' if customer else 'A regular who wants to put it on the book' }}{% endblock %}
 {% block content %}
 {% set v = form if form else {} %}
@@ -15,15 +15,17 @@
     {% if return_to %}<input type="hidden" name="return" value="{{ return_to }}">{% endif %}
 
     {% if duplicates %}
-    {# ADR-0013 §1: flagged, not forbidden — the cashier decides, deliberately. #}
+    {# ADR-0013 §1: flagged, not forbidden — the cashier decides, deliberately.
+       ADR-0042 §3: one person may keep several Khatas on one number. #}
+    {% set confirmed = duplicates | selectattr('phone_verified') | list %}
     <div class="rounded-md bg-amber-tint px-5 py-4 mb-6">
       <div class="text-sm font-bold text-amber mb-1">
-        This number is already on {{ duplicates | map(attribute='name') | join(', ') }}'s Khata. Same person?
+        This number already has a Khata: {{ duplicates | map(attribute='display_name') | join(', ') }}. Open another Khata on it?
       </div>
-      <div class="text-xs text-inkSoft mb-3">Family members and shop partners sometimes share a number. If it's the same person, use the existing Khata instead.</div>
+      <div class="text-xs text-inkSoft mb-3">One person can keep separate Khatas — for home, for the office, or for someone they pay for. Give each a label below so they can be told apart.{% if confirmed and not customer %} The number is already confirmed on {{ confirmed[0].display_name }}, so this Khata will be too.{% endif %}</div>
       <div class="flex flex-wrap gap-2.5">
-        <a href="{{ url_for('khata.index', c=duplicates[0].id) }}" class="btn-ghost !py-2 bg-surface">Go to {{ duplicates[0].name }}</a>
-        <button type="submit" name="confirm_duplicate" value="1" class="btn-ghost !py-2 bg-surface">No — {{ 'save' if customer else 'open' }} a separate Khata</button>
+        <a href="{{ url_for('khata.index', c=duplicates[0].id) }}" class="btn-ghost !py-2 bg-surface">Go to {{ duplicates[0].display_name }}</a>
+        <button type="submit" name="confirm_duplicate" value="1" class="btn-ghost !py-2 bg-surface">{{ 'Save' if customer else 'Open another Khata' }} on this number</button>
       </div>
     </div>
     {% endif %}
@@ -33,6 +35,13 @@
       <input type="text" name="name" required maxlength="120" autofocus class="field"
              value="{{ val('name', customer.name if customer else '') }}" placeholder="e.g. Haji Muhammad Usman">
     </label>
+
+    <label class="block mb-1.5">
+      <span class="label">Label (optional)</span>
+      <input type="text" name="label" maxlength="40" class="field"
+             value="{{ val('label', customer.label or '' if customer else '') }}" placeholder="e.g. Home, Office, Brother – Bilal">
+    </label>
+    <p class="text-xs text-muted mb-4">For a customer with more than one Khata. Shown after the name: “Ali Raza (Home)”.</p>
 
     <label class="block mb-1.5">
       <span class="label">Phone number (optional)</span>
@@ -110,7 +119,7 @@
   </form>
 
   <form method="post" action="{{ url_for('khata.remove', customer_id=customer.id) }}" class="panel p-7"
-        x-data data-confirm="Archive {{ customer.name }}'s Khata? Their history is kept."
+        x-data data-confirm="Archive {{ customer.display_name }}'s Khata? Their history is kept."
         @submit="if (!confirm($el.dataset.confirm)) $event.preventDefault()">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="text-[15px] font-bold mb-1">Archive this Khata</div>

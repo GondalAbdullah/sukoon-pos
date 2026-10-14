@@ -294,6 +294,7 @@ def on_credit_sale(sale: Sale, now: datetime | None = None) -> NotificationQueue
                    payload={
                        "items": templates.items_phrase(len(sale.items)),  # lines, never names
                        "amount": rs(sale.total_paisa),
+                       "khata": customer.display_name,
                        "as_of": as_of_text(sale.created_at),
                        "previous": ledger_words(new - entry.amount_paisa),
                        "new": ledger_words(new),
@@ -310,6 +311,7 @@ def on_payment(payment: Payment, now: datetime | None = None) -> NotificationQue
     return enqueue("payment_receipt", customer=customer, dedupe_key=f"payment:{payment.id}",
                    now=now, payload={
                        "amount": rs(payment.amount_paisa),
+                       "khata": customer.display_name,
                        "as_of": as_of_text(payment.created_at),
                        "new": ledger_words(entry.balance_after_paisa),
                    })
@@ -322,7 +324,7 @@ def on_customer_saved(customer: Customer, now: datetime | None = None) -> Notifi
         return None
     return enqueue("account_notice", customer=customer, now=now,
                    dedupe_key=f"account_notice:{customer.id}:{customer.phone_normalised}",
-                   payload={"name": customer.name})
+                   payload={"name": customer.display_name})
 
 
 def ledger_words(paisa: int) -> str:
@@ -378,6 +380,7 @@ def run_statement_schedule(now: datetime | None = None) -> str:
                 continue  # settled and quiet: nothing to say
             enqueue("statement", customer=customer, dedupe_key=f"statement:{customer.id}:{key}",
                     now=now, payload={"month": period.label, "closing": doc.closing,
+                                      "khata": customer.display_name,
                                       "period": key})
     run.queued_at = now
     db.session.commit()
@@ -433,6 +436,7 @@ def queue_reminder(customer: Customer, now: datetime | None = None) -> Notificat
     return enqueue("overdue_reminder", customer=customer, now=now,
                    dedupe_key=f"overdue:{customer.id}:{_shop_day(now)}",
                    payload={"balance": rs(customer.balance_paisa),
+                            "khata": customer.display_name,
                             "as_of": as_of_text(now, with_time=False)})
 
 
@@ -457,6 +461,8 @@ def _outgoing(row: NotificationQueue, customer: Customer | None, to: str) -> Out
     if reply_to is None:
         raise NotReady("No reply-to number is set, so no message can be worded.")
     payload = json.loads(row.payload_json or "{}")
+    if customer is not None:  # queued before ADR-0042 named the Khata in every message
+        payload.setdefault("khata", customer.display_name)
     rendered = templates.render(row.notification_type, payload, reply_to=reply_to)
     document = None
     if row.notification_type == "statement" and customer is not None:

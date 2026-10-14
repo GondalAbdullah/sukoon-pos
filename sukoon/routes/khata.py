@@ -91,6 +91,8 @@ def _detail(customer: Customer) -> dict:
     recent = list(zip(reversed(whole.rows), reversed(doc.lines), strict=True))[:25]
     verifier = (db.session.get(User, customer.phone_verified_by_user_id)
                 if customer.phone_verified_by_user_id else None)
+    verified_from = (db.session.get(Customer, customer.phone_verified_from_customer_id)
+                     if customer.phone_verified_from_customer_id else None)
     room = (None if customer.credit_limit_paisa is None
             else customer.credit_limit_paisa - customer.balance_paisa)
     from sukoon.services.notifications import queue
@@ -109,6 +111,7 @@ def _detail(customer: Customer) -> dict:
         "entry_count": len(entries),
         "payments": payments,
         "verifier": verifier,
+        "verified_from": verified_from,
         "limit_room_paisa": room,
         "reconciles": not whole.discrepancies and whole.closing_paisa == customer.balance_paisa,
     }
@@ -128,7 +131,8 @@ def new():
     f = request.form
     try:
         customer = khata.create_customer(
-            name=f.get("name", ""), phone_raw=f.get("phone"), address=f.get("address"),
+            name=f.get("name", ""), label=f.get("label"), phone_raw=f.get("phone"),
+            address=f.get("address"),
             notes=f.get("notes"), verified_method=f.get("verify") or None,
             whatsapp_opt_in=f.get("whatsapp_opt_in") == "1",
             confirm_duplicate=f.get("confirm_duplicate") == "1", user_id=current_user.id,
@@ -143,7 +147,7 @@ def new():
                                duplicates=None, return_to=return_to,
                                default_limit=khata.default_credit_limit_paisa()), 400
 
-    flash(f"Khata opened for {customer.name}.", "info")
+    flash(f"Khata opened for {customer.display_name}.", "info")
     if return_to == "till":
         session[TILL_CUSTOMER_KEY] = customer.id
         return redirect(url_for("till.index"))
@@ -162,8 +166,9 @@ def edit(customer_id: int):
     f = request.form
     number_before = customer.phone_normalised
     try:
-        khata.update_contact(customer, name=f.get("name", ""), phone_raw=f.get("phone"),
-                             address=f.get("address"), notes=f.get("notes"),
+        khata.update_contact(customer, name=f.get("name", ""), label=f.get("label"),
+                             phone_raw=f.get("phone"), address=f.get("address"),
+                             notes=f.get("notes"), user_id=current_user.id,
                              confirm_duplicate=f.get("confirm_duplicate") == "1")
         wants_updates = f.get("whatsapp_opt_in") == "1"
         if customer.phone_normalised != number_before:
@@ -230,7 +235,7 @@ def credit(customer_id: int):
 @permission_required("customer.manage_credit")
 def remove(customer_id: int):
     customer = _active_customer(customer_id)
-    name = customer.name
+    name = customer.display_name
     try:
         outcome = khata.remove_customer(customer)
     except khata.CustomerHasBalanceError as exc:
@@ -257,7 +262,7 @@ def remind(customer_id: int):
     elif queue.queue_reminder(customer) is None:
         flash("No reminder sent: one is already waiting.", "error")
     else:
-        flash(f"Reminder queued for {customer.name}.", "info")
+        flash(f"Reminder queued for {customer.display_name}.", "info")
     return redirect(url_for("khata.index", c=customer.id))
 
 
@@ -289,7 +294,8 @@ def payment(customer_id: int):
         return render_template("khata/payment.html", customer=customer, balance=balance,
                                form=f, excess_paisa=None, methods=khata.PAYMENT_METHODS), 400
     db.session.refresh(customer)
-    flash(f"Payment recorded. {customer.name}: {statements.balance_words(customer.balance_paisa)}.",
+    flash(f"Payment recorded. {customer.display_name}: "
+          f"{statements.balance_words(customer.balance_paisa)}.",
           "info")
     return redirect(url_for("khata.index", c=customer.id))
 
@@ -316,6 +322,7 @@ def statement_pdf(customer_id: int):
     pdf = statements.render_pdf(statements.build_statement(customer, period))
     resp = make_response(pdf)
     resp.mimetype = "application/pdf"
-    safe = "".join(ch if ch.isalnum() else "-" for ch in customer.name).strip("-") or "customer"
+    safe = ("".join(ch if ch.isalnum() else "-" for ch in customer.display_name).strip("-")
+            or "customer")
     resp.headers["Content-Disposition"] = f'attachment; filename="khata-{safe}-{period.key}.pdf"'
     return resp

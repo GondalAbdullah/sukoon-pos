@@ -61,7 +61,8 @@ def test_a_new_khata_gets_the_shop_default_limit(staff):
 
 def test_a_duplicate_number_asks_first_then_is_allowed(staff):
     _open(staff, phone="0300 5541298")
-    with pytest.raises(khata.DuplicatePhoneError, match="Haji Usman's Khata. Same person?"):
+    with pytest.raises(khata.DuplicatePhoneError,
+                       match="already has a Khata: Haji Usman. Open another"):
         _open(staff, name="Usman Traders", phone="+92 300 5541298")  # another spelling
     second = _open(staff, name="Usman Traders", phone="+92 300 5541298", confirm_duplicate=True)
     assert second.phone_normalised == "+923005541298" and second.phone_raw == "+92 300 5541298"
@@ -88,7 +89,8 @@ def test_verification_records_who_when_and_how(staff):
 
 def test_changing_a_verified_number_clears_its_verification(staff):
     c = _open(staff, verified_method="called")
-    khata.update_contact(c, name=c.name, phone_raw="0321 9874512", address=None, notes=None)
+    khata.update_contact(c, name=c.name, phone_raw="0321 9874512", address=None, notes=None,
+                         label=None)
     assert not c.phone_verified and c.phone_verified_method is None
 
 

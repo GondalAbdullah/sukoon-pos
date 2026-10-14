@@ -54,7 +54,7 @@
            {{ 'aria-current="true"' if is_sel }}>
           <div class="avatar w-11 h-11 text-[14px] shrink-0">{{ initials(c.name) }}</div>
           <div class="flex-1 min-w-0">
-            <div class="text-[14.5px] font-bold truncate text-ink">{{ c.name }}</div>
+            <div class="text-[14.5px] font-bold truncate text-ink">{{ c.display_name }}</div>
             {% if c.phone_raw %}<div class="text-[12px] text-muted truncate">{{ c.phone_raw }}</div>{% endif %}
             <div class="text-[11.5px] mt-0.5 truncate">
               {% if r.overdue.is_overdue %}<span class="text-coral font-semibold">{{ r.overdue.days_overdue }} day{{ '' if r.overdue.days_overdue == 1 else 's' }} overdue</span>
@@ -81,7 +81,7 @@
     <div class="flex flex-wrap items-start gap-4 mb-5">
       <div class="avatar w-16 h-16 text-[21px] shrink-0">{{ initials(c.name) }}</div>
       <div class="flex-1 min-w-[220px]">
-        <div class="text-[21px] font-extrabold tracking-[-0.02em] leading-tight">{{ c.name }}</div>
+        <div class="text-[21px] font-extrabold tracking-[-0.02em] leading-tight">{{ c.display_name }}</div>
         <div class="text-[13px] text-muted mt-1">
           {{ c.address ~ ' · ' if c.address }}{{ 'Credit terms: ' ~ c.credit_terms_days ~ ' days' if c.credit_terms_days else 'No credit terms set' }}
         </div>
@@ -91,7 +91,7 @@
           {% elif c.phone_verified %}
             <span class="text-inkSoft">{{ c.phone_raw }}</span>
             <span class="pill-teal">confirmed</span>
-            <span class="text-faint">{{ 'shown on their phone' if c.phone_verified_method == 'shown' else 'number rung' }}{{ ', by ' ~ d.verifier.name if d.verifier }}</span>
+            <span class="text-faint">{% if c.phone_verified_method == 'same_number' %}already confirmed on {{ d.verified_from.display_name if d.verified_from else 'another Khata' }}{% else %}{{ 'shown on their phone' if c.phone_verified_method == 'shown' else 'number rung' }}{% endif %}{{ ', by ' ~ d.verifier.name if d.verifier }}</span>
           {% else %}
             <span class="text-inkSoft">{{ c.phone_raw }}</span>
             <span class="pill-amber">not confirmed</span>

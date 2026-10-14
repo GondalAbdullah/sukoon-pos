@@ -12,8 +12,8 @@ work session, not just every phase.
 |---|---|
 | **Phase** | **Phase 6 — Reports & Dashboard — functionally complete** (session 27, [ADR-0034](adr/0034-phase-6-reporting-policy.md); DoD §4m; no gate in the spec). **Phase 7 — Windows Packaging & Offline Installable App — next, opening with a scheduled `grill-with-docs` session.** Phase 5 closed 2026-09-15 (real send under O-23). |
 | **Status** | **Session 27:** Phase 6 built — Insights dashboard, five reports (sales, estimated profit, stock value, low stock, outstanding credit) with CSV and PDF exports, Admin only; profit estimated at today's cost prices with coverage stated; every figure checked against a hand-calculated scenario; 10,000-sale performance test. 497 tests. **Session 26:** Phase 5 built against ADR-0027…0033 in three parts — queue/consent/rules, Meta adapter/key store/scheduler, screens — 475 tests, and an end-to-end browser run where the real background worker in `python -m sukoon.run` sent a credit-sale notice by itself (fake provider). Three real bugs found by the tests and fixed (§6). **Session 25:** the Phase 5 `grill-with-docs` session ran on the session-24 proposal — 26 questions, 7 ADRs (0027–0033), O-20 resolved, O-18's trigger sharpened, O-23 opened for Meta facts that must be checked when the account exists. **Session 23:** Phase 4 built — customers with duplicate-number and in-person confirmation (ADR-0013), a single ledger writer that sales, refunds and payments all go through, full/partial/over-payments, credit limits with Admin approval at the till (ADR-0014), overdue flags (ADR-0015), month statements on shop time with an A4 PDF, the Khata screen, and a Khata picker replacing the till's raw customer ID. 363 tests pass; verified in real Chrome. **Session 22:** the client answered O-21/O-22 — shop timezone (ADR-0024) and stock limits at the till (ADR-0025) built; along the way found and fixed a latent bug (items created at the till could never be sold) and B9 (htmx swaps silently dropped every till error message). **Session 21:** a bug sweep driven by the developer's own walkthrough screenshots — 8 real bugs fixed and verified in a real browser (session 21 changelog), plus a plain-language field manual at `docs/field-manual.html` (untracked). Phase 3.5 built out sessions 13–19 (toolchain, Login, Till, Sale Complete, terminal ID, Stock, Refunds, landing page, htmx pass — §4i), then the Design System §13 DoD side-by-side (session 20, §4j) — fresh screenshots of every screen plus an actually-rendered receipt PDF against all 9 reference images, not a documentation exercise. Found and fixed three real issues (two undersized/no-hover buttons, a receipt footer line that ran off the page, fixed with real word-wrapping + regression tests) and restored two missing Login details. One genuine tension between ADR-0006 (prototype pixel-fidelity) and the Design System's written 44px touch-target rule was put to the client rather than picked unilaterally: **keep the prototype-exact stepper size, no change** — recorded with rationale. **Phase 3.5 is now formally closed.** `ruff` clean, **245 tests green, 95% coverage**. |
-| **Last session** | 2026-09-23 (session 35) |
-| **Next action** | **Phase 7 CLOSED 2026-09-18 (§4o), go-live 2026-09-19.** On the day, work through `docs/handover/install-checklist.md`: network Private, router reservation, install, first-run setup as the owner, **two Admin accounts**, cashier accounts, name each till, a real sale from every counter, a reboot with nobody signed in, printer chosen and test receipt (**first contact with hardware, O-25**), offsite backup set up with the shop's own keys and **the recovery sheet printed and taken away**. Then Phase 8 becomes the shop's first two weeks, watched. Before WhatsApp is switched on: O-23. |
+| **Last session** | 2026-10-13 (session 36 — several Khatas on one number, ADR-0042; awaiting the developer's own test on Ubuntu) |
+| **Next action** | **Session 36 (2026-10-13): several Khatas on one number built (ADR-0042) — the developer tests it on Ubuntu first; then a new installer is built on the Windows VM before it reaches the shop (startup migrates and backs up by itself).** **Phase 7 CLOSED 2026-09-18 (§4o), go-live 2026-09-19.** On the day, work through `docs/handover/install-checklist.md`: network Private, router reservation, install, first-run setup as the owner, **two Admin accounts**, cashier accounts, name each till, a real sale from every counter, a reboot with nobody signed in, printer chosen and test receipt (**first contact with hardware, O-25**), offsite backup set up with the shop's own keys and **the recovery sheet printed and taken away**. Then Phase 8 becomes the shop's first two weeks, watched. Before WhatsApp is switched on: O-23. |
 
 ## 2. Decisions made so far
 
@@ -60,6 +60,7 @@ work session, not just every phase.
 | [0039](adr/0039-receipt-printing-on-windows.md) | Print through the **Windows spooler**, not raw USB; the printer must be **machine-installed** or the background account may not see it (**untested — O-25**); failures visible, never blocking a sale | **Accepted** |
 | [0040](adr/0040-staff-accounts.md) | An Admin adds staff (new `staff.manage`, step-up); accounts are **deactivated, never deleted**; the **last active Admin** cannot be switched off or demoted; names and initials stay distinct; a password reset clears a lockout. **No self-service recovery — two Admins required at install** | **Accepted** |
 | [0041](adr/0041-backup-key-recovery.md) | A key this PC can't unlock is explained, never a crash, and **never silently replaced**; the Settings screen takes the key back from the printed **recovery sheet**; "start a new key" is deliberate, behind step-up, and warns that older offsite backups stay locked. Amends ADR-0037 §5 | **Accepted** |
+| [0042](adr/0042-several-khatas-on-one-number.md) | **Several Khatas on one phone number** — one person keeps separate Khatas (home, office, a brother's), told apart by an optional **label** ("Ali Raza (Home)"); name+label unique per number; each Khata its own limit; a confirmed number carries over (`same_number`), WhatsApp agreement never does; every money message names the Khata. Amends ADR-0013 §1/§3 and ADR-0030 §6 | **Accepted** |
 
 (Historical rule, now satisfied: no ADR could move to **Accepted** until the Phase 0
 grill session had run. It ran on 2026-09-10; ADR-0017 onward are ordinary Phase-N
@@ -139,6 +140,7 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   statement in the same week should not receive two uncoordinated WhatsApp messages.
   Not yet resolved; noted while writing ADR-0015 rather than discovered at Phase 5.
 - **O-23 — Meta platform facts the Phase 5 decisions rely on but nobody has confirmed — and Phase 5's first real send.**
+  *(2026-10-13: the template wording to submit is now [ADR-0042](adr/0042-several-khatas-on-one-number.md) §7 — every money message names the Khata — not ADR-0030 §6 as first written.)*
   **Hard rule: WhatsApp sending is not switched on in the shop until this is done**: one real
   send through the owner's account, delivery confirmed on a phone, and the log entry checked
   (the Development Specification's Phase 5 verification step, deferred at the gate on 2026-09-15).
@@ -1330,6 +1332,75 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-10-13 — Session 36: several Khatas on one phone number (ADR-0042)
+
+**Asked for:** a customer (the example was "Ali") wants separate Khatas on his own phone number:
+one for home groceries, one for his office, one he runs for his brother.
+
+**What was already true, and what wasn't.** ADR-0013 never had a unique constraint on the phone, so
+Sukoon could already store this. What got in the way was the design around it. The duplicate
+warning asked "Same person?" and told the cashier to use the existing Khata. Three identical
+"Ali Raza" rows couldn't be told apart at the till. Each Khata had to be confirmed again. The most
+serious problem, found while tracing the change: **none of the approved WhatsApp messages said
+which Khata they were about**, so Ali would get three "New balance" messages with different
+figures and no way to tell them apart.
+
+**Decided by the developer, five questions:** an optional **label** column (not just typing it into
+the name); **each Khata keeps its own limit** (three Khatas can owe three default limits; an Admin
+lowers them per Khata if wanted); a number already confirmed on another active Khata **carries
+over, recorded** as `same_number` with its source; a Khata on someone else's number is **not
+treated differently**; **every money message names the Khata**, one wording for everyone. All
+recorded in [ADR-0042](adr/0042-several-khatas-on-one-number.md), which amends ADR-0013, ADR-0030
+and ADR-0032 (pointer lines added to each). The wording change costs no Meta re-approval, because
+nothing has been submitted yet (O-23 note added).
+
+**Built:**
+- Migration `1bf82363992f`: `customer.label` (≤ 40) and `customer.phone_verified_from_customer_id`.
+  Existing rows migrate with no label, so every name reads exactly as before. Tested up, down and up.
+- `Customer.display_name` ("Ali Raza (Home)"), used everywhere a Khata is named: Khata list and
+  detail, the till picker and chip, payment, statement screen and PDF, receipt, Insights, the
+  outstanding-credit report and CSV, the WhatsApp log, flash messages and errors.
+- `khata_service`: label cleaning, the name+label rule (case and spacing ignored; checked only when
+  the name, label or number actually changes, so a pre-existing pair of identical rows can still
+  have its notes edited), carry-over on open and on a number edit, label in search. `update_contact`
+  now takes `label` as a required keyword, so no caller can wipe a label by omission.
+- The form has a Label field. The duplicate panel now reads "This number already has a Khata: …
+  Open another Khata on it?" and says when the confirmation will carry over.
+- WhatsApp: the four money templates gained a `{khata}` blank. A row queued before this change is
+  filled from the customer at send time rather than crashing (none exist in the shop; sending has
+  never been on).
+- Owner's manual: a "One customer, several khatas" paragraph (page 19), PDF regenerated (still 32
+  pages). The developer handbook's quoted wording is updated, and the glossary has *Khata label*
+  and *Carried-over confirmation*.
+
+**Tests:** 25 new in `tests/integration/test_several_khatas.py`, covering every consequential case
+in the ADR, from opening Ali's three Khatas through two WhatsApp messages to one phone that name
+Home and Office. A mutation check (rule and carry-over disabled) made 6 of them fail, as it should.
+The 12 existing tests that asserted the old wording were updated to the ADR-0042 text. **683 passed**
+(654 before), `ruff` clean.
+
+**Not done:** no browser walkthrough this session, no Windows VM and no new release, at the
+developer's request; they will test on Ubuntu first and open the VM afterwards.
+
+**Next action:** the developer tests on Ubuntu. Then, on the Windows VM, build a new installer
+(the migration runs on upgrade) before it goes to the shop.
+
+**Correction (2026-10-14).** I told the developer that `python -m sukoon.run` would apply the
+migration to their local database. That was wrong. The backed-up automatic migration
+(`startup.prepare_database`) runs only in the production configuration, where a data folder is
+set. In development, `sukoon.run` and `flask run` both use `instance/sukoon.db` as it stands. The
+Khata screen then failed with `no such column: customer.label`. Fixed by taking a SQLite backup
+(`instance/backups/sukoon-before-adr-0042-20261014-180907.db`, gitignored) and running
+`flask db upgrade`. The installed app is unaffected; it still migrates on upgrade. **After pulling
+a change with a migration, run `flask db upgrade` on a development machine.**
+The same gap hid **Settings** (and Insights) from the sidebar. The development database was
+seeded on 15 Sep, before `settings.manage`, `staff.manage` and `report.view` existed, and only
+production refreshes permissions on start. Fixed with `seed_permissions()`, which only adds rows. The
+README's `flask db upgrade && flask seed` after pulling covers both. That line itself failed with
+"Could not locate a Flask application": the README's quick-start never set `FLASK_APP` (only the
+longer setup section did). Added a committed `.flaskenv` (`FLASK_APP=sukoon.app`, no secrets), read
+only by the `flask` command, so the packaged app is unaffected. Dropped the README's `export` step.
 
 ### 2026-09-23 — Session 35: the owner's manual, and the owner now installs Sukoon himself
 

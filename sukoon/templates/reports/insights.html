@@ -109,7 +109,7 @@
       {% for s in recent %}
         <div class="flex items-center gap-4 py-3.5">
           <div class="w-20 text-[13px] font-semibold text-muted tabular-nums">{{ s.created_at | shop_clock if period.key == 'today' else s.created_at | shop_time('%d %b') }}</div>
-          <div class="flex-1 min-w-0 text-[14.5px] truncate">{{ s.customer.name if s.customer_id and s.customer else 'Walk-in customer' }}</div>
+          <div class="flex-1 min-w-0 text-[14.5px] truncate">{{ s.customer.display_name if s.customer_id and s.customer else 'Walk-in customer' }}</div>
           <span class="{{ 'pill-teal' if s.payment_method == 'credit' else 'pill bg-sunk text-muted' }}">{{ {'cash': 'Cash', 'card': 'Card', 'credit': 'Khata'}[s.payment_method] }}</span>
           <div class="w-28 text-right text-[14.5px] font-semibold tabular-nums {{ 'text-teal' if s.payment_method == 'credit' }}">{{ rs(s.total_paisa) }}</div>
         </div>

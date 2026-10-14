@@ -423,7 +423,7 @@ flowchart LR
     <div class="step"><div class="when">13:05</div><div>
       <h3>A regular puts it on the book</h3>
       <p>Haji Usman buys Rs 1,770 of goods on credit. The cashier picks <b>Khata</b>, searches "usman", and his name replaces "Walk-in customer". The panel shows his balance after this sale and his limit. If it would take him over his limit, the sale is stopped until the owner types their own name and password into the box on the till.</p>
-      <p>Once saved, if Haji Usman agreed to WhatsApp updates and his number is confirmed, Sukoon quietly queues a message: <i>"4 items, Rs 1,770, added to your Khata… New balance: Rs 10,030 owed."</i> The message goes out a minute later, and the sale never waits for it.</p>
+      <p>Once saved, if Haji Usman agreed to WhatsApp updates and his number is confirmed, Sukoon quietly queues a message: <i>"4 items, Rs 1,770, added to the Khata of Haji Usman… New balance: Rs 10,030 owed."</i> The message goes out a minute later, and the sale never waits for it.</p>
     </div></div>
     <div class="step"><div class="when">16:40</div><div>
       <h3>Something comes back</h3>
@@ -612,7 +612,7 @@ flowchart LR
         </ul>
       </div></div>
       <div><div class="k why">Why</div><div>
-        <p><b>Phone numbers are normalised</b>, because "0300 5541298" and "+92 300 5541298" are the same number. <b>Duplicates are flagged, not blocked</b> ("This number is already on Haji Usman's Khata. Same person?"), because family members and shop partners genuinely share phones. <span class="adr">ADR-0013</span></p>
+        <p><b>Phone numbers are normalised</b>, because "0300 5541298" and "+92 300 5541298" are the same number. <b>Duplicates are flagged, not blocked</b> ("This number already has a Khata: Haji Usman. Open another Khata on it?"), because family members share phones and one person may keep several Khatas, each with a label such as Home or Office. <span class="adr">ADR-0013, ADR-0042</span></p>
         <p><b>A default limit of Rs 10,000</b> for new Khatas, so a cashier can't accidentally open unlimited credit. <span class="adr">ADR-0026</span> <b>Over-limit sales need the owner</b>, because the limit exists to be a deliberate decision. <span class="adr">ADR-0014</span></p>
         <p><b>Overdue is measured from the last payment</b>, not per purchase. It answers "has this customer paid anything recently?" without complex allocation of which payment covers which purchase. <span class="adr">ADR-0015</span></p>
         <p><b>Overpayment becomes credit</b> rather than being refused or shown as a confusing minus. <b>Customers are archived, never deleted</b>, because their history is financial record. <span class="adr">ADR-0026</span></p>
@@ -628,7 +628,7 @@ flowchart LR
     <p class="tagline">Automatic, respectful updates that can never slow a sale.</p>
     <div class="whw">
       <div><div class="k">What</div><div><p>Five messages: a <b>credit sale</b> notice, a <b>payment receipt</b>, the monthly <b>statement</b> with its PDF, an <b>overdue reminder</b>, and a neutral <b>account notice</b> for unconfirmed numbers. An Admin <b>Messages</b> screen shows everything.</p>
-        <div class="sample">Al-Rehman General Store: 4 items, Rs 1,770, added to your Khata as of 14 Sep 2026, 8:26 PM. Previous balance: Rs 8,260 owed. New balance: Rs 10,030 owed. This number can't read replies. For questions, contact the shop on 0300 1234567.</div></div></div>
+        <div class="sample">Al-Rehman General Store: 4 items, Rs 1,770, added to the Khata of Haji Usman as of 14 Sep 2026, 8:26 PM. Previous balance: Rs 8,260 owed. New balance: Rs 10,030 owed. This number can't read replies. For questions, contact the shop on 0300 1234567.</div></div></div>
       <div><div class="k">How</div><div>
         <p>Nothing is sent during a sale. Each message goes into a <b>queue</b> (an outbox in the database). A background worker sends waiting messages every minute through Meta's official WhatsApp Business API. The Messages screen has the on/off switch, the access key, the reply-to number, the daily limit, a test send, and a log with Retry and Send again.</p>
         <p class="ui" style="font-size:13px;color:var(--muted)">Status: fully built and tested with a stand-in "fake" sender. The first real send waits for the owner's Meta account (see Part 9).</p>

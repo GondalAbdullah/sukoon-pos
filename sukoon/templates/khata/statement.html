@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Statement — {{ customer.name }} — Sukoon{% endblock %}
+{% block title %}Statement — {{ customer.display_name }} — Sukoon{% endblock %}
 {% block heading %}Statement{% endblock %}
-{% block subheading %}{{ customer.name }} · {{ doc.period_label }}{% endblock %}
+{% block subheading %}{{ customer.display_name }} · {{ doc.period_label }}{% endblock %}
 {% block content %}
 <div class="max-w-3xl flex flex-col gap-5">
-  <a href="{{ url_for('khata.index', c=customer.id) }}" class="text-sm font-semibold">&larr; {{ customer.name }}</a>
+  <a href="{{ url_for('khata.index', c=customer.id) }}" class="text-sm font-semibold">&larr; {{ customer.display_name }}</a>
 
   <div class="flex flex-wrap items-center gap-2">
     {% for p in periods %}

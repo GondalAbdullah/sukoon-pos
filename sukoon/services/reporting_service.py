@@ -693,7 +693,7 @@ def credit_report(now: datetime | None = None) -> ReportDoc:
                 ["Customer", "Phone", "Owes", "Overdue", "Last payment"],
                 [
                     [
-                        r.customer.name,
+                        r.customer.display_name,
                         r.customer.phone_raw or "",
                         r.balance.amount_paisa,
                         f"{r.overdue.days_overdue} days" if r.overdue.is_overdue else "",
@@ -711,7 +711,7 @@ def credit_report(now: datetime | None = None) -> ReportDoc:
                 "In credit (the shop owes them)",
                 ["Customer", "Phone", "In credit"],
                 [
-                    [r.customer.name, r.customer.phone_raw or "", r.balance.amount_paisa]
+                    [r.customer.display_name, r.customer.phone_raw or "", r.balance.amount_paisa]
                     for r in credit
                 ],
                 money_cols={2},

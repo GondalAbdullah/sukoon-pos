@@ -258,7 +258,7 @@
     <div class="flex items-center gap-3 bg-teal-tint rounded-[16px] px-4 py-3.5 mb-5">
       <div class="avatar w-9 h-9 text-[12px] !bg-surface">{{ initials(till_customer.name) }}</div>
       <div class="flex-1 min-w-0">
-        <div class="text-[13.5px] font-bold truncate">{{ till_customer.name }}</div>
+        <div class="text-[13.5px] font-bold truncate">{{ till_customer.display_name }}</div>
         <div class="text-[11.5px] {{ 'text-coral font-semibold' if credit.balance.kind == 'owes' else 'text-teal-deep' }}">
           {{ till_customer.balance_paisa | balance_words }} on their Khata
         </div>

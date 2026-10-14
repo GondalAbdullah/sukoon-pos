@@ -1,6 +1,7 @@
 # 0032 — Payment Receipt Message (a Deliberate Scope Addition)
 
 Status: **Accepted** 2026-09-14 — Phase 5 grill session; wording approved by the developer for the client
+Amended by: [ADR-0042](0042-several-khatas-on-one-number.md) (2026-10-13) — the receipt now names the Khata; see ADR-0042 §7 for the wording to submit
 Date: 2026-09-14
 Phase: 5
 **Adds to the Development Specification's scope** (§6.F lists credit-sale notices and monthly statements; ADR-0015 added overdue reminders)

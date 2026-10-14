@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Record payment — {{ customer.name }} — Sukoon{% endblock %}
+{% block title %}Record payment — {{ customer.display_name }} — Sukoon{% endblock %}
 {% block heading %}Record a payment{% endblock %}
-{% block subheading %}{{ customer.name }} · {{ customer.balance_paisa | balance_words }}{% endblock %}
+{% block subheading %}{{ customer.display_name }} · {{ customer.balance_paisa | balance_words }}{% endblock %}
 {% block content %}
 {% set v = form if form else {} %}
 <div class="max-w-lg flex flex-col gap-5">
-  <a href="{{ url_for('khata.index', c=customer.id) }}" class="text-sm font-semibold">&larr; {{ customer.name }}</a>
+  <a href="{{ url_for('khata.index', c=customer.id) }}" class="text-sm font-semibold">&larr; {{ customer.display_name }}</a>
 
   <form method="post" action="{{ url_for('khata.payment', customer_id=customer.id) }}" class="panel p-7"
         x-data="{ method: '{{ v.get('method', 'cash') }}', amount: '{{ v.get('amount', '') }}' }">
@@ -15,7 +15,7 @@
     {# ADR-0026 §7: never silently kept, never silently refused. #}
     <div class="rounded-md bg-amber-tint px-5 py-4 mb-6">
       <div class="text-sm font-bold text-amber mb-1">That's Rs {{ '{:,}'.format(excess_paisa // 100) }} more than they owe.</div>
-      <div class="text-xs text-inkSoft mb-3">Keep it as credit on {{ customer.name }}'s Khata? It's used up by their next credit purchase. Otherwise, change the amount.</div>
+      <div class="text-xs text-inkSoft mb-3">Keep it as credit on {{ customer.display_name }}'s Khata? It's used up by their next credit purchase. Otherwise, change the amount.</div>
       {# the yes lives on this button only: editing the amount and pressing the main
          button asks again rather than carrying this confirmation over #}
       <button type="submit" name="allow_overpayment" value="1" class="btn-primary !py-2">Yes, keep Rs {{ '{:,}'.format(excess_paisa // 100) }} as credit</button>

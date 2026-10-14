@@ -1,4 +1,4 @@
-"""The approved WhatsApp wording (ADR-0030, ADR-0032) — pure.
+"""The approved WhatsApp wording (ADR-0030, ADR-0032, ADR-0042 §7) — pure.
 
 Each message type maps to a Meta template name and an ordered list of values. The same
 function renders the exact text a customer reads, so tests (and the fake provider)
@@ -39,29 +39,32 @@ def render(notification_type: str, payload: dict, *, reply_to: str) -> Rendered:
     p = payload
     t = notification_type
     if t == "credit_sale":
-        params = [p["items"], p["amount"], p["as_of"], p["previous"], p["new"], reply_to]
-        text = (f"{SHOP}: {p['items']}, {p['amount']}, added to your Khata as of {p['as_of']}. "
+        params = [p["items"], p["amount"], p["khata"], p["as_of"], p["previous"], p["new"],
+                  reply_to]
+        text = (f"{SHOP}: {p['items']}, {p['amount']}, added to the Khata of {p['khata']} "
+                f"as of {p['as_of']}. "
                 f"Previous balance: {p['previous']}. New balance: {p['new']}. "
                 f"{_NO_REPLIES} {_ASK.format(reply_to=reply_to)}")
     elif t == "payment_receipt":
-        params = [p["amount"], p["as_of"], p["new"], reply_to]
-        text = (f"{SHOP}: payment of {p['amount']} received on your Khata as of {p['as_of']}. "
-                f"New balance: {p['new']}. {_NO_REPLIES} {_ASK.format(reply_to=reply_to)}")
+        params = [p["amount"], p["khata"], p["as_of"], p["new"], reply_to]
+        text = (f"{SHOP}: payment of {p['amount']} received on the Khata of {p['khata']} "
+                f"as of {p['as_of']}. New balance: {p['new']}. "
+                f"{_NO_REPLIES} {_ASK.format(reply_to=reply_to)}")
     elif t in ("account_notice", "test"):
         params = [p["name"], reply_to]
         text = (f"An account has been opened in the name of {p['name']} at {SHOP}. "
                 f"If this is not you, please contact the shop on {reply_to}. {_NO_REPLIES}")
     elif t == "statement":
-        params = [p["month"], p["closing"], reply_to]
-        text = (f"Your Khata statement for {p['month']} from {SHOP} is attached. "
+        params = [p["khata"], p["month"], p["closing"], reply_to]
+        text = (f"The Khata statement of {p['khata']} for {p['month']} from {SHOP} is attached. "
                 f"Closing balance: {p['closing']}. {_NO_REPLIES} {_ASK.format(reply_to=reply_to)}")
         return Rendered(TEMPLATE_NAMES[t], params, text,
                         document_name=f"Khata statement {p['month']}.pdf")
     elif t == "overdue_reminder":
-        params = [p["balance"], p["as_of"], reply_to]
-        text = (f"A gentle reminder from {SHOP}: {p['balance']} is due on your Khata, as of "
-                f"{p['as_of']}. If you have already paid, thank you, and please ignore this "
-                f"message. {_NO_REPLIES} {_ASK.format(reply_to=reply_to)}")
+        params = [p["balance"], p["khata"], p["as_of"], reply_to]
+        text = (f"A gentle reminder from {SHOP}: {p['balance']} is due on the Khata of "
+                f"{p['khata']}, as of {p['as_of']}. If you have already paid, thank you, and "
+                f"please ignore this message. {_NO_REPLIES} {_ASK.format(reply_to=reply_to)}")
     else:
         raise ValueError(f"No template for message type {t!r}")
     return Rendered(TEMPLATE_NAMES[t], params, text)

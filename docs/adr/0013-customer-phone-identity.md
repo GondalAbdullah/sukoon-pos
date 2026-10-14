@@ -1,6 +1,7 @@
 # 0013 — Customer Phone Identity and Verification
 
 Status: **Accepted**
+Amended by: [ADR-0042](0042-several-khatas-on-one-number.md) (2026-10-13) — one person may keep several Khatas on one number; the duplicate prompt, a Khata label, and a confirmation carried over from another Khata on the same number
 Date: 2026-09-09
 Phase: 0 (grill-with-docs session 1)
 Resolves: O-4

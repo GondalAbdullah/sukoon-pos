@@ -73,10 +73,10 @@ cp .env.example .env
 python -c "import secrets; print(secrets.token_hex(32))"   # paste into .env as SECRET_KEY
 ```
 
-Then create the database and (optionally) load local dev data:
+Then create the database and (optionally) load local dev data. The `flask` command finds
+Sukoon through the committed `.flaskenv`, so there is nothing to export:
 
 ```bash
-export FLASK_APP=sukoon.app        # Windows: set FLASK_APP=sukoon.app
 flask db upgrade                   # apply migrations to an empty database
 flask seed                         # permissions + a dev Admin/Cashier + sample catalogue
 ```

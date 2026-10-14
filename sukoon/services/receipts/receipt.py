@@ -66,7 +66,7 @@ def build_receipt(sale: Sale) -> ReceiptData:
         from sukoon.models import Customer
 
         c = db.session.get(Customer, sale.customer_id)
-        customer = c.name if c else None
+        customer = c.display_name if c else None
     return ReceiptData(
         invoice_number=sale.invoice_number,
         when=clock.to_shop_time(sale.created_at),  # ADR-0024: the shop's clock

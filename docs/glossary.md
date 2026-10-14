@@ -344,6 +344,15 @@ running: sending waiting WhatsApp messages every minute, monthly statements, the
 overdue check. Only one running copy of Sukoon does this at a time (it holds the **worker
 lock**); they run only when Sukoon is started with `python -m sukoon.run`.
 
+**Khata label** *(Settled — ADR-0042)* — An optional short tag that tells apart one
+person's several Khatas on one phone number: "Home", "Office", "Brother – Bilal". Shown
+after the name everywhere a Khata is named — "Ali Raza (Home)" — including every
+WhatsApp message. Two active Khatas on one number can't share both name and label.
+
+**Carried-over confirmation** *(Settled — ADR-0042)* — A Khata opened on a number already
+confirmed on another active Khata is confirmed too, recorded as `same_number` with the Khata
+it came from. WhatsApp agreement is never carried over.
+
 **Archived Khata** *(Settled — ADR-0026)* — A customer removed from the Khata list and
 the till's picker, with all their purchases and payments kept. Only possible at a
 zero balance; a customer with no history at all is deleted instead.
