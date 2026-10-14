@@ -99,3 +99,58 @@ def test_existing_customers_migrate_as_not_opted_in_and_downgrade_survives_test_
     assert "whatsapp_opt_in" not in cols
     assert con.execute("SELECT COUNT(*) FROM notification_queue").fetchone() == (0,)
     con.close()
+
+
+@pytest.mark.slow
+def test_a_customer_with_sales_and_payments_survives_a_customer_table_rebuild(tmp_path):
+    """SQLite adds a column with a foreign key by rebuilding the table, and Sukoon turns on
+    foreign-key enforcement for every connection. With sales, payments and ledger entries
+    pointing at a customer, dropping the old ``customer`` table was refused and the 1.1.0
+    upgrade failed on real data (the startup backup put everything back). Earlier migration
+    tests only ever had customers nothing pointed at."""
+    db_path = tmp_path / "shop.db"
+    _flask(db_path, "upgrade", "de48cca91869")  # the schema 1.0.0 shipped
+    con = sqlite3.connect(db_path)
+    con.executescript("""
+        PRAGMA foreign_keys = ON;
+        INSERT INTO user (id, name, initials, role, password_hash, is_active,
+                          failed_login_attempts, created_at)
+            VALUES (1, 'Owner', 'OW', 'admin', 'x', 1, 0, '2026-09-20 10:00:00');
+        INSERT INTO customer (id, name, balance_paisa, phone_verified, whatsapp_opt_in,
+                              is_active, created_at)
+            VALUES (1, 'Ali Raza', 40000, 1, 0, 1, '2026-09-20 10:00:00');
+        INSERT INTO sale (id, invoice_number, customer_id, user_id, subtotal_paisa,
+                          discount_paisa, tax_paisa, total_paisa, payment_method, status,
+                          created_at)
+            VALUES (1, 'INV-2026-000001', 1, 1, 60000, 0, 0, 60000, 'credit', 'completed',
+                    '2026-09-20 10:05:00');
+        INSERT INTO payment (id, customer_id, amount_paisa, method, received_by_user_id,
+                             created_at)
+            VALUES (1, 1, 20000, 'cash', 1, '2026-09-21 10:00:00');
+        INSERT INTO credit_ledger_entry (customer_id, entry_type, amount_paisa,
+                                         balance_after_paisa, sale_id, created_by_user_id,
+                                         created_at)
+            VALUES (1, 'credit_sale', 60000, 60000, 1, 1, '2026-09-20 10:05:00');
+        INSERT INTO credit_ledger_entry (customer_id, entry_type, amount_paisa,
+                                         balance_after_paisa, payment_id, created_by_user_id,
+                                         created_at)
+            VALUES (1, 'payment', -20000, 40000, 1, 1, '2026-09-21 10:00:00');
+    """)
+    con.commit()
+    con.close()
+
+    _flask(db_path, "upgrade")  # raises on a non-zero exit, with flask's output
+    con = sqlite3.connect(db_path)
+    assert con.execute("SELECT name, label, balance_paisa FROM customer").fetchall() == [
+        ("Ali Raza", None, 40000)]
+    assert con.execute("SELECT COUNT(*) FROM credit_ledger_entry WHERE customer_id = 1"
+                       ).fetchone() == (2,)
+    assert con.execute("SELECT customer_id FROM sale").fetchone() == (1,)
+    assert con.execute("PRAGMA foreign_key_check").fetchall() == []
+    con.close()
+
+    _flask(db_path, "downgrade", "de48cca91869")
+    con = sqlite3.connect(db_path)
+    assert con.execute("SELECT COUNT(*) FROM customer").fetchone() == (1,)
+    assert con.execute("PRAGMA foreign_key_check").fetchall() == []
+    con.close()

@@ -99,6 +99,17 @@ def run_migrations_online():
     connectable = get_engine()
 
     with connectable.connect() as connection:
+        # SQLite changes a column's constraints by rebuilding the table (render_as_batch), and
+        # dropping the old copy of a table that other rows point at is refused while foreign
+        # keys are enforced, which sukoon.app turns on for every connection. That failed the
+        # 1.1.0 upgrade on a shop with sales against its customers. SQLite's documented
+        # procedure for a rebuild: enforcement off (only outside a transaction, hence the
+        # commit), then foreign_key_check before finishing, so a broken reference still fails.
+        sqlite = connection.dialect.name == "sqlite"
+        if sqlite:
+            connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
+            connection.commit()
+
         context.configure(
             connection=connection,
             target_metadata=get_metadata(),
@@ -107,6 +118,14 @@ def run_migrations_online():
 
         with context.begin_transaction():
             context.run_migrations()
+            if sqlite:
+                broken = connection.exec_driver_sql("PRAGMA foreign_key_check").fetchall()
+                if broken:
+                    raise RuntimeError(
+                        f"The migration left rows pointing at rows that don't exist: {broken}")
+
+        if sqlite:
+            connection.exec_driver_sql("PRAGMA foreign_keys=ON")
 
 
 if context.is_offline_mode():
