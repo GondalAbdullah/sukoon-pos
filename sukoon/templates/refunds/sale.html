@@ -43,7 +43,7 @@
               <div x-data="{ qty: null, unitPrice: {{ it.unit_price_paisa_snapshot }} }" class="flex items-center gap-2">
                 <input type="number" name="qty_{{ it.id }}" min="0" step="0.001" x-model.number="qty"
                        max="{{ (row.refundable_milli / 1000) }}" placeholder="0" class="field w-24 !py-1.5">
-                <span class="pill-teal" x-show="qty" x-text="'≈ Rs ' + Math.round(qty * unitPrice / 100).toLocaleString()"></span>
+                <span class="pill-teal" x-show="qty" x-text="'≈ Rs ' + (Math.round(qty * unitPrice) / 100).toLocaleString(undefined, {minimumFractionDigits: Math.round(qty * unitPrice) % 100 ? 2 : 0, maximumFractionDigits: 2})"></span>
               </div>
             {% endif %}
           </td>

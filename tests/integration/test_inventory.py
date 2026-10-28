@@ -100,11 +100,19 @@ def test_provisional_products_appear_in_needs_completing_filter(app):
 
 # --- validation ---
 
-def test_product_needs_a_name_and_whole_rupee_price(app):
+def test_product_needs_a_name_and_a_price_that_is_not_negative(app):
     with pytest.raises(inv.ValidationError):
         _mk(name="  ")
     with pytest.raises(inv.ValidationError):
-        _mk(sell_price_paisa=10050)  # not a whole rupee
+        _mk(sell_price_paisa=-100)
+
+
+def test_cost_and_price_keep_their_paisa(app):
+    """ADR-0044 §1: a supplier's Rs 4.30 cost and a shelf price of Rs 105.50 are stored as is."""
+    p = _mk(sell_price_paisa=10550, cost_price_paisa=430)
+    assert (p.sell_price_paisa, p.cost_price_paisa) == (10550, 430)
+    inv.update_product(p, sell_price_paisa=10575, cost_price_paisa=9999)
+    assert (p.sell_price_paisa, p.cost_price_paisa) == (10575, 9999)
 
 
 # --- delete (edge case) ---

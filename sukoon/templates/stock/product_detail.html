@@ -147,7 +147,7 @@
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <label class="min-w-[160px]"><span class="label">Manufacturer barcode</span><input type="text" name="barcode" class="field"></label>
       <label class="min-w-[140px]"><span class="label">Label (optional)</span><input type="text" name="label" placeholder="Near expiry, Oct" class="field"></label>
-      <label class="w-28"><span class="label">Override, Rs</span><input type="number" name="price_override" min="0" step="1" class="field"></label>
+      <label class="w-28"><span class="label">Override, Rs</span><input type="number" name="price_override" min="0" step="0.01" class="field"></label>
       <label class="w-36"><span class="label">Step-up password</span><input type="password" name="step_up_password" class="field"></label>
       <button type="submit" name="mode" value="assign" class="btn-ghost">Assign</button>
       <button type="submit" name="mode" value="generate" class="btn-ghost">Generate internal</button>

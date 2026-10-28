@@ -1,6 +1,9 @@
 # 0007 — Money Rounding and the Rupee Boundary
 
 Status: **Accepted**
+Amended by: [ADR-0044](0044-paisa-in-product-prices.md) (2026-10-28) — product cost and selling prices may carry paisa; what is charged is still rounded to the rupee once, at the line, and a line's refunds never exceed what it was charged
+Amended by: [ADR-0045](0045-round-the-bill-not-the-line.md) (2026-10-28) — lines are exact to the paisa; the bill is rounded once, at its total, with a visible Rounding line
+Amended by: [ADR-0046](0046-exact-amounts-and-store-style-receipt.md) (2026-10-29) — no rounding of money at all: totals, change, payments and the Khata are exact paisa (supersedes ADR-0045)
 Date: 2026-09-08
 Phase: 0 (grill-with-docs session 1)
 Depends on: [ADR-0004](0004-quantity-representation.md), [ADR-0005](0005-weighed-item-entry.md)

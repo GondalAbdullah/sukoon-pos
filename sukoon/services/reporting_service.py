@@ -438,7 +438,7 @@ class ReportDoc:
 def rs(paisa: int | None) -> str:
     if paisa is None:
         return "—"
-    return f"{'-' if paisa < 0 else ''}Rs {abs(paisa) // 100:,}"
+    return money.format_rupees(paisa)
 
 
 def qty(milli: int, unit: str = "") -> str:

@@ -126,23 +126,23 @@
     <div class="grid sm:grid-cols-3 gap-4 mb-3">
       <div class="stat-card">
         <div class="stat-label">Total purchased</div>
-        <div class="stat-value">Rs {{ '{:,}'.format(d.purchased_paisa // 100) }}</div>
-        {% if d.refunded_paisa %}<div class="stat-sub">Rs {{ '{:,}'.format(d.refunded_paisa // 100) }} refunded</div>{% endif %}
+        <div class="stat-value">{{ d.purchased_paisa | rupees }}</div>
+        {% if d.refunded_paisa %}<div class="stat-sub">{{ d.refunded_paisa | rupees }} refunded</div>{% endif %}
       </div>
       <div class="stat-card">
         <div class="stat-label">Total paid</div>
-        <div class="stat-value text-teal">Rs {{ '{:,}'.format(d.paid_paisa // 100) }}</div>
+        <div class="stat-value text-teal">{{ d.paid_paisa | rupees }}</div>
       </div>
       {% if d.balance.kind == 'owes' %}
       <div class="stat-card bg-coral-tint">
         <div class="stat-label !text-coral">Currently owed</div>
-        <div class="stat-value text-coral">Rs {{ '{:,}'.format(d.balance.amount_paisa // 100) }}</div>
+        <div class="stat-value text-coral">{{ d.balance.amount_paisa | rupees }}</div>
         {% if d.overdue.is_overdue %}<div class="stat-sub !text-coral">{{ d.overdue.days_overdue }} days past terms</div>{% endif %}
       </div>
       {% elif d.balance.kind == 'in_credit' %}
       <div class="stat-card bg-teal-tint">
         <div class="stat-label !text-teal-deep">In credit</div>
-        <div class="stat-value text-teal-deep">Rs {{ '{:,}'.format(d.balance.amount_paisa // 100) }}</div>
+        <div class="stat-value text-teal-deep">{{ d.balance.amount_paisa | rupees }}</div>
         <div class="stat-sub">Used up by their next purchase</div>
       </div>
       {% else %}
@@ -154,8 +154,8 @@
     </div>
     <div class="text-xs text-muted mb-4">
       {% if c.credit_limit_paisa is none %}No credit limit.
-      {% elif d.limit_room_paisa > 0 %}Credit limit Rs {{ '{:,}'.format(c.credit_limit_paisa // 100) }} · Rs {{ '{:,}'.format(d.limit_room_paisa // 100) }} still available.
-      {% else %}<span class="text-coral font-semibold">Credit limit Rs {{ '{:,}'.format(c.credit_limit_paisa // 100) }} reached</span> — a further credit sale needs an Admin.{% endif %}
+      {% elif d.limit_room_paisa > 0 %}Credit limit {{ c.credit_limit_paisa | rupees }} · {{ d.limit_room_paisa | rupees }} still available.
+      {% else %}<span class="text-coral font-semibold">Credit limit {{ c.credit_limit_paisa | rupees }} reached</span> — a further credit sale needs an Admin.{% endif %}
     </div>
 
     {# ADR-0033 §6: one quiet line for everyone; the mock's "WhatsApp update was sent" banner, made true #}

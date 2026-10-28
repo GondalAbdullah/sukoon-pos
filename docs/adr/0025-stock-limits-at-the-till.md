@@ -1,6 +1,7 @@
 # 0025 — Stock Limits at the Till
 
 Status: **Accepted** 2026-09-14 — chosen by the client
+Amended by: [ADR-0047](0047-nothing-sells-from-an-empty-shelf.md) (2026-10-29) — §3–§4 superseded: every product is capped at its stock, counted or not; nothing is booked as found at the till
 Date: 2026-09-14
 Phase: 3 (addendum, after functional sign-off)
 Resolves: **O-22**

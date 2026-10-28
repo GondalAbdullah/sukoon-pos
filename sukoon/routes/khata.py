@@ -23,7 +23,7 @@ from sukoon.extensions import db
 from sukoon.models import Customer, Payment, User
 from sukoon.routes.guards import permission_required
 from sukoon.services import khata_service as khata
-from sukoon.services import ledger, statements
+from sukoon.services import ledger, money, statements
 from sukoon.services.auth_service import role_has_permission
 
 bp = Blueprint("khata", __name__, url_prefix="/khata")
@@ -32,10 +32,10 @@ TILL_CUSTOMER_KEY = "till_customer_id"  # shared with routes/till.py
 
 
 def _rupees_to_paisa(raw: str | None) -> int | None:
-    if raw is None or raw.strip() == "":
-        return None
+    """Exact (ADR-0046: a Khata can be paid to the paisa). Unreadable is ``None``; the
+    service's own rule then refuses it."""
     try:
-        return round(float(raw.replace(",", "")) * 100)
+        return money.parse_rupees(raw)
     except ValueError:
         return None
 

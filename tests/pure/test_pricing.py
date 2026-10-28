@@ -8,7 +8,6 @@ from __future__ import annotations
 import pytest
 
 from sukoon.services import pricing
-from sukoon.services.money import is_whole_rupee
 
 # --- by weight -> line total (ADR-0005) ---
 
@@ -17,14 +16,24 @@ def test_weight_produces_the_correct_line_total():
     assert pricing.compute_line_total_from_quantity(750, 48_000) == 36_000
 
 
-def test_weight_line_total_rounds_half_up_once_at_the_line():
-    # 0.4166.. kg at Rs 480/kg -> Rs 200.16 -> Rs 200 ; here 417 milli -> Rs 200.16
-    assert pricing.compute_line_total_from_quantity(417, 48_000) == 20_000
-    # Rs 17/unit, 0.500 -> Rs 8.50 -> Rs 9
-    assert pricing.compute_line_total_from_quantity(500, 1_700) == 900
+def test_a_weighed_line_is_exact_to_the_paisa():
+    """ADR-0045: lines keep their paisa; only the bill's total is rounded."""
+    # 417 milli at Rs 480/kg -> Rs 200.16 exactly
+    assert pricing.compute_line_total_from_quantity(417, 48_000) == 20_016
+    # Rs 17/unit, 0.500 -> Rs 8.50
+    assert pricing.compute_line_total_from_quantity(500, 1_700) == 850
+    # a fraction of a paisa rounds half-up to the paisa: 0.333 kg x Rs 1.55 = 51.615 paisa
+    assert pricing.compute_line_total_from_quantity(333, 155) == 52
 
 
-# --- by amount -> weight (ADR-0005 / ADR-0007) ---
+def test_three_items_at_a_paisa_price_are_exact():
+    assert pricing.compute_line_total_from_quantity(3_000, 15_050) == 45_150
+
+
+def test_the_bill_total_is_exact():
+    """ADR-0046: no rounding of the bill — Rs 561.50 stays Rs 561.50."""
+    assert pricing.compute_bill_total_paisa(56_150) == 56_150
+    assert pricing.compute_bill_total_paisa(56_100) == 56_100
 
 def test_amount_produces_the_correct_weight():
     # "Rs 200 of chana" at Rs 480/kg -> 416.66.. -> 417 milli
@@ -82,8 +91,6 @@ def test_cart_subtotal_sums_already_rounded_lines():
     assert pricing.cart_subtotal_paisa([36_000, 20_000, 51_000]) == 107_000
 
 
-def test_every_line_total_is_a_whole_rupee():
-    for milli in range(1, 3_000, 13):
-        assert is_whole_rupee(
-            pricing.compute_line_total_from_quantity(milli, 4_900)
-        )
+def test_a_bill_is_exactly_the_sum_of_its_lines():
+    lines = [pricing.compute_line_total_from_quantity(m, 4_950) for m in range(1, 3_000, 13)]
+    assert pricing.compute_bill_total_paisa(pricing.cart_subtotal_paisa(lines)) == sum(lines)

@@ -22,7 +22,7 @@ from flask_login import current_user, login_required
 from sukoon.extensions import db
 from sukoon.models import Sale
 from sukoon.routes.guards import permission_required, require_step_up
-from sukoon.services import refund_service
+from sukoon.services import money, refund_service
 from sukoon.services.refund_service import RefundLineSpec
 
 bp = Blueprint("refunds", __name__, url_prefix="/refunds")
@@ -106,7 +106,7 @@ def initiate():
         return redirect(url_for("refunds.for_sale", sale_id=sale.id))
 
     flash(
-        f"Refund of {refund.total_paisa // 100} rupees recorded — waiting for an "
+        f"Refund of {money.format_rupees(refund.total_paisa)} recorded — waiting for an "
         "Admin to approve it.",
         "info",
     )

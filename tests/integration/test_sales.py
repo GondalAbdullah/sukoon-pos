@@ -298,63 +298,48 @@ def test_a_typed_amount_that_is_not_a_whole_rupee_is_refused(counter, user, chan
         )
 
 
-def test_persisted_money_columns_are_whole_rupees(counter, user, chana):
+def test_everything_is_exact_to_the_paisa(counter, user, chana):
+    """ADR-0046: 0.333 kg at Rs 480/kg is Rs 159.84 on the line, the subtotal and the total;
+    paid with Rs 500, the change is Rs 340.16."""
     sale = sales_service.record_sale(
         lines=[CartLine(product=chana, quantity_milli=333, unit_price_paisa=48_000,
                         quantity_source="manual_weight")],
-        payment_method="cash", user_id=user.id, now=JAN_2026,
+        payment_method="cash", user_id=user.id, now=JAN_2026, amount_tendered_paisa=50_000,
     )
-    assert sale.subtotal_paisa % 100 == 0
-    assert sale.total_paisa % 100 == 0
     item = db.session.query(SaleItem).filter_by(sale_id=sale.id).one()
-    assert item.line_total_paisa % 100 == 0
+    assert (item.line_total_paisa, sale.subtotal_paisa, sale.total_paisa) == (15_984,) * 3
+    assert sale.change_paisa == 34_016
 
 
-# --- never-counted products: found at the till (ADR-0025) --------------------
+# --- nothing sells from nothing (ADR-0047, replacing ADR-0025 §3) ------------------------
 
-def test_a_never_counted_product_books_its_shortfall_as_found_then_sells(counter, user):
+def test_a_never_counted_product_with_no_stock_is_refused(counter, user):
     biscuits = inv.create_product(name="Local Biscuits", sell_price_paisa=8_000)
-    sale = sales_service.record_sale(
-        lines=[CartLine(product=biscuits, quantity_milli=3_000, unit_price_paisa=8_000,
-                        quantity_source="stepper")],
-        payment_method="cash", user_id=user.id, now=JAN_2026,
-    )
-    moves = (db.session.query(StockMovement).filter_by(product_id=biscuits.id)
-             .order_by(StockMovement.id).all())
-    assert [(m.movement_type, m.quantity_delta_milli) for m in moves] == [
-        ("stock_in", 3_000), ("sale", -3_000)]
-    found = moves[0]
-    assert found.reference_type == inv.FOUND_AT_TILL and found.reference_id == sale.id
-    assert found.created_by_user_id == user.id and sale.invoice_number in found.reason
-    db.session.expire(biscuits)
-    assert biscuits.stock_quantity_milli == 0  # a truthful zero, not negative
-
-
-def test_found_stock_never_makes_a_product_counted(counter, user):
-    biscuits = inv.create_product(name="Local Biscuits", sell_price_paisa=8_000)
-    for _ in range(2):  # the second sale must not be capped by the first's booking
+    with pytest.raises(inv.InsufficientStockError, match="Local Biscuits"):
         sales_service.record_sale(
             lines=[CartLine(product=biscuits, quantity_milli=1_000, unit_price_paisa=8_000,
                             quantity_source="stepper")],
             payment_method="cash", user_id=user.id, now=JAN_2026,
         )
-    assert biscuits.id not in inv.counted_product_ids([biscuits.id])
-    assert db.session.query(Sale).count() == 2
+    assert db.session.query(Sale).count() == 0
+    assert db.session.query(StockMovement).filter_by(product_id=biscuits.id).count() == 0
 
 
-def test_two_loose_lines_of_an_uncounted_product_book_one_shortfall(counter, user):
+def test_two_loose_lines_cannot_together_take_more_than_is_in_stock(counter, user):
     loose = inv.create_product(name="Loose Daal", sell_price_paisa=30_000,
                                allows_fractional=True, unit_label="kg")
-    sales_service.record_sale(
-        lines=[CartLine(product=loose, quantity_milli=500, unit_price_paisa=30_000,
-                        quantity_source="manual_weight"),
-               CartLine(product=loose, quantity_milli=750, unit_price_paisa=30_000,
-                        quantity_source="manual_weight")],
-        payment_method="cash", user_id=user.id, now=JAN_2026,
-    )
-    found = db.session.query(StockMovement).filter_by(
-        product_id=loose.id, reference_type=inv.FOUND_AT_TILL).all()
-    assert [m.quantity_delta_milli for m in found] == [1_250]
+    inv.apply_stock_movement(product=loose, movement_type="stock_in", quantity_milli=1_000,
+                             reason="delivery", user_id=user.id)
+    with pytest.raises(inv.InsufficientStockError, match="Loose Daal"):
+        sales_service.record_sale(
+            lines=[CartLine(product=loose, quantity_milli=500, unit_price_paisa=30_000,
+                            quantity_source="manual_weight"),
+                   CartLine(product=loose, quantity_milli=750, unit_price_paisa=30_000,
+                            quantity_source="manual_weight")],
+            payment_method="cash", user_id=user.id, now=JAN_2026,
+        )
+    db.session.expire(loose)
+    assert loose.stock_quantity_milli == 1_000  # the whole sale rolled back
 
 
 def test_a_counted_product_is_still_refused_not_found(counter, user, milk):

@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Scan barcodes — Sukoon{% endblock %}
+{% block heading %}Scan barcodes &amp; correct{% endblock %}
+{% block subheading %}{{ batch.filename }}{% endblock %}
+{% block content %}
+{#
+  ADR-0043 §4: search a few letters, the cursor lands in the first result's barcode box, scan the
+  item (the scanner sends Enter), the row is saved and leaves the "No barcode yet" list, and the
+  cursor goes back to the search box. Each row is its own form (inputs use form="…"), posted with
+  htmx and swapped back by the same redirect a plain post follows.
+#}
+<p class="mb-4"><a href="{{ url_for('catalog_import.review', import_id=batch.id) }}" class="text-sm font-semibold">&larr; Back to the import</a></p>
+
+<div id="worklist">
+<div class="flex flex-wrap items-center gap-2 mb-4">
+  {% for key, label in [('no_barcode', 'No barcode yet'), ('needs_completing', 'Needs completing'), ('all', 'All imported')] %}
+    <a href="{{ url_for('catalog_import.worklist', import_id=batch.id, show=key, q=q or None) }}"
+       class="{{ 'btn-primary' if show == key else 'btn-ghost' }} !py-2 !px-4 text-sm">
+      {{ label }} <span class="ml-1 opacity-80">{{ '{:,}'.format(counts[key]) }}</span>
+    </a>
+  {% endfor %}
+</div>
+
+<form method="get" action="{{ url_for('catalog_import.worklist', import_id=batch.id) }}" class="flex items-center gap-3 mb-4">
+  <input type="hidden" name="show" value="{{ show }}">
+  <div class="flex-1 flex items-center gap-2.5 card px-4 py-3">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B9B9BE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+    <input type="search" id="wl-search" name="q" value="{{ q }}" autocomplete="off"
+           placeholder="Type a few letters of the item in your hand, then Enter…"
+           class="flex-1 bg-transparent text-sm placeholder:text-faint focus:outline-none">
+  </div>
+  <button type="submit" class="btn-ghost">Find</button>
+</form>
+
+{% if can_price %}
+<p class="text-xs text-muted mb-3">Type what's on the shelf in <strong>In stock</strong> — an item with 0 in stock can't be sold.
+   Changing a selling price asks for your password in that row; nothing else does.</p>
+{% endif %}
+
+<div class="panel overflow-x-auto">
+  <table class="table text-sm">
+    <thead>
+      <tr>
+        <th class="min-w-[170px]">Barcode — scan</th>
+        <th class="min-w-[220px]">Name</th>
+        <th class="min-w-[150px]">Category</th>
+        <th class="w-[110px]">Cost, Rs</th>
+        <th class="w-[110px]">Price, Rs</th>
+        <th class="w-[90px]">In stock</th>
+        <th class="w-[90px]">Low at</th>
+        {% if can_price %}<th class="w-[140px]">Password</th>{% endif %}
+        <th class="w-[80px]"></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for row, p in entries %}
+      {% set fid = 'f' ~ p.id %}
+      <tr id="p{{ p.id }}" class="align-top">
+        <td>
+          {% if has_barcode(p) %}
+            <div class="text-xs text-muted mb-1">{% for b in p.barcodes if b.is_active %}{{ b.barcode }}{{ ', ' if not loop.last }}{% endfor %}</div>
+          {% endif %}
+          <input type="text" name="barcode" form="{{ fid }}" autocomplete="off" class="field !py-1.5 wl-barcode"
+                 placeholder="{{ 'Add another' if has_barcode(p) else 'Scan here' }}">
+        </td>
+        <td>
+          <input type="text" name="name" form="{{ fid }}" value="{{ p.name }}" required class="field !py-1.5">
+          <div class="text-xs text-muted mt-1">
+            {{ p.sku }} · line {{ row.line_no }}
+            {% if p.is_provisional %}<span class="pill-amber ml-1">Needs completing</span>{% endif %}
+          </div>
+        </td>
+        <td>
+          <select name="category_id" form="{{ fid }}" class="field !py-1.5">
+            <option value="">— none —</option>
+            {% for c in categories %}<option value="{{ c.id }}" {{ 'selected' if c.id == p.category_id }}>{{ c.name }}</option>{% endfor %}
+          </select>
+        </td>
+        <td>
+          <input type="number" name="cost_price" form="{{ fid }}" min="0" step="0.01" class="field !py-1.5"
+                 value="{{ p.cost_price_paisa | rupees_input }}">
+          {% if cost_was_rounded(row) and p.cost_price_paisa == row.cost_price_paisa %}
+            <div class="text-xs text-muted mt-1">file: {{ row.source_cost }}</div>
+          {% endif %}
+        </td>
+        <td>
+          <input type="number" name="sell_price" form="{{ fid }}" min="0.01" step="0.01" required class="field !py-1.5"
+                 value="{{ p.sell_price_paisa | rupees_input }}" {{ 'readonly' if not can_price }}>
+          {% if p.cost_price_paisa is not none and p.cost_price_paisa > p.sell_price_paisa %}
+            <div class="pill-coral mt-1">cost above price</div>
+          {% endif %}
+        </td>
+        <td>
+          <input type="number" name="stock" form="{{ fid }}" min="0"
+                 step="{{ '0.001' if p.allows_fractional else '1' }}" class="field !py-1.5"
+                 value="{{ p.stock_quantity_milli // 1000 if p.stock_quantity_milli % 1000 == 0 else p.stock_quantity_milli / 1000 }}">
+          {% if p.stock_quantity_milli <= 0 %}<div class="pill-coral mt-1">can't sell yet</div>{% endif %}
+        </td>
+        <td>
+          <input type="number" name="low_stock_threshold" form="{{ fid }}" min="0" step="1" class="field !py-1.5"
+                 value="{{ (p.low_stock_threshold_milli // 1000) if p.low_stock_threshold_milli is not none else '' }}">
+        </td>
+        {% if can_price %}
+        <td><input type="password" name="step_up_password" form="{{ fid }}" autocomplete="current-password"
+                   placeholder="price only" class="field !py-1.5"></td>
+        {% endif %}
+        <td>
+          <form id="{{ fid }}" method="post"
+                action="{{ url_for('catalog_import.save_product', import_id=batch.id, product_id=p.id, show=show, q=q or None, page=page) }}"
+                hx-post="{{ url_for('catalog_import.save_product', import_id=batch.id, product_id=p.id, show=show, q=q or None, page=page) }}"
+                hx-select="#worklist" hx-select-oob="#flashes" hx-target="#worklist" hx-swap="outerHTML">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn-ghost !py-1.5 !px-3 text-xs">Save</button>
+          </form>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="9" class="text-center text-muted py-8">
+        {% if q %}Nothing here matches “{{ q }}”.{% elif show == 'no_barcode' %}Every imported product has a barcode.{% else %}Nothing to show.{% endif %}
+      </td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="flex items-center justify-between mt-4 text-sm text-muted">
+  <span>Showing {{ entries | length }} of {{ '{:,}'.format(total) }}</span>
+  <div class="flex gap-3">
+    {% if page > 1 %}<a href="{{ url_for('catalog_import.worklist', import_id=batch.id, show=show, q=q or None, page=page-1) }}" class="font-semibold">Previous</a>{% endif %}
+    {% if page * page_size < total %}<a href="{{ url_for('catalog_import.worklist', import_id=batch.id, show=show, q=q or None, page=page+1) }}" class="font-semibold">Next</a>{% endif %}
+  </div>
+</div>
+</div>
+
+<script>
+  // After a search, the cursor waits in the first result's barcode box, so the scan lands there.
+  // After a save, it goes back to the search box, ready for the next item.
+  (function () {
+    function focusSearch() {
+      var s = document.getElementById("wl-search");
+      if (s) { s.focus(); s.select(); }
+    }
+    function focusFirst() {
+      var first = document.querySelector(".wl-barcode");
+      if ({{ 'true' if q else 'false' }} && first) { first.focus(); } else { focusSearch(); }
+    }
+    document.addEventListener("DOMContentLoaded", focusFirst);
+    document.body.addEventListener("htmx:afterSwap", function (e) {
+      if (e.detail.target && e.detail.target.id === "worklist") { focusSearch(); }
+    });
+  })();
+</script>
+{% endblock %}

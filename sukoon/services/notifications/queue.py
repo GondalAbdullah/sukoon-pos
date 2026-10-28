@@ -28,7 +28,7 @@ from sukoon.models import (
     Sale,
     StatementRun,
 )
-from sukoon.services import clock, ledger, settings_service
+from sukoon.services import clock, ledger, money, settings_service
 from sukoon.services.notifications import policy, templates
 from sukoon.services.notifications.policy import Outcome
 from sukoon.services.notifications.providers.base import OutgoingMessage, Provider, SendResult
@@ -58,7 +58,8 @@ def _now(now: datetime | None) -> datetime:
 
 
 def rs(paisa: int) -> str:
-    return f"Rs {abs(paisa) // 100:,}"
+    """Unsigned (the wording says owed or in credit); paisa shown when there are some."""
+    return money.format_rupees(abs(paisa))
 
 
 def as_of_text(dt: datetime, *, with_time: bool = True) -> str:

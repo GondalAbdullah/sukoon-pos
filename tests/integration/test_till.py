@@ -101,43 +101,34 @@ def test_the_stepper_increments_and_decrements(till, milk):
         assert s["cart"] == []  # dropped at zero
 
 
-def test_an_unknown_code_offers_provisional_creation(till):
-    # a Cashier holds product.create_provisional, so an unknown code is not a
-    # dead end — it offers inline creation (ADR-0011 §2)
+def test_an_unknown_code_says_so_and_offers_nothing_to_create(till):
+    """ADR-0047 §2: products are not created at the till any more."""
     resp = _add(till, code="8964999999999")
-    assert b"isn" in resp.data and b"catalogue yet" in resp.data
+    text = resp.get_data(as_text=True)
+    assert "Nothing in the catalogue matches “8964999999999”." in text
+    assert "catalogue yet" not in text and 'name="sell_price"' not in text
     with till.session_transaction() as s:
-        assert s.get("cart", []) == []  # nothing added until the form is submitted
+        assert s.get("cart", []) == []
+    assert till.post("/till/new", data={"name": "x", "sell_price": "1"}).status_code == 404
 
 
-def test_cashier_creates_a_provisional_product_at_the_till(till, seeded):
-    resp = till.post(
-        "/till/new",
-        data={"code": "8964999999999", "name": "Local Biscuits", "sell_price": "80"},
-        follow_redirects=True,
-    )
-    assert b"needs completing later" in resp.data
-
-    rows, total = inv.list_products(query="Local Biscuits")
-    assert total == 1
-    product = rows[0]
-    assert product.is_provisional is True
-    assert product.created_by_user_id == seeded["cashier"].id
-    assert inv.resolve_barcode("8964999999999").product.id == product.id
-
-    needs, _ = inv.list_products(needs_completing=True)
-    assert product.id in {p.id for p in needs}
+def test_a_name_matching_several_products_lists_them_to_choose(till, milk, seeded):
+    juice = inv.create_product(name="Shezan Mango Juice", sell_price_paisa=5_000)
+    jam = inv.create_product(name="Shezan Apple Jam", sell_price_paisa=22_000)
+    inv.apply_stock_movement(product=juice, movement_type="stock_in", quantity_milli=4_000,
+                             reason="in", user_id=seeded["admin"].id)  # jam: none in stock
+    resp = _add(till, code="shezan")
+    text = resp.get_data(as_text=True)
+    assert "2 products match “shezan” — choose one" in text
+    assert "Shezan Mango Juice" in text and "4 unit in stock" in text
+    assert "Shezan Apple Jam" in text and "Out of stock" in text
     with till.session_transaction() as s:
-        assert s["cart"][0]["product_id"] == product.id
-
-
-def test_provisional_create_needs_a_name_and_price(till):
-    resp = till.post(
-        "/till/new", data={"code": "x", "name": "", "sell_price": "10"},
-        follow_redirects=True,
-    )
-    assert b"name is required" in resp.data
-    assert inv.list_products()[1] == 0
+        assert s.get("cart", []) == []  # nothing added until one is chosen
+    _add(till, product_id=juice.id)
+    assert _cart_qty(till) == [1_000]
+    resp = _add(till, product_id=jam.id)  # the disabled button is not the control
+    assert "Shezan Apple Jam is out of stock." in resp.get_data(as_text=True)
+    assert _cart_qty(till) == [1_000]
 
 
 def test_a_barcode_resolves_to_its_product(till, milk, seeded):
@@ -452,24 +443,25 @@ def test_a_weight_past_the_level_is_refused_naming_whats_left(till, atta, seeded
     assert _cart_qty(till) == [1_500, None]
 
 
-def test_a_never_counted_product_is_not_capped_and_sells(till, seeded):
+def test_a_never_counted_product_with_no_stock_cannot_be_added(till, seeded):
+    """ADR-0047 §1: 0 in stock means none to sell, counted or not."""
     soap = inv.create_product(name="Bulk-entered Soap", sell_price_paisa=10_000)  # no stock_in
-    _add(till, product_id=soap.id)
-    for _ in range(2):
-        till.post("/till/line/0", data={"op": "inc"})
-    assert _cart_qty(till) == [3_000]
-    html = till.get("/till/").get_data(as_text=True)
-    assert not re.search(r'value="inc" class="stepper-key" disabled', html)
+    resp = _add(till, product_id=soap.id)
+    assert _cart_qty(till) == []
+    assert "Bulk-entered Soap is out of stock." in resp.get_data(as_text=True)
+    resp = _add(till, code="Bulk-entered Soap")  # typing its name is refused the same way
+    assert _cart_qty(till) == []
 
+
+def test_a_never_counted_product_is_capped_at_what_was_counted(till, seeded):
+    soap = inv.create_product(name="Bulk-entered Soap", sell_price_paisa=10_000)
+    _counted(soap, 2_000, seeded["admin"])
+    _add(till, product_id=soap.id)
+    till.post("/till/line/0", data={"op": "inc"})
+    till.post("/till/line/0", data={"op": "inc"})
+    assert _cart_qty(till) == [2_000]
     resp = till.post("/till/checkout", data={"payment_method": "cash", "amount_tendered": "300"},
                      follow_redirects=True)
     assert b"Sale complete" in resp.data
-
-
-def test_an_item_created_at_the_till_sells_end_to_end(till):
-    # the latent ADR-0011 §2 bug: this always died at checkout with "Only 0 unit"
-    till.post("/till/new", data={"code": "8964999999999", "name": "Local Biscuits",
-                                 "sell_price": "80"})
-    resp = till.post("/till/checkout", data={"payment_method": "cash", "amount_tendered": "100"},
-                     follow_redirects=True)
-    assert b"Sale complete" in resp.data
+    db.session.expire(soap)
+    assert soap.stock_quantity_milli == 0

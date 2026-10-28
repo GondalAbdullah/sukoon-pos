@@ -69,23 +69,34 @@
       <button type="submit" class="btn-ghost">Add</button>
     </form>
 
-    {% if new_code and can_create_provisional %}
-    {# Scan-as-you-go (ADR-0011 §2): an unknown code, created on the spot. #}
-    <div class="card mt-4 p-5 border border-amber/30">
-      <div class="text-sm font-bold mb-3">&ldquo;{{ new_code }}&rdquo; isn&rsquo;t in the catalogue yet — add it?</div>
-      <form method="post" action="{{ url_for('till.new_provisional') }}"
-            hx-post="{{ url_for('till.new_provisional') }}" hx-select="#till-body" hx-select-oob="#topbar-sub,#flashes"
-            hx-target="#till-body" hx-swap="outerHTML"
-            class="flex flex-wrap gap-3 items-end">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="hidden" name="code" value="{{ new_code }}">
-        <label class="flex-1 min-w-[160px]"><span class="label">Name</span>
-          <input type="text" name="name" required autofocus class="field"></label>
-        <label class="w-32"><span class="label">Price, Rs</span>
-          <input type="number" name="sell_price" min="0" step="1" required class="field"></label>
-        <button type="submit" class="btn-primary">Add &amp; put in cart</button>
-      </form>
-      <p class="text-xs text-muted mt-3">Goes in the cart now; appears under &ldquo;Needs completing&rdquo; for an Admin to finish (cost, category, threshold).</p>
+    {% if pick %}
+    {# ADR-0047 §2: a typed name matched several products — choose one. Nothing is created at the
+       till: a product that isn't in the catalogue is added by an Admin in Stock. #}
+    <div class="card mt-4 p-5 border border-teal-tint2" id="pick">
+      <div class="text-sm font-bold mb-3">{{ pick.total }} products match “{{ pick.query }}” — choose one</div>
+      <div class="flex flex-col divide-y divide-hairline">
+        {% for p in pick.matches %}
+          {% set out = p.stock_quantity_milli <= 0 %}
+          <form method="post" action="{{ url_for('till.add') }}"
+                hx-post="{{ url_for('till.add') }}" hx-select="#till-body" hx-select-oob="#topbar-sub,#flashes"
+                hx-target="#till-body" hx-swap="outerHTML"
+                class="flex items-center gap-3 py-2.5">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="product_id" value="{{ p.id }}">
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-semibold truncate {{ 'text-faint' if out }}">{{ p.name }}</div>
+              <div class="text-xs {{ 'text-coral font-semibold' if out else 'text-muted' }}">
+                {{ 'Out of stock' if out else p.stock_quantity_milli | qty(p.unit_label) ~ ' in stock' }}
+              </div>
+            </div>
+            <div class="text-sm font-bold whitespace-nowrap {{ 'text-faint' if out }}">{{ p.sell_price_paisa | rupees }}</div>
+            <button type="submit" class="btn-ghost !py-1.5 !px-3 text-xs" {{ 'disabled' if out }}>Add</button>
+          </form>
+        {% endfor %}
+      </div>
+      {% if pick.total > pick.matches | length %}
+        <p class="text-xs text-muted mt-3">Showing {{ pick.matches | length }} of {{ pick.total }}. Type more of the name to narrow it down.</p>
+      {% endif %}
     </div>
     {% endif %}
 
@@ -145,7 +156,13 @@
                open: {{ 'true' if not row.quantity_milli else 'false' }},
                mode: '{{ 'manual_amount' if row.quantity_source == 'manual_amount' else 'manual_weight' }}',
                weight: null, amount: null, unitPrice: {{ row.unit_price_paisa }},
-               get approxRs() { return this.weight ? Math.round(this.weight * this.unitPrice / 100) : null },
+               {# rupees to the paisa, as the line will be (ADR-0046); paisa shown only if any #}
+               get approxRs() {
+                 if (!this.weight) return null;
+                 const rs = Math.round(this.weight * this.unitPrice / 100 * 100) / 100;
+                 return rs.toLocaleString(undefined, {minimumFractionDigits: Number.isInteger(rs) ? 0 : 2,
+                                                      maximumFractionDigits: 2});
+               },
                {# amount is in rupees, unitPrice in paisa: kg = rupees * 100 / paisa. It read
                   * 1000 and showed ten times the weight — the sale itself was always right,
                   because the server does its own conversion (pricing.compute_quantity_from_amount),
@@ -240,17 +257,23 @@
          hasCustomer: {{ 'true' if till_customer else 'false' }},
          ready: {{ 'true' if summary.ready else 'false' }},
          total: {{ summary.total_paisa }},
-         tendered: {{ (summary.total_paisa / 100) | round(0, 'ceil') | int if summary.total_paisa else 0 }},
+         tendered: {{ summary.total_paisa / 100 if summary.total_paisa else 0 }},
          get change() { return Math.max(0, Math.round(this.tendered * 100) - this.total) },
+         {# the exact total first (paisa and all, ADR-0046), then the next round 100 / 500 / 1,000 / 5,000 #}
          get quickAmounts() {
            if (this.total <= 0) return [];
-           const rupees = this.total / 100, out = [];
-           for (const note of [1, 100, 500, 1000, 5000]) {
+           const rupees = this.total / 100, out = [rupees];
+           for (const note of [100, 500, 1000, 5000]) {
              const v = Math.ceil(rupees / note) * note;
              if (!out.includes(v)) out.push(v);
              if (out.length === 3) break;
            }
            return out;
+         },
+         rs(paisa) {
+           const v = paisa / 100;
+           return 'Rs ' + v.toLocaleString(undefined, {minimumFractionDigits: paisa % 100 ? 2 : 0,
+                                                       maximumFractionDigits: 2});
          }
        }">
     {% if till_customer %}
@@ -323,7 +346,7 @@
         <div class="text-xs text-muted font-semibold mb-2">Cash received</div>
         <div class="flex items-baseline gap-1.5 mb-3.5">
           <span class="text-lg font-bold text-faint">Rs</span>
-          <input type="number" name="amount_tendered" step="1" min="0" x-model.number="tendered"
+          <input type="number" name="amount_tendered" step="0.01" min="0" x-model.number="tendered"
                  class="text-[26px] font-extrabold bg-transparent w-32 focus:outline-none">
         </div>
         {# The notes a customer actually hands over: exact, then the next round
@@ -335,7 +358,7 @@
             <button type="button" @click="tendered = amt"
                     class="flex-1 text-center rounded-[10px] py-2 text-xs font-semibold transition-colors"
                     :class="tendered === amt ? 'bg-teal text-white' : 'bg-surface text-inkSoft hover:bg-teal-tint'"
-                    x-text="i === 0 ? 'Exact' : 'Rs ' + amt.toLocaleString()"></button>
+                    x-text="i === 0 ? 'Exact' : rs(Math.round(amt * 100))"></button>
           </template>
         </div>
       </div>
@@ -364,7 +387,7 @@
           {% if credit.over_by_paisa %}
           {# ADR-0014: blocked for a cashier; an Admin standing here can approve. #}
           <div class="rounded-md bg-coral-tint px-[18px] py-4 mt-3">
-            <div class="text-[13px] font-bold text-coral mb-1">Rs {{ '{:,}'.format(credit.over_by_paisa // 100) }} over their limit</div>
+            <div class="text-[13px] font-bold text-coral mb-1">{{ credit.over_by_paisa | rupees }} over their limit</div>
             <div class="text-xs text-inkSoft mb-3">An Admin can approve this sale here with their own password. Otherwise take cash or card.</div>
             <div class="grid grid-cols-2 gap-2">
               <input type="text" name="approver" autocomplete="off" class="field !py-2 !text-sm"
@@ -380,9 +403,8 @@
       <div x-show="method === 'cash' && change > 0" x-cloak
            class="flex justify-between items-center bg-sky-tint rounded-[14px] px-4 py-3.5 mb-4">
         <span class="text-[13px] text-sky font-semibold">Change to return</span>
-        {# change is paisa (like total); shown as whole rupees the way the |rupees
-           filter does (paisa // 100) — printing paisa read 100x too high. #}
-        <span class="text-base text-sky font-extrabold" x-text="'Rs ' + Math.floor(change / 100).toLocaleString()"></span>
+        {# change is paisa (like total), shown with its paisa (ADR-0046): Rs 278.66 #}
+        <span class="text-base text-sky font-extrabold" x-text="rs(change)"></span>
       </div>
 
       <button type="submit" class="btn-primary btn-lg w-full justify-between px-6"

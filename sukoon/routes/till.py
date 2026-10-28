@@ -34,7 +34,7 @@ from flask_login import current_user, login_required
 from sukoon.extensions import db
 from sukoon.models import Customer, Product, Sale
 from sukoon.routes.guards import permission_required
-from sukoon.services import auth_service, khata_service, ledger, pricing, sales_service
+from sukoon.services import auth_service, khata_service, ledger, money, pricing, sales_service
 from sukoon.services import inventory_service as inv
 from sukoon.services.auth_service import role_has_permission
 from sukoon.services.receipts import service as receipts
@@ -68,10 +68,9 @@ def _save(cart: list[dict]) -> None:
 
 
 def _rupees_to_paisa(raw: str | None) -> int | None:
-    if raw is None or raw.strip() == "":
-        return None
+    """Exact (ADR-0044). Unreadable input is ``None``; the caller's own rule then refuses it."""
     try:
-        return round(float(raw) * 100)
+        return money.parse_rupees(raw)
     except ValueError:
         return None
 
@@ -99,9 +98,13 @@ def _to_cartline(row: dict) -> CartLine | None:
     )
 
 
+_PICK_LIMIT = 20
+
+
 def _resolve(code: str) -> tuple[Product, int, int | None] | None:
     """A scanned code or a typed fragment -> (product, unit_price, barcode_id).
-    Barcode first (ADR-0009 resolver), then a unique name/SKU match."""
+    Barcode first (ADR-0009 resolver), then a unique name/SKU match. Several matches are
+    not resolved here: the till lists them to pick from (ADR-0047 §2)."""
     match = inv.resolve_barcode(code)
     if match is not None:
         return match.product, match.unit_price_paisa, match.product_barcode.id
@@ -127,18 +130,17 @@ def _till_customer() -> Customer | None:
     return customer
 
 
-# --- stock limits (ADR-0025) -------------------------------------------------
+# --- stock limits (ADR-0025, ADR-0047) -------------------------------------------
 
 def _fmt_qty(milli: int, unit: str) -> str:
     return f"{milli / 1000:g} {unit}"
 
 
-def _room_milli(cart: list[dict], product: Product, *, exclude: int | None = None) -> int | None:
-    """How much more of ``product`` the cart may take, or None when Sukoon has never
-    been told how many exist (never counted -> uncapped). ``exclude`` leaves one row
-    out of the sum, for re-setting that row's own quantity."""
-    if product.id not in inv.counted_product_ids([product.id]):
-        return None
+def _room_milli(cart: list[dict], product: Product, *, exclude: int | None = None) -> int:
+    """How much more of ``product`` the cart may take: its stock level less what the cart
+    already holds. Every product is capped — a level of 0 means none to sell, counted or
+    not (ADR-0047 §1, replacing ADR-0025 §3). ``exclude`` leaves one row out of the sum,
+    for re-setting that row's own quantity."""
     in_cart = sum(
         r["quantity_milli"] or 0
         for i, r in enumerate(cart)
@@ -179,17 +181,20 @@ def index():
 
     summary = sales_service.summarize_cart(lines)
 
-    # ADR-0025: what the + button and the weigh box may still take, per row.
-    counted = inv.counted_product_ids(line.product.id for line in lines)
+    # ADR-0047 §2: a typed name that matched several products — list them to choose from.
+    pick = None
+    pick_query = (request.args.get("pick") or "").strip()
+    if pick_query:
+        matches, total = inv.list_products(query=pick_query, limit=_PICK_LIMIT)
+        pick = {"query": pick_query, "matches": matches, "total": total}
+
+    # ADR-0025 / ADR-0047: what the + button and the weigh box may still take, per row.
     in_cart: dict[int, int] = {}
     for row in kept:
         pid = row["product_id"]
         in_cart[pid] = in_cart.get(pid, 0) + (row["quantity_milli"] or 0)
     stock = []
     for row, line in zip(kept, lines, strict=True):
-        if line.product.id not in counted:
-            stock.append({"capped": False, "at_limit": False, "room_milli": None})
-            continue
         room = line.product.stock_quantity_milli - in_cart[line.product.id]
         stock.append({
             "capped": True,
@@ -222,10 +227,7 @@ def index():
         lines=lines,
         summary=summary,
         line_totals=summary.line_totals_paisa,
-        new_code=request.args.get("new") or None,
-        can_create_provisional=role_has_permission(
-            current_user.role, "product.create_provisional"
-        ),
+        pick=pick,
         terminal_label=_terminal_label(),
     )
 
@@ -261,19 +263,18 @@ def add():
         resolved = _resolve(code)
 
     if resolved is None:
-        # Scan-as-you-go (ADR-0011 §2): an unknown code is not a dead end — offer
-        # to create it as a provisional product, if the cashier may.
-        if code and role_has_permission(
-            current_user.role, "product.create_provisional"
-        ):
-            return redirect(url_for("till.index", new=code))
-        flash(f"Nothing matched “{code}”.", "error")
+        # ADR-0047 §2: nothing is created at the till any more. Several matches -> pick one;
+        # none -> say so (an Admin adds new products in Stock).
+        if code and inv.list_products(query=code, limit=2)[1] > 1:
+            return redirect(url_for("till.index", pick=code))
+        flash(f"Nothing in the catalogue matches “{code}”." if code
+              else "Scan an item or type its name.", "error")
         return redirect(url_for("till.index"))
 
     product, unit_price, barcode_id = resolved
     room = _room_milli(_cart(), product)
     # a sealed pack needs a whole unit of room; a loose item just needs some left
-    if room is not None and (room <= 0 or (not product.allows_fractional and room < 1000)):
+    if room <= 0 or (not product.allows_fractional and room < 1000):
         _refuse_no_room(product)
         return redirect(url_for("till.index"))
     _add_to_cart(product, unit_price, barcode_id)
@@ -306,42 +307,14 @@ def _add_to_cart(product: Product, unit_price: int, barcode_id: int | None) -> N
     _save(cart)
 
 
-@bp.route("/new", methods=["POST"])
-@login_required
-@permission_required("product.create_provisional")
-def new_provisional():
-    """Create a bare product mid-sale and drop it in the cart (ADR-0011 §2 /
-    O-16). Name and price only, so it is always provisional (ADR-0012); it lands
-    in 'Needs completing' for an Admin to finish later."""
-    f = request.form
-    code = (f.get("code") or "").strip()
-    try:
-        product = inv.create_product(
-            name=f.get("name", ""),
-            sell_price_paisa=_rupees_to_paisa(f.get("sell_price")),
-            created_by_user_id=current_user.id,
-        )
-        barcode_id = None
-        if code:
-            row = inv.assign_barcode(product=product, code=code, user_id=current_user.id)
-            barcode_id = row.id
-    except inv.InventoryError as exc:
-        flash(str(exc), "error")
-        return redirect(url_for("till.index", new=code))
-
-    _add_to_cart(product, product.sell_price_paisa, barcode_id)
-    flash(f"{product.name} added ({product.sku}) — needs completing later.", "info")
-    return redirect(url_for("till.index"))
-
-
 def _over_room(cart: list[dict], index: int, row: dict, milli: int) -> bool:
-    """Refuse a weight/amount that would take the cart past a counted stock level,
+    """Refuse a weight/amount that would take the cart past the stock level,
     saying what's left. True means refused (the flash is already set)."""
     product = db.session.get(Product, row["product_id"])
     if product is None:
         return False
     room = _room_milli(cart, product, exclude=index)
-    if room is None or milli <= room:
+    if milli <= room:
         return False
     if room <= 0:
         _refuse_no_room(product)

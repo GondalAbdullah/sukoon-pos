@@ -19,14 +19,16 @@ from reportlab.pdfgen import canvas
 
 from sukoon.extensions import db
 from sukoon.models import Customer, Sale, User
-from sukoon.services import clock, khata_service, ledger, settings_service
+from sukoon.services import clock, khata_service, ledger, money, shop_profile
 
 _TYPE_LABEL = {"credit_sale": "Purchase", "payment": "Payment", "refund": "Refund",
                "adjustment": "Adjustment"}
 
 
 def rs(paisa: int) -> str:
-    return f"Rs {abs(paisa) // 100:,}"
+    """Unsigned, as the statement's own words say owed or in credit; paisa shown when there
+    are some (ADR-0046)."""
+    return money.format_rupees(abs(paisa))
 
 
 def balance_words(paisa: int) -> str:
@@ -138,8 +140,8 @@ def build_statement(
         for r in st.rows
     ]
     return StatementDoc(
-        shop_name=settings_service.get("shop.name", "Al-Rehman General Store"),
-        shop_contact=settings_service.get("shop.contact"),
+        shop_name=shop_profile.get().name,
+        shop_contact=shop_profile.get().contact_line,
         customer_name=customer.display_name,
         customer_phone=customer.phone_raw or customer.phone_normalised,
         period_label=period.label,

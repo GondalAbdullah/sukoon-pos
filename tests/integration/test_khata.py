@@ -145,14 +145,22 @@ def test_a_failed_payment_leaves_nothing_behind(staff, ghee, monkeypatch):
     assert c.balance_paisa == 60_000
 
 
-@pytest.mark.parametrize("amount,field", [(None, "amount"), (0, "amount"), (-100, "amount"),
-                                          (10_050, "amount")])
-def test_a_payment_needs_a_whole_positive_amount(staff, amount, field):
+@pytest.mark.parametrize("amount,field", [(None, "amount"), (0, "amount"), (-100, "amount")])
+def test_a_payment_needs_a_positive_amount(staff, amount, field):
     c = _open(staff)
     with pytest.raises(khata.CustomerValidationError) as err:
         khata.record_payment(customer_id=c.id, amount_paisa=amount, method="cash",
                              received_by_user_id=staff["cashier"].id)
     assert err.value.field == field
+
+
+def test_a_khata_can_be_paid_to_the_paisa(staff):
+    """ADR-0046: a balance can carry paisa, so a payment can settle it exactly."""
+    c = _open(staff)
+    khata.record_payment(customer_id=c.id, amount_paisa=10_050, method="cash",
+                         received_by_user_id=staff["cashier"].id, allow_overpayment=True)
+    db.session.expire(c)
+    assert c.balance_paisa == -10_050
 
 
 def test_overpayment_is_explicit_credit_not_a_silent_negative(staff, ghee):

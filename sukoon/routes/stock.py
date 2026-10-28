@@ -25,6 +25,7 @@ from sukoon.extensions import db
 from sukoon.models import Category, Product, ProductBarcode
 from sukoon.routes.guards import permission_required, require_step_up
 from sukoon.services import inventory_service as inv
+from sukoon.services import money
 from sukoon.services.auth_service import role_has_permission
 from sukoon.services.receipts import labels
 
@@ -36,12 +37,11 @@ _PAGE_SIZE = 50
 # --- form parsing helpers --------------------------------------------------
 
 def _rupees_to_paisa(raw: str | None) -> int | None:
-    if raw is None or raw.strip() == "":
-        return None
+    """Exact, paisa allowed (ADR-0044); a bad entry is a validation error, never a guess."""
     try:
-        return round(float(raw) * 100)
+        return money.parse_rupees(raw)
     except ValueError as exc:
-        raise inv.ValidationError("Enter an amount in rupees.") from exc
+        raise inv.ValidationError(str(exc)) from exc
 
 
 def _qty_to_milli(raw: str | None) -> int | None:
@@ -219,14 +219,15 @@ def edit_product(product_id: int):
 def update_product(product_id: int):
     product = inv.get_product(product_id) or abort(404)
     f = request.form
-    new_sell_price = _rupees_to_paisa(f.get("sell_price"))
-
-    if new_sell_price is not None and new_sell_price != product.sell_price_paisa:
-        if not role_has_permission(current_user.role, "product.edit_price"):
-            abort(403)
-        require_step_up()
-
     try:
+        # parsed inside the try: a mistyped price is a message on the form, not a 500
+        new_sell_price = _rupees_to_paisa(f.get("sell_price"))
+
+        if new_sell_price is not None and new_sell_price != product.sell_price_paisa:
+            if not role_has_permission(current_user.role, "product.edit_price"):
+                abort(403)
+            require_step_up()
+
         inv.update_product(
             product,
             name=f.get("name"),
@@ -295,7 +296,11 @@ def adjust_stock(product_id: int):
 def add_barcode(product_id: int):
     product = inv.get_product(product_id) or abort(404)
     f = request.form
-    override = _rupees_to_paisa(f.get("price_override"))
+    try:
+        override = _rupees_to_paisa(f.get("price_override"))
+    except inv.InventoryError as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("stock.product_detail", product_id=product_id))
     if override is not None:
         if not role_has_permission(current_user.role, "product.edit_price"):
             abort(403)
@@ -339,7 +344,7 @@ def label_sheet():
             continue
         product = db.session.get(Product, row.product_id)
         price = row.price_override_paisa or product.sell_price_paisa
-        caption = f"{product.name}  •  Rs {price // 100}"
+        caption = f"{product.name}  •  {money.format_rupees(price)}"
         copies = max(1, _int_or_none(request.form.get(f"copies_{row.id}")) or 1)
         specs.extend([labels.LabelSpec(code=row.barcode, caption=caption)] * copies)
 

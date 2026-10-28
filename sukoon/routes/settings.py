@@ -22,10 +22,22 @@ from flask_login import login_required
 from sukoon.extensions import db
 from sukoon.offsite import OffsiteError
 from sukoon.routes.guards import permission_required, require_step_up
-from sukoon.services import backup_status, clock, offsite_service, settings_service
+from sukoon.services import (
+    backup_status,
+    clock,
+    offsite_service,
+    settings_service,
+    shop_profile,
+)
 from sukoon.services.notifications import secret_store
 from sukoon.services.receipts import printer
-from sukoon.services.receipts.receipt import render_test_escpos
+from sukoon.services.receipts.receipt import (
+    DEFAULT_WIDTH,
+    RECEIPT_WIDTHS,
+    WIDTH_KEY,
+    receipt_width,
+    render_test_escpos,
+)
 
 bp = Blueprint("settings", __name__, url_prefix="/settings")
 
@@ -56,7 +68,10 @@ def _page(status: int = 200):
     return render_template(
         "settings/index.html",
         kinds=PRINTER_KINDS,
+        shop=shop_profile.get(),
         kind=printer.printer_kind(),
+        widths=RECEIPT_WIDTHS,
+        width=receipt_width(),
         windows_name=printer.windows_printer_name(),
         windows_printers=windows_printer.list_printers(),
         on_windows=windows_printer.available(),
@@ -83,6 +98,23 @@ def index():
     return _page()
 
 
+@bp.route("/shop", methods=["POST"])
+@login_required
+@permission_required("settings.manage")
+def save_shop():
+    """The shop's name, address and phone, as printed on receipts and statements."""
+    try:
+        shop_profile.save(name=request.form.get("shop_name"),
+                          address=request.form.get("shop_address"),
+                          phone=request.form.get("shop_phone"))
+    except shop_profile.ShopProfileError as exc:
+        flash(str(exc), "error")
+        return _page(400)
+    db.session.commit()
+    flash("Shop details saved.", "info")
+    return redirect(url_for("settings.index"))
+
+
 @bp.route("/printer", methods=["POST"])
 @login_required
 @permission_required("settings.manage")
@@ -102,8 +134,13 @@ def save_printer():
     if kind == "network" and not host:
         flash("Type the printer's network address.", "error")
         return _page(400)
+    width = request.form.get("chars_per_line", str(DEFAULT_WIDTH))
+    if width not in {str(w) for w, _ in RECEIPT_WIDTHS}:
+        flash("Choose the receipt width.", "error")
+        return _page(400)
 
     settings_service.set("receipt.printer.kind", kind)
+    settings_service.set(WIDTH_KEY, int(width))
     if kind == "windows":
         settings_service.set("receipt.printer.windows_name", name)
     if kind == "network":
@@ -121,9 +158,9 @@ def save_printer():
 @permission_required("settings.manage")
 def test_print():
     try:
-        shop_name = settings_service.get("shop.name", "Al-Rehman General Store")
+        shop_name = shop_profile.get().name
         when = clock.format_clock(datetime.now(UTC), with_date=True)
-        printer.send(render_test_escpos(shop_name, when))
+        printer.send(render_test_escpos(shop_name, when, receipt_width()))
     except printer.PrinterUnavailable as exc:
         current_app.logger.warning("test print failed: %s", exc)
         flash(f"The printer didn't take it: {exc}", "error")

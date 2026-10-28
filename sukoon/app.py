@@ -80,6 +80,7 @@ def create_app(
 
     from sukoon.routes.admin import bp as admin_bp
     from sukoon.routes.auth import bp as auth_bp
+    from sukoon.routes.catalog_import import bp as catalog_import_bp
     from sukoon.routes.khata import bp as khata_bp
     from sukoon.routes.main import bp as main_bp
     from sukoon.routes.messages import bp as messages_bp
@@ -95,6 +96,7 @@ def create_app(
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(stock_bp)
+    app.register_blueprint(catalog_import_bp)
     app.register_blueprint(till_bp)
     app.register_blueprint(refunds_bp)
     app.register_blueprint(khata_bp)
@@ -172,8 +174,8 @@ def _ensure_database_folder(uri: str) -> None:
 
 
 def _register_template_helpers(app: Flask) -> None:
-    """Display filters. Money is whole rupees (ADR-0007); quantity is milli-units
-    (ADR-0004). Formatting only — no rounding decisions live here."""
+    """Display filters. Money is paisa, shown with paisa only when there are some (ADR-0044);
+    quantity is milli-units (ADR-0004). Formatting only — no rounding decisions live here."""
 
     @app.context_processor
     def pending_refunds():
@@ -226,9 +228,19 @@ def _register_template_helpers(app: Flask) -> None:
 
     @app.template_filter("rupees")
     def rupees(paisa: int | None) -> str:
-        if paisa is None:
-            return "—"
-        return f"Rs {paisa // 100:,}"
+        """``Rs 1,050``, or ``Rs 105.50`` when a price has paisa (ADR-0044 §4)."""
+        from sukoon.services import money
+
+        if paisa is not None and paisa < 0:
+            return "Rs -" + money.format_rupees(-paisa, prefix="")
+        return money.format_rupees(paisa)
+
+    @app.template_filter("rupees_input")
+    def rupees_input(paisa: int | None) -> str:
+        """A price as an input box's value: ``105.50``, ``1050``, or empty."""
+        from sukoon.services import money
+
+        return money.rupees_input_value(paisa)
 
     @app.template_filter("qty")
     def qty(milli: int | None, unit_label: str = "unit") -> str:

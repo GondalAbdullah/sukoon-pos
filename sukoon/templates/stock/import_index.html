@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Import products — Sukoon{% endblock %}
+{% block heading %}Import products{% endblock %}
+{% block subheading %}From a spreadsheet, checked before anything is added{% endblock %}
+{% block content %}
+{# ADR-0043. No reference screenshot: the established component vocabulary (ADR-0006 rule 4). #}
+<p class="mb-4"><a href="{{ url_for('stock.index') }}" class="text-sm font-semibold">&larr; Stock</a></p>
+
+<div class="grid lg:grid-cols-[1fr,380px] gap-6 items-start">
+  <div>
+    <h2 class="text-base font-bold mb-3">Earlier imports</h2>
+    <div class="panel overflow-hidden">
+      <table class="table">
+        <thead><tr><th>File</th><th>When</th><th class="text-right">In stock</th><th class="text-right">Waiting</th><th class="w-[24px]"></th></tr></thead>
+        <tbody>
+        {% for b in batches %}
+          {% set s = summaries[b.id] %}
+          <tr class="hover:bg-sunk/60 transition-colors cursor-pointer"
+              onclick="window.location='{{ url_for('catalog_import.review', import_id=b.id) }}'">
+            <td class="font-semibold">{{ b.filename }}</td>
+            <td class="text-sm text-muted">{{ b.created_at | shop_time }}</td>
+            <td class="text-right font-bold">{{ '{:,}'.format(s.imported) }}</td>
+            <td class="text-right">{{ '{:,}'.format(s.ready + s.choose_rows + s.needs_price) }}</td>
+            <td><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D8D7D1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" class="text-center text-muted py-8">Nothing imported yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" action="{{ url_for('catalog_import.index') }}" class="panel p-7">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="text-sm font-bold mb-2">Upload a product list</div>
+    <p class="text-sm text-muted mb-4">A .csv file with the columns <strong>Name, Category, Cost Price,
+       Selling Price, Low Stock Level</strong>. Only Name and Selling Price are required.</p>
+    <input type="file" name="file" accept=".csv,text/csv" required class="field mb-4">
+    <p class="text-xs text-muted mb-5">Nothing goes into stock yet. You'll see every row first, choose
+       between duplicates, and price anything without a price.</p>
+    <button type="submit" class="btn-primary w-full">Read the file</button>
+  </form>
+</div>
+{% endblock %}

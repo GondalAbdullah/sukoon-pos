@@ -117,7 +117,8 @@ def summarize_cart(lines: list[CartLine]) -> CartSummary:
     return CartSummary(
         line_totals_paisa=totals,
         subtotal_paisa=subtotal,
-        total_paisa=subtotal,  # no discount, no tax (ADR-0008 / ADR-0020)
+        # no discount, no tax (ADR-0008 / ADR-0020); exact, no rounding (ADR-0046)
+        total_paisa=pricing.compute_bill_total_paisa(subtotal),
         ready=bool(lines) and unweighed == 0,
         unweighed_count=unweighed,
     )
@@ -240,7 +241,8 @@ def record_sale(
 
     priced = _price_lines(lines)
     subtotal = pricing.cart_subtotal_paisa([total for _, total in priced])
-    total = subtotal  # no discount, no tax (ADR-0008 / ADR-0020)
+    # no discount, no tax (ADR-0008 / ADR-0020); exact, no rounding (ADR-0046)
+    total = pricing.compute_bill_total_paisa(subtotal)
 
     # ADR-0014 / ADR-0026 §6: blocked past the limit unless an Admin approved it.
     override_by = None
@@ -281,32 +283,9 @@ def record_sale(
         db.session.add(sale)
         db.session.flush()  # assigns sale.id
 
-        # ADR-0025: an item nobody has ever counted (created at the till, or bulk
-        # entered but never stocked in) is in the customer's hand even though its
-        # level reads 0. Book exactly the shortfall as "found at the till" first,
-        # inside this same transaction, so the sale's deduction lands on zero.
-        wanted: dict[int, int] = {}
-        for line in lines:
-            wanted[line.product.id] = wanted.get(line.product.id, 0) + line.quantity_milli
-        counted = inventory_service.counted_product_ids(wanted)
-        booked: set[int] = set()
-        for line in lines:
-            pid = line.product.id
-            if pid in counted or pid in booked:
-                continue
-            booked.add(pid)
-            shortfall = wanted[pid] - line.product.stock_quantity_milli
-            if shortfall > 0:
-                inventory_service.apply_stock_movement(
-                    product=line.product,
-                    movement_type="stock_in",
-                    quantity_milli=shortfall,
-                    reason=f"Found at the till — not yet counted ({invoice_number})",
-                    user_id=user_id,
-                    reference_type=inventory_service.FOUND_AT_TILL,
-                    reference_id=sale.id,
-                    commit=False,
-                )
+        # ADR-0047 §1: nothing sells from nothing. A product with too little in stock — counted
+        # or not — is refused by the stock-out guard below, naming it, and the whole sale rolls
+        # back. (ADR-0025 §3 used to book a never-counted shortfall as "found at the till".)
 
         for line, line_total in priced:
             db.session.add(

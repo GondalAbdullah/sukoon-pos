@@ -187,3 +187,59 @@ def test_starting_a_new_key_needs_the_admins_own_password(client, seeded, login,
                           follow_redirects=True)
     assert allowed.status_code == 200
     assert offsite_service.encryption_key(app.config["BACKUP_KEY_PATH"]) != original
+
+
+# --- receipt width (80 mm paper, 2026-10-28) ------------------------------------------------
+
+def test_the_receipt_width_is_chosen_on_the_printer_form(client, seeded, login):
+    from sukoon.services.receipts.receipt import receipt_width
+
+    login("Owner", ADMIN_PASSWORD)
+    page = client.get("/settings/").get_data(as_text=True)
+    assert 'name="chars_per_line"' in page and "48 characters a line" in page
+    assert receipt_width() == 48  # 80 mm by default
+    client.post("/settings/printer", data={"kind": "none", "chars_per_line": "42"})
+    assert receipt_width() == 42
+    resp = client.post("/settings/printer", data={"kind": "none", "chars_per_line": "99"})
+    assert resp.status_code == 400 and receipt_width() == 42
+
+
+def test_a_form_without_the_width_keeps_80mm(client, seeded, login):
+    """An older page posting without the field must not fail the save."""
+    from sukoon.services.receipts.receipt import receipt_width
+
+    login("Owner", ADMIN_PASSWORD)
+    client.post("/settings/printer", data={"kind": "none"})
+    assert receipt_width() == 48
+
+
+# --- shop details (ADR-0046 §3) ---------------------------------------------------------------
+
+def test_shop_details_are_saved_and_shown(client, seeded, login):
+    from sukoon.services import shop_profile
+
+    login("Owner", ADMIN_PASSWORD)
+    resp = client.post("/settings/shop", data={"shop_name": "  Nizami   Store ",
+                                               "shop_address": "Main Bazaar, Johar Town, Lahore",
+                                               "shop_phone": "0300 1234567"},
+                       follow_redirects=True)
+    assert "Shop details saved." in resp.get_data(as_text=True)
+    shop = shop_profile.get()
+    assert (shop.name, shop.address, shop.phone) == (
+        "Nizami Store", "Main Bazaar, Johar Town, Lahore", "0300 1234567")
+    page = client.get("/settings/").get_data(as_text=True)
+    assert 'value="Main Bazaar, Johar Town, Lahore"' in page
+
+
+def test_a_shop_needs_a_name(client, seeded, login):
+    from sukoon.services import shop_profile
+
+    login("Owner", ADMIN_PASSWORD)
+    resp = client.post("/settings/shop", data={"shop_name": "  ", "shop_address": "x"})
+    assert resp.status_code == 400 and "needs a name" in resp.get_data(as_text=True)
+    assert shop_profile.get().address is None
+
+
+def test_a_cashier_cannot_change_shop_details(client, seeded, login):
+    login("T1", CASHIER_PASSWORD)
+    assert client.post("/settings/shop", data={"shop_name": "X"}).status_code == 403

@@ -61,6 +61,7 @@
       Add product
     </a>
     <a href="{{ url_for('stock.bulk_entry') }}" class="btn-ghost">Bulk entry</a>
+    <a href="{{ url_for('catalog_import.index') }}" class="btn-ghost">Import</a>
     <a href="{{ url_for('stock.categories') }}" class="btn-ghost">Categories</a>
   {% endif %}
 </form>
@@ -72,6 +73,8 @@
         <th class="w-[46px]"></th>
         <th>Product</th>
         <th>Stock level</th>
+        <th class="text-right">Cost</th>
+        <th class="text-right">Low at</th>
         <th class="text-right">Price</th>
         <th class="w-[24px]"></th>
       </tr>
@@ -108,11 +111,17 @@
           </div>
           <div class="stock-bar-track"><div class="stock-bar-fill {{ bar_color }}" style="width: {{ pct }}%"></div></div>
         </td>
+        <td class="text-right text-sm text-inkSoft whitespace-nowrap">
+          {%- if p.cost_price_paisa is not none %}{{ p.cost_price_paisa | rupees }}{% else %}<span class="text-faint">unknown</span>{% endif -%}
+        </td>
+        <td class="text-right text-sm text-inkSoft whitespace-nowrap">
+          {%- if p.low_stock_threshold_milli is not none %}{{ p.low_stock_threshold_milli | qty(p.unit_label) }}{% else %}<span class="text-faint">—</span>{% endif -%}
+        </td>
         <td class="text-right text-[14.5px] font-bold whitespace-nowrap">{{ p.sell_price_paisa | rupees }}</td>
         <td><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D8D7D1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></td>
       </tr>
     {% else %}
-      <tr><td colspan="5" class="text-center text-muted py-8">No products match.</td></tr>
+      <tr><td colspan="7" class="text-center text-muted py-8">No products match.</td></tr>
     {% endfor %}
     </tbody>
   </table>

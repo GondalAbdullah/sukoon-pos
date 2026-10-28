@@ -56,20 +56,18 @@ class ProductInUseError(InventoryError):
     """A hard delete was attempted on a product with movement or sale history."""
 
 
-# --- money / quantity validation (ADR-0007, ADR-0004) -------------------------
+# --- money / quantity validation (ADR-0007, ADR-0044, ADR-0004) -------------------------
 
 _MILLI = 1000
 
 
-def validate_whole_rupee(paisa: int, *, field: str) -> int:
+def validate_price(paisa: int, *, field: str) -> int:
+    """A product price: present and not negative. Paisa allowed (ADR-0044) — what is charged
+    is rounded at the line, not here."""
     if paisa is None:
         raise ValidationError(f"{field} is required.", field=field)
     if paisa < 0:
         raise ValidationError(f"{field} cannot be negative.", field=field)
-    if paisa % 100 != 0:
-        raise ValidationError(
-            f"{field} must be a whole number of rupees.", field=field
-        )
     return paisa
 
 
@@ -87,7 +85,7 @@ def validate_quantity_milli(
 
 # --- SKU generation (ADR-0018) ----------------------------------------------
 
-_SKU_SEQ_KEY = "sku.next_sequence"
+SKU_SEQ_KEY = "sku.next_sequence"
 _PREFIX_RE = re.compile(r"[^A-Za-z]")
 
 
@@ -103,8 +101,8 @@ def compute_category_prefix(category: Category | None) -> str:
 def allocate_sku(category: Category | None) -> str:
     """``{PREFIX}-{NNNN}`` with a shop-wide running number. Reads and writes the
     counter in the same transaction as the caller's product insert."""
-    seq = settings_service.get_int(_SKU_SEQ_KEY, 1)
-    settings_service.set(_SKU_SEQ_KEY, seq + 1)
+    seq = settings_service.get_int(SKU_SEQ_KEY, 1)
+    settings_service.set(SKU_SEQ_KEY, seq + 1)
     return f"{compute_category_prefix(category)}-{seq:04d}"
 
 
@@ -187,9 +185,9 @@ def create_product(
     if not clean_name:
         raise ValidationError("A product name is required.", field="name")
 
-    validate_whole_rupee(sell_price_paisa, field="Selling price")
+    validate_price(sell_price_paisa, field="Selling price")
     if cost_price_paisa is not None:
-        validate_whole_rupee(cost_price_paisa, field="Cost price")
+        validate_price(cost_price_paisa, field="Cost price")
 
     if sku is None:
         sku = allocate_sku(category)
@@ -233,12 +231,12 @@ def update_product(
             raise ValidationError("A product name is required.", field="name")
         product.name = clean
     if sell_price_paisa is not None:
-        product.sell_price_paisa = validate_whole_rupee(
+        product.sell_price_paisa = validate_price(
             sell_price_paisa, field="Selling price"
         )
     if cost_price_paisa is not ...:
         if cost_price_paisa is not None:
-            validate_whole_rupee(cost_price_paisa, field="Cost price")
+            validate_price(cost_price_paisa, field="Cost price")
         product.cost_price_paisa = cost_price_paisa
     if category_id is not ...:
         product.category_id = category_id
@@ -592,7 +590,7 @@ def assign_barcode(
     if barcode_exists(clean):
         raise DuplicateBarcodeError(f"Barcode {clean} is already assigned.")
     if price_override_paisa is not None:
-        validate_whole_rupee(price_override_paisa, field="Override price")
+        validate_price(price_override_paisa, field="Override price")
 
     row = ProductBarcode(
         product_id=product.id,

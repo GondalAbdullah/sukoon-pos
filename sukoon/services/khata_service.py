@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 
 from sukoon.extensions import db
 from sukoon.models import CreditLedgerEntry, Customer, Payment, Sale, User
-from sukoon.services import ledger, settings_service
+from sukoon.services import ledger, money, settings_service
 from sukoon.services.auth_service import role_has_permission
 from sukoon.services.phone import normalise_phone
 
@@ -54,7 +54,7 @@ class OverpaymentError(KhataError):
     def __init__(self, excess_paisa: int):
         self.excess_paisa = excess_paisa
         super().__init__(
-            f"That's Rs {excess_paisa // 100:,} more than they owe. Keep it as credit?"
+            f"That's {money.format_rupees(excess_paisa)} more than they owe. Keep it as credit?"
         )
 
 
@@ -69,8 +69,9 @@ class CreditLimitExceededError(KhataError):
         self.customer = customer
         self.over_by_paisa = over_by_paisa
         super().__init__(
-            f"This takes {customer.display_name} Rs {over_by_paisa // 100:,} over their "
-            f"Rs {customer.credit_limit_paisa // 100:,} limit. An Admin can approve it."
+            f"This takes {customer.display_name} {money.format_rupees(over_by_paisa)} over "
+            f"their {money.format_rupees(customer.credit_limit_paisa)} limit. "
+            "An Admin can approve it."
         )
 
 
@@ -364,12 +365,12 @@ def remove_customer(customer: Customer) -> str:
     state = ledger.describe_balance(customer.balance_paisa)
     if state.kind == "owes":
         raise CustomerHasBalanceError(
-            f"{customer.display_name} still owes Rs {state.amount_paisa // 100:,}. "
+            f"{customer.display_name} still owes {money.format_rupees(state.amount_paisa)}. "
             "Settle the Khata before removing it."
         )
     if state.kind == "in_credit":
         raise CustomerHasBalanceError(
-            f"{customer.display_name} is Rs {state.amount_paisa // 100:,} in credit. "
+            f"{customer.display_name} is {money.format_rupees(state.amount_paisa)} in credit. "
             "That has to be settled before the Khata can be removed."
         )
     has_history = any(
@@ -406,8 +407,6 @@ def record_payment(
         raise CustomerValidationError("Choose how they paid.", field="method")
     if amount_paisa is None or amount_paisa <= 0:
         raise CustomerValidationError("Enter the amount they paid.", field="amount")
-    if amount_paisa % 100:
-        raise CustomerValidationError("Use whole rupees.", field="amount")
 
     owed = max(customer.balance_paisa, 0)
     if amount_paisa > owed and not allow_overpayment:

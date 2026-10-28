@@ -69,6 +69,59 @@ def _refunded_milli_by_item(sale_id: int, *, statuses: tuple[str, ...]) -> dict[
     return out
 
 
+def _refunded_paisa_by_item(sale_id: int, *, statuses: tuple[str, ...]) -> dict[int, int]:
+    rows = db.session.scalars(
+        db.select(RefundItem)
+        .join(Refund, RefundItem.refund_id == Refund.id)
+        .where(Refund.sale_id == sale_id, Refund.status.in_(statuses))
+    )
+    out: dict[int, int] = defaultdict(int)
+    for item in rows:
+        out[item.sale_item_id] += item.line_total_paisa
+    return out
+
+
+def compute_partial_refund_paisa(*, line_total_paisa: int, unit_price_paisa: int,
+                                 refund_milli: int, remaining_milli: int,
+                                 already_refunded_paisa: int) -> int:
+    """What refunding ``refund_milli`` of a line returns, exact to the paisa (ADR-0044 §3,
+    ADR-0046): ``quantity × unit price`` — except that a line's refunds may never add up to
+    more than it was charged: the refund that takes the rest of the line returns exactly the
+    money left on it, and any other is capped at that (a weighed line's paisa rounding could
+    otherwise drift)."""
+    left = max(0, line_total_paisa - already_refunded_paisa)
+    if refund_milli >= remaining_milli:
+        return left
+    return min(pricing.compute_line_total_from_quantity(refund_milli, unit_price_paisa), left)
+
+
+def compute_refund_total_paisa(*, lines_paisa: int, sale_total_paisa: int,
+                               already_refunded_paisa: int, takes_the_rest: bool) -> int:
+    """What a refund pays back: exactly its lines, paisa included (ADR-0046), and never more
+    than the sale has left. A refund that takes everything still unrefunded returns exactly
+    what was paid minus earlier refunds (approved or pending), so a sale's refunds always sum
+    to its total."""
+    left = max(0, sale_total_paisa - already_refunded_paisa)
+    if takes_the_rest:
+        return left
+    return min(lines_paisa, left)
+
+
+def _refunded_total_paisa(sale_id: int) -> int:
+    return int(db.session.scalar(
+        db.select(db.func.coalesce(db.func.sum(Refund.total_paisa), 0))
+        .where(Refund.sale_id == sale_id,
+               Refund.status.in_(("approved", "pending_approval")))
+    ) or 0)
+
+
+def _takes_the_rest_of_the_sale(sale: Sale, lines: list[RefundLineSpec]) -> bool:
+    asked: dict[int, int] = defaultdict(int)
+    for spec in lines:
+        asked[spec.sale_item_id] += spec.quantity_milli or 0
+    return all(asked.get(item.id, 0) >= refundable_quantity_milli(item) for item in sale.items)
+
+
 def refundable_quantity_milli(sale_item: SaleItem) -> int:
     """Sold quantity minus what is already covered by an approved *or*
     still-pending refund (so a line cannot be double-booked while an approval
@@ -134,8 +187,15 @@ def initiate_refund(
                     f"Only {available / _MILLI:g} of that line is still refundable.",
                     sale_item_id=si.id,
                 )
-            line_total = pricing.compute_line_total_from_quantity(
-                spec.quantity_milli, si.unit_price_paisa_snapshot
+            claimed_paisa = _refunded_paisa_by_item(
+                sale.id, statuses=("approved", "pending_approval")
+            ).get(si.id, 0)
+            line_total = compute_partial_refund_paisa(
+                line_total_paisa=si.line_total_paisa,
+                unit_price_paisa=si.unit_price_paisa_snapshot,
+                refund_milli=spec.quantity_milli,
+                remaining_milli=available,
+                already_refunded_paisa=claimed_paisa,
             )
 
         refund_items.append(
@@ -148,10 +208,16 @@ def initiate_refund(
         )
         total += line_total
 
+    refund_total = compute_refund_total_paisa(
+        lines_paisa=total,
+        sale_total_paisa=sale.total_paisa,
+        already_refunded_paisa=_refunded_total_paisa(sale.id),
+        takes_the_rest=_takes_the_rest_of_the_sale(sale, lines),
+    )
     method = "credit_ledger" if sale.payment_method == "credit" else "cash"
     refund = Refund(
         sale_id=sale.id,
-        total_paisa=total,
+        total_paisa=refund_total,
         method=method,
         reason=clean_reason,
         status="pending_approval",

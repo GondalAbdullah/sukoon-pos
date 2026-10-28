@@ -18,8 +18,8 @@
 
   <label class="block mb-1.5">
     <span class="label">Selling price, Rs (required)</span>
-    <input type="number" name="sell_price" min="0" step="1" required class="field"
-           value="{{ (product.sell_price_paisa // 100) if product else (form.sell_price if form) }}">
+    <input type="number" name="sell_price" min="0" step="0.01" required class="field"
+           value="{{ (product.sell_price_paisa | rupees_input) if product else (form.sell_price if form) }}">
   </label>
   {% if product %}
     <p class="text-xs text-muted mb-4">Changing this needs your password (step-up).</p>
@@ -30,8 +30,8 @@
 
   <label class="block mb-4">
     <span class="label">Cost price, Rs (optional)</span>
-    <input type="number" name="cost_price" min="0" step="1" class="field"
-           value="{{ (product.cost_price_paisa // 100) if product and product.cost_price_paisa is not none else '' }}">
+    <input type="number" name="cost_price" min="0" step="0.01" class="field"
+           value="{{ (product.cost_price_paisa | rupees_input) if product else '' }}">
   </label>
 
   <label class="block mb-4">

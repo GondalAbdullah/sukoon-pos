@@ -8,9 +8,9 @@
    when it needs attention, credit is teal, settled is quiet. Never a bare minus. #}
 {% macro balance_amount(state, urgent=false) -%}
   {%- if state.kind == 'owes' -%}
-    <span class="{{ 'text-coral' if urgent else 'text-ink' }}">Rs {{ '{:,}'.format(state.amount_paisa // 100) }}</span>
+    <span class="{{ 'text-coral' if urgent else 'text-ink' }}">{{ state.amount_paisa | rupees }}</span>
   {%- elif state.kind == 'in_credit' -%}
-    <span class="text-teal">Rs {{ '{:,}'.format(state.amount_paisa // 100) }} credit</span>
+    <span class="text-teal">{{ state.amount_paisa | rupees }} credit</span>
   {%- else -%}
     <span class="text-faint">Rs 0</span>
   {%- endif -%}

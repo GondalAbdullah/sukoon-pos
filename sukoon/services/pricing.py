@@ -7,12 +7,13 @@ line (ADR-0005):
 * **by amount** — the cashier types rupees, the weight follows; the typed rupees
   are authoritative and are *not* recomputed (ADR-0007)
 
-There is no discount in v1 (ADR-0008 / ADR-0020), so a cart subtotal is simply the
-sum of its already-rounded line totals, and the total equals the subtotal.
+Lines are exact to the paisa, and so is the bill: no rounding anywhere (ADR-0046, replacing
+ADR-0045's rounded total and ADR-0007's rounding at the line). There is no discount in v1
+(ADR-0008 / ADR-0020), so the total is the sum of the lines.
 """
 from __future__ import annotations
 
-from sukoon.services.money import line_total_for_quantity
+from sukoon.services.money import line_total_exact
 
 _MILLI = 1000
 
@@ -20,11 +21,10 @@ _MILLI = 1000
 def compute_line_total_from_quantity(
     quantity_milli: int, unit_price_paisa: int
 ) -> int:
-    """Line total for a quantity-driven line, rounded half-up to the whole rupee
-    once, at the line (ADR-0007). Used for ``stepper`` and ``manual_weight``.
-    Thin re-spelling of ``money.line_total_for_quantity`` in ADR-0005's argument
+    """Line total for a quantity-driven line, exact to the paisa (ADR-0046). Used for
+    ``stepper`` and ``manual_weight``. ``money.line_total_exact`` in ADR-0005's argument
     order."""
-    return line_total_for_quantity(unit_price_paisa, quantity_milli)
+    return line_total_exact(unit_price_paisa, quantity_milli)
 
 
 def compute_quantity_from_amount(amount_paisa: int, unit_price_paisa: int) -> int:
@@ -63,7 +63,11 @@ def line_total_paisa_for(
 
 
 def cart_subtotal_paisa(line_totals_paisa: list[int]) -> int:
-    """Sum of already-rounded line totals. Rounding at the line and then summing
-    (not the reverse) is what keeps a printed receipt's lines adding up to its
-    printed total (ADR-0007)."""
+    """Sum of the line totals, paisa included: the receipt's lines add up to it exactly."""
     return sum(line_totals_paisa)
+
+
+def compute_bill_total_paisa(subtotal_paisa: int) -> int:
+    """What is paid: exactly the subtotal, paisa included (ADR-0046). Kept as the one place
+    that says so, should the shop ever want its bills rounded again."""
+    return subtotal_paisa

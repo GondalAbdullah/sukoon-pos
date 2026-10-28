@@ -7,6 +7,11 @@ tables on ``db.metadata`` for Alembic autogenerate and for the test database's
 from __future__ import annotations
 
 from sukoon.models.catalog import Category, Product, ProductBarcode
+from sukoon.models.catalog_import import (
+    IMPORT_ROW_STATUSES,
+    CatalogImport,
+    CatalogImportRow,
+)
 from sukoon.models.customer import PHONE_VERIFIED_METHODS, Customer
 from sukoon.models.inventory import MOVEMENT_TYPES, StockMovement
 from sukoon.models.khata import LEDGER_ENTRY_TYPES, CreditLedgerEntry
@@ -45,6 +50,9 @@ __all__ = [
     "Category",
     "Product",
     "ProductBarcode",
+    "CatalogImport",
+    "CatalogImportRow",
+    "IMPORT_ROW_STATUSES",
     "Customer",
     "PHONE_VERIFIED_METHODS",
     "StockMovement",

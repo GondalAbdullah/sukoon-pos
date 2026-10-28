@@ -12,8 +12,8 @@ work session, not just every phase.
 |---|---|
 | **Phase** | **Phase 6 — Reports & Dashboard — functionally complete** (session 27, [ADR-0034](adr/0034-phase-6-reporting-policy.md); DoD §4m; no gate in the spec). **Phase 7 — Windows Packaging & Offline Installable App — next, opening with a scheduled `grill-with-docs` session.** Phase 5 closed 2026-09-15 (real send under O-23). |
 | **Status** | **Session 27:** Phase 6 built — Insights dashboard, five reports (sales, estimated profit, stock value, low stock, outstanding credit) with CSV and PDF exports, Admin only; profit estimated at today's cost prices with coverage stated; every figure checked against a hand-calculated scenario; 10,000-sale performance test. 497 tests. **Session 26:** Phase 5 built against ADR-0027…0033 in three parts — queue/consent/rules, Meta adapter/key store/scheduler, screens — 475 tests, and an end-to-end browser run where the real background worker in `python -m sukoon.run` sent a credit-sale notice by itself (fake provider). Three real bugs found by the tests and fixed (§6). **Session 25:** the Phase 5 `grill-with-docs` session ran on the session-24 proposal — 26 questions, 7 ADRs (0027–0033), O-20 resolved, O-18's trigger sharpened, O-23 opened for Meta facts that must be checked when the account exists. **Session 23:** Phase 4 built — customers with duplicate-number and in-person confirmation (ADR-0013), a single ledger writer that sales, refunds and payments all go through, full/partial/over-payments, credit limits with Admin approval at the till (ADR-0014), overdue flags (ADR-0015), month statements on shop time with an A4 PDF, the Khata screen, and a Khata picker replacing the till's raw customer ID. 363 tests pass; verified in real Chrome. **Session 22:** the client answered O-21/O-22 — shop timezone (ADR-0024) and stock limits at the till (ADR-0025) built; along the way found and fixed a latent bug (items created at the till could never be sold) and B9 (htmx swaps silently dropped every till error message). **Session 21:** a bug sweep driven by the developer's own walkthrough screenshots — 8 real bugs fixed and verified in a real browser (session 21 changelog), plus a plain-language field manual at `docs/field-manual.html` (untracked). Phase 3.5 built out sessions 13–19 (toolchain, Login, Till, Sale Complete, terminal ID, Stock, Refunds, landing page, htmx pass — §4i), then the Design System §13 DoD side-by-side (session 20, §4j) — fresh screenshots of every screen plus an actually-rendered receipt PDF against all 9 reference images, not a documentation exercise. Found and fixed three real issues (two undersized/no-hover buttons, a receipt footer line that ran off the page, fixed with real word-wrapping + regression tests) and restored two missing Login details. One genuine tension between ADR-0006 (prototype pixel-fidelity) and the Design System's written 44px touch-target rule was put to the client rather than picked unilaterally: **keep the prototype-exact stepper size, no change** — recorded with rationale. **Phase 3.5 is now formally closed.** `ruff` clean, **245 tests green, 95% coverage**. |
-| **Last session** | 2026-10-14 (session 36 — several Khatas on one number, ADR-0042; **Sukoon 1.1.0 released**, tag `v1.1.0`) |
-| **Next action** | **The client already runs 1.0.0** (corrected 2026-10-14; the records had said he never installed it). Send him `Sukoon-Setup-1.1.0.exe` (tag `v1.1.0`, commit `ca2fcc1`, SHA-256 `f32ff279…97fd1`, copy in the developer's `dist/installer/`) **with the upgrade sheet** `docs/handover/Sukoon-Upgrade-to-1.1.0.pdf`. Its step 6, **reprinting the recovery sheet**, matters: 1.0.0 printed the key in a font where I and l look alike. Still open: O-25 printing, O-27 acceptance, and before WhatsApp, O-23 (submit ADR-0042 §7's wording). |
+| **Last session** | 2026-10-29 (session 38 — product spreadsheet import, ADR-0043; paisa in product prices, ADR-0044; exact amounts everywhere and a store-style receipt, ADR-0046; nothing sells from an empty shelf, no products created at the till, ADR-0047; none released) |
+| **Next action** | **Product import (ADR-0043), paisa prices (ADR-0044), exact amounts everywhere and the store-style receipt (ADR-0046) are built and tested, not yet committed or released; the developer is testing them on his machine first.** After install, enter the address and phone under Settings → Shop details. **Since ADR-0047 nothing sells until its stock is entered** — after importing, count stock on the worklist's In stock box (or per product in Stock) before trading on those items. 1.2.0 carries both: test a paisa-priced item on the shop's real printer (the receipt's unit/line layout). Before 1.2.0: the developer reviews `correct_category` in `docs/import/category-mapping.csv` (Claude's first pass: 74 categories) and, after any change, re-runs `python scripts/prepare_product_import.py Grocery_Items_list.csv docs/import/sukoon-products-import.csv --categories docs/import/category-mapping.csv`; bump the version; build on the VM and **prove the upgrade over the shop's installed 1.1.0 data** (memory: sukoon-windows-vm-release); add the import to the owner's manual. Still open: O-25 printing (questions sent to the shop), O-27 acceptance, and before WhatsApp, O-23. The 1.1.0 hand-off (installer + upgrade sheet) stands if not yet sent. |
 
 ## 2. Decisions made so far
 
@@ -181,12 +181,39 @@ Carried from ADR-0002. Each needs a decision; several will need their own ADR.
   Sukoon is on the shop network, a clean-machine install test, and one rehearsed restore.
   **Owner: the client and developer. Trigger to revisit: any data loss or wrong balance in the
   first two weeks — the paper method comes back until the cause is found.**
+- ~~**O-28 — Importing the client's product spreadsheet.**~~ **RESOLVED 2026-10-28** →
+  [ADR-0043](adr/0043-product-spreadsheet-import.md), **built (not yet released)**. The developer
+  asked for it to be built on 2026-10-28 rather than held for the client's confirmation. The
+  2026-10-23 decisions stand: categories mapped by the developer (`docs/import/category-mapping.csv`,
+  `correct_category` **filled in 2026-10-28 with Claude's first pass, 261 spellings → 74 categories, for the developer to review**; the import file is regenerated from it); the owner chooses
+  each duplicate group that differs (identical copies collapse by themselves); rows that look wrong
+  import as "Needs completing". Barcodes are **not** imported: the cleaned file
+  `docs/import/sukoon-products-import.csv` (8,111 rows) has no barcode column; they are scanned on
+  in the worklist. **Still asked of the client, still useful:** a fresh export straight from the
+  old system (would restore most barcodes — a later change could read a barcode column), and
+  stock counts (the file has none; products import at zero stock).
 - **O-25 — The shop's receipt printer model is unknown.** The client says it is a **USB thermal
   printer** ([ADR-0039](adr/0039-receipt-printing-on-windows.md)); the make and model are still
   needed, and with them the one genuinely untested assumption in the printing path: **whether a
   machine-installed printer is visible to Sukoon's background account**. If it is not, receipts
   print while the owner is signed in and silently fall back to PDF when they are not.
   **Owner: the developer, with the shop. Trigger: before the printing work in Phase 7 is built.**
+  **Update 2026-10-23:** the model is a **Black Copper BC-85ACG1** (80 mm, USB + serial + LAN,
+  OPOS driver), from a photo of its box; no published specs found. A printed receipt showed the shop
+  name not bold or enlarged and a 42-column layout leaving empty space on 80 mm paper (the printer
+  likely fits 48 — unverified). Asked of the shop: a photo of the printer's self-test page, the
+  Settings → receipt printer section, the printer's back panel, and whether it can take a network
+  cable (network printing on port 9100 would bypass the Windows driver). **No code changed;
+  waiting on the client.**
+  **Update 2026-10-28:** configured for 80 mm without them — 48 characters a line by default, a
+  Settings choice of 48/42/32, a larger bold shop name, and rulers on the test print (session 38).
+  Still to confirm on the real printer with a test print.
+  **Photos from the shop, 2026-10-28:** the back panel has **USB-B, an RJ11 cash-drawer port and power
+  only — no LAN, no serial**, so network printing is out; the Windows-printer path stays. Two 1.1.0
+  test prints show Sukoon prints through the driver and the printer honours ESC a (centring) but
+  **ignored ESC ! (size)** — the shop name came out normal size. Fixed: size now sent with **GS !**,
+  bold as both ESC E and ESC G. Width estimate from the slip (39 characters ≈ 80 % of the line) fits
+  the 48 default. **Still to confirm:** the new test print (rulers, large name) after 1.2.0 is installed.
 - ~~**O-26 — Storage provider, account and cost for the offsite backup.**~~ **RESOLVED 2026-09-18:**
   the client created a **Cloudflare R2** bucket in their own account and set it up in Sukoon. Proven
   end to end against the real service **by the client, not by a stand-in**: a backup was uploaded,
@@ -1342,6 +1369,159 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-10-29 — Session 38 (cont. 5): the till — no create-at-till, and 0 in stock can't sell (ADR-0047)
+
+**Found by the developer at /till:** typing "shezan" offered to *create* a product though several Shezan
+products exist — the till resolved only a unique match and sent everything else to ADR-0011 §2's
+create form. And a product with 0 in stock could be sold: ADR-0025 §3 (client's choice, Sept) left
+never-counted products uncapped, which after the import meant the whole catalogue.
+
+**Decided by the developer:** remove the create form; for stock, offered block-unless-Admin-approves
+(recommended) / block always / warn only, with the consequence that nothing imported sells until
+counted — he chose **block always**.
+
+**Built:** every product capped at its level (`_room_milli` has no never-counted case; `record_sale` no
+longer books found-at-till); typed text matching several products shows a **pick list** (≤ 20, with
+price and stock, out-of-stock disabled, refused server-side too); no match → "Nothing in the catalogue
+matches"; `/till/new` removed (`product.create_provisional` stays seeded, unchecked). The import
+worklist gained an **In stock** box (a `correction` movement, `stock.adjust`). Test fixtures that sold
+never-stocked products now stock them first; the reporting scenario's totals are unchanged.
+**Verified:** 813 tests; real Chrome — "shezan" lists 3 with stock, out-of-stock disabled, choosing the
+in-stock one adds it, an out-of-stock item typed in full is refused, an unknown code offers nothing.
+
+### 2026-10-29 — Session 38 (cont. 4): the client's receipt requests; exact amounts (ADR-0046)
+
+**Asked for (the client, via the developer):** date as DD-month-YYYY, no cashier name, the shop's
+name and address at the bottom, formatting "like Imtiaz / Al-Fatah", and then no till name and no
+Rounding line — the exact total. Clarified with the developer: an item table, item names in
+capitals, 28-Oct-2026; and, offered what an exact total means for payment, **exact everywhere**.
+
+**Built:** the receipt rebuilt — Invoice and Date (28-Oct-2026 07:30 PM) only; ITEM/QTY/RATE/AMOUNT
+table in capitals (long names on their own line; 58 mm falls back to two lines per item); Items and
+Qty; NET AMOUNT bold and double height; paid by, cash, change; thank-you and the shop's name,
+address and phone centred at the bottom. **Settings → Shop details** (new `shop_profile` service:
+name, address, phone; the never-set `shop.contact` read as a fallback address; statements use it).
+Money: `compute_bill_total_paisa` is the subtotal; refunds exact, still capped per sale; Khata
+payments may carry paisa (limit stays whole rupees); Khata screens, statements, WhatsApp amounts and
+the till's change show paisa. **Verified:** 813 tests; real Chrome — Rs 561.50 due, no Rounding, Exact
+= 561.50, change from Rs 600 Rs 38.50 on the till and the completed sale; the PDF receipt rendered.
+
+### 2026-10-28 — Session 38 (cont. 3): receipts for 80 mm paper; cost and low-stock in the Stock list
+
+**Stock list:** two columns, Cost ("unknown" when unset, never Rs 0) and Low at ("—" = no check).
+Shown to cashiers too: product detail already showed them cost.
+
+**Receipt printing (O-25), configured for 80 mm without the self-test page:** the developer asked for
+it now rather than waiting for the shop's photos. Characters per line became a **setting**
+(`receipt.chars_per_line`: 48 — the default, most 80 mm printers; 42; 32 for 58 mm), chosen on the
+Settings printer form; both the ESC/POS and the PDF receipt lay out to it (the PDF sizes its font to
+fill the 80 mm roll). The shop name prints bold at double width and height when it fits (ESC ! 0x30),
+double height only when too long, and is word-wrapped, not cut. The test print shows a ruler at 48,
+42 and 32 characters so the shop can see which fits and switch without a release. **Not verified on
+the real printer** — the 48 default is a guess the test print confirms or corrects, and whether the
+shop prints through ESC/POS or a PDF via the browser is still unknown (O-25's photos).
+
+### 2026-10-28 — Session 38 (cont. 2): round the bill once, not each line (ADR-0045)
+
+**Asked for:** the till should show Rs 150.50 on the line, not Rs 151, and the paisa in the bill's
+total. Offered how to settle paisa at payment (round the bill once / round only cash, leaving paisa in
+the Khata / no rounding); **he chose rounding the bill once, visibly**.
+
+**Built:** `money.line_total_exact` — lines exact to the paisa (a weighed fraction of a paisa
+half-up); `pricing.compute_bill_total_paisa` — the subtotal rounded half-up to the rupee; the till
+and receipt show a **Rounding** line when non-zero (never stored: `total − subtotal`, no migration);
+the receipt now prints `3 x Rs 150.50` on each line (the missing unit price noted 2026-10-23); the
+till's weigh preview and the refund preview show paisa. A refund's total is rounded to the rupee and
+capped per sale — one that takes everything left returns exactly what was paid minus earlier refunds
+(pending included), so a sale's refunds always sum to its total. Total, cash, change, the Khata,
+limits, statements and WhatsApp stay whole rupees.
+
+**Reports:** takings come from sale totals (rounding included); category/product/profit from exact
+line totals, so they can differ by ≤ 50 paisa a sale — stated in the ADR.
+
+### 2026-10-28 — Session 38 (cont.): paisa in product prices (ADR-0044, amends ADR-0007)
+
+**Decided by the developer:** ADR-0007's whole-rupee rule was his deliberate choice, but the shop's
+data uses paisa (2,955 costs in the export), so Sukoon should keep it rather than round it. Offered
+three scopes (cost only — recommended as smallest; cost and price; paisa everywhere); he chose
+**cost and selling prices**. Payments, change, Khata and every line total stay whole rupees.
+
+**Built:** `money.parse_rupees` (exact via Decimal, a third decimal refused, a ceiling of 100 crore)
+replaces the float parsing in Stock and the till; `money.format_rupees` shows `Rs 105.50` only when
+there are paisa (the `rupees` filter, receipts, reports, labels); every price box takes
+`step="0.01"`; `inventory_service.validate_price` replaces `validate_whole_rupee`; the importer keeps
+the file's paisa (`4.30` stays Rs 4.30). No migration: storage was always paisa.
+
+**Found while tracing it, fixed:** refunding a line in pieces could return more than it was charged
+(3 × Rs 105.50 charged Rs 317 would refund Rs 106 × 3 = Rs 318) — already possible with weighed goods,
+ordinary with paisa prices. A line's refunds now sum to exactly its charge: the last piece returns
+what is left, any other is capped at it, pending refunds included.
+
+**Found in the browser, fixed:** editing a product with a mistyped price (`105.505`) gave a **500
+page** — the edit route parsed the price before its error handling (the barcode price-override route
+too). The old float parser had the same hole; the number box's `step` hid it. Now a message on the
+form, with route tests.
+
+**Verified:** money/parsing/refund/route tests added (parse never via float, display, Rs 317 for
+3 × Rs 105.50, refunds summing to exactly the charge incl. pending); real Chrome on a scratch
+database — product form saves and re-shows 105.50 / 4.30, a third decimal is a message, the till
+shows "Rs 105.50 / unit", 1 item Rs 106, 3 items Rs 317, cash and change whole rupees.
+
+### 2026-10-28 — Session 38: importing the shop's product spreadsheet (ADR-0043)
+
+**Asked for:** turn the client's OpenSourcePOS export into a file Sukoon can import, with the
+barcodes removed, and build an import that opens a screen where the owner fixes entries himself —
+scanning real barcodes from the items, correcting cost and price, categories.
+
+**Built:**
+- `scripts/prepare_product_import.py` → `docs/import/sukoon-products-import.csv`: 8,111 products,
+  columns `Name, Category, Cost Price, Selling Price, Low Stock Level`; 5 junk rows dropped
+  (`test`, four barcodes in the name column); barcode-sized costs and zero costs blanked.
+- Two tables (`catalog_import`, `catalog_import_row`, migration `abb9f3b8c306`). Upload stages rows;
+  the review screen: ready / choose which to keep (169 groups, 377 rows in the real file) / need a
+  price (20) / skipped (134, mostly identical copies). Add to stock: one transaction.
+- The worklist: search, the cursor lands in the first result's barcode box, scan, Enter (htmx), the
+  row leaves "No barcode yet", the cursor returns to search. A taken barcode is refused naming its
+  product. **A changed selling price still asks for the password** (ADR-0008 §5); nothing else does.
+- Undo: deletes unused products, deactivates any already sold or counted.
+
+**Decided along the way (in the ADR):** 2,955 costs carry paisa (OSPOS averages) — rounded half-up
+to the rupee per ADR-0007's invariant, the file's figure shown beside it on the worklist. A row
+with no selling price can't become a product (it would sell at Rs 0); it waits on the review
+screen for a price. Duplicate groups need an explicit tick or "Skip all" — an empty submit is
+refused, so nothing is skipped by accident.
+
+**Caught by measuring, fixed:** the first version made products one by one: 24 s to add the real
+file, 29 s to undo. Batched the SKU counter and flushes (2.5 s), and found undo was slow because
+SQLite checked every deleted product against an unindexed `catalog_import_row.product_id` —
+indexed it (0.25 s).
+
+**Verified:** 35 parsing tests + 30 integration tests (incl. the real file end to end, all-or-
+nothing, cashier 403 on every route); full suite **750 passed**, ruff clean; migration up, down and
+up on a copy of the dev database with `flask db check` clean; and the whole flow driven in real
+headless Chrome on a scratch database — upload, decide a group, price a row, add 7,582 products
+(3.7 s), search → scan → saved by htmx → row gone → cursor back, duplicate barcode refused, price
+change refused without the password and saved with it, the scanned barcode found from Stock.
+
+**Not done:** not released (no version bump, no VM build). The till still only finds an unscanned
+imported product by a name unique enough to match one product; "Is this one of these?" on an
+unknown scan is noted in the ADR as a later change.
+
+### 2026-10-23 — Session 37: the receipt printer and the product spreadsheet — answers only
+
+**No code changed**, at the developer's request. Two questions from the client:
+
+- **Receipts print badly.** From a photo of a printed receipt and of the printer's box (Black Copper
+  BC-85ACG1, 80 mm, USB/serial/LAN): the shop name isn't styled and the 42-column layout leaves space
+  on 80 mm paper. Can't be configured from the box alone — the IP, characters per line and current
+  settings are unknown. A checklist went to the shop (self-test page, Settings screen, back panel,
+  network cable). Recorded under O-25.
+- **Seed the inventory from a spreadsheet.** The client's OSPOS export meets ADR-0011 §4's trigger.
+  Analysed (barcodes destroyed by Excel, duplicates, missing prices, 261 category spellings, no stock
+  counts). The developer decided categories (he maps them from `docs/import/category-mapping.csv`),
+  duplicates (owner picks on a review screen) and suspect rows (import as "Needs completing").
+  **Recorded as O-28 and held open** until the client confirms; no ADR yet.
 
 ### 2026-10-13 — Session 36: several Khatas on one phone number (ADR-0042)
 

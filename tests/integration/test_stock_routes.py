@@ -240,3 +240,52 @@ def test_label_geometry_is_configurable_via_settings(app):
     db.session.commit()
     geo = labels.load_geometry()
     assert (geo.columns, geo.rows, geo.per_page) == (4, 10, 40)
+
+
+# --- paisa prices (ADR-0044) ---------------------------------------------------------------
+
+def test_a_price_with_paisa_saves_and_a_third_decimal_is_a_message_not_a_500(
+    client, seeded, login, product
+):
+    login("OW", ADMIN_PASSWORD)
+    form = {"name": product.name, "sell_price": "2850", "cost_price": "4.30"}
+    assert client.post(f"/stock/products/{product.id}", data=form).status_code == 302
+    db.session.expire_all()
+    assert inv.get_product(product.id).cost_price_paisa == 430
+
+    resp = client.post(f"/stock/products/{product.id}",
+                       data={**form, "cost_price": "4.305"})
+    assert resp.status_code == 400
+    assert "Use at most two decimals" in resp.get_data(as_text=True)
+
+    resp = client.post(f"/stock/products/{product.id}/barcodes",
+                       data={"barcode": "123", "price_override": "1.234"},
+                       follow_redirects=True)
+    assert resp.status_code == 200
+    assert "Use at most two decimals" in resp.get_data(as_text=True)
+
+
+def test_a_new_product_keeps_its_paisa_and_shows_them(client, seeded, login):
+    login("OW", ADMIN_PASSWORD)
+    resp = client.post("/stock/products", data={"name": "Biscuits", "sell_price": "105.50",
+                                                "cost_price": "4.30"}, follow_redirects=True)
+    page = resp.get_data(as_text=True)
+    assert "Rs 105.50" in page
+    p = inv.list_products(query="Biscuits")[0][0]
+    assert (p.sell_price_paisa, p.cost_price_paisa) == (10550, 430)
+
+
+def test_the_catalog_list_shows_cost_and_low_stock_level(client, seeded, login):
+    cat = inv.create_category("Oil")
+    inv.create_product(name="Sufi Oil 1L", sell_price_paisa=52_000, cost_price_paisa=50_940,
+                       category=cat, low_stock_threshold_milli=3_000)
+    inv.create_product(name="Mystery Item", sell_price_paisa=10_000)  # cost and level unset
+    login("T1", CASHIER_PASSWORD)  # the list is open to cashiers, as product detail is
+    page = client.get("/stock/").get_data(as_text=True)
+    assert ">Cost<" in page and ">Low at<" in page
+    sufi = page[page.index("Sufi Oil 1L"):]
+    sufi = sufi[:sufi.index("</tr>")]
+    assert "Rs 509.40" in sufi and "3 unit" in sufi and "Rs 520" in sufi
+    mystery = page[page.index("Mystery Item"):]
+    mystery = mystery[:mystery.index("</tr>")]
+    assert "unknown" in mystery and "—" in mystery

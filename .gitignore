@@ -39,3 +39,9 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# The client's product data — this repository is public. The import feature and
+# scripts/prepare_product_import.py are committed; the shop's own list, prices and the
+# category table made from it stay on the developer's machine.
+Grocery_Items_list.csv
+docs/import/*.csv

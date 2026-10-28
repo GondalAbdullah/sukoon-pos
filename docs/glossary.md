@@ -49,11 +49,12 @@ product is surfaced in the "needs attention" list and badged **Low** (amber).
 
 **Counted / never counted** *(Settled — ADR-0025)* — A product is *counted* once a
 person has told Sukoon how many exist: at least one stock-in (a delivery) or a correct
-count. Until then it is *never counted*, and its zero level means "unknown", not
-"none". The till caps a counted product at its stock level; a never-counted product is
-not capped.
+count. Until then it is *never counted*. Since ADR-0047 the distinction no longer changes
+what can be sold: **every** product is capped at its stock level, and 0 means none to sell.
+It is still how the Low stock report lists items nobody has counted yet.
 
-**Found at the till** *(Settled — ADR-0025)* — A stock-in Sukoon books automatically at
+**Found at the till** *(Retired — ADR-0047)* — No longer booked; older movements keep it.
+Was: a stock-in Sukoon booked automatically at
 checkout for a never-counted product, for exactly the quantity the sale needs, so the
 sale can deduct it without the level going negative. Tagged `found_at_till` and named in
 the stock history ("Found at the till — not yet counted (INV-…)"). It never makes a
@@ -194,11 +195,13 @@ balance, instead of cash leaving the drawer. Does not reset the overdue clock
 Enter, next. Used to populate the catalog quickly. The scanner drives navigation; the
 cursor returns to the scan field after every committed row.
 
-**Scan-as-you-go** *(Settled)* — Letting the catalog fill itself during real trading.
-An unrecognised barcode at the till offers inline creation instead of blocking the
-sale, so the shop can open before the catalog is complete.
+**Scan-as-you-go** *(Retired — ADR-0047)* — Was: an unrecognised barcode at the till offered
+to create the product on the spot. Removed 2026-10-29: the till says nothing matches, and
+typed text matching several products lists them to choose from (the **pick list**).
 
-**Provisional product** *(Settled)* — A product created at the till mid-sale, holding
+**Provisional product** *(Settled)* — A product with a Tier C field unset (cost, category or
+low-stock level; ADR-0012) — today, mostly imported rows with no cost. It used to mean a
+product created at the till mid-sale (retired by ADR-0047), holding
 only what the cashier could honestly know: name, selling price, and the barcode just
 scanned. Cost, category, and threshold are left unset. Flagged, attributed, listed
 under "Needs completing", and excluded from margin reporting so an unknown cost is
@@ -208,6 +211,33 @@ is a normal, complete product. See ADR-0011 and ADR-0012.
 **Needs completing** *(Settled)* — The Stock filter listing provisional products, with
 a count on the stat card. The list is meant to trend to zero; it is the visibility
 that makes till-created products safe rather than silent debt.
+
+**Paisa price** *(Settled)* — A product cost or selling price with paisa in it (Rs 150.50).
+Allowed since ADR-0044; since ADR-0046 nothing built from it is rounded either: line totals,
+the bill, change, the Khata and refunds are all exact (3 × Rs 150.50 = Rs 451.50; change from
+Rs 500 is Rs 48.50). Only a by-amount line and a Khata's credit limit stay in whole rupees.
+
+**Shop details** *(Settled)* — The shop's name, address and phone, entered under Settings and
+printed at the bottom of every receipt and on Khata statements. See ADR-0046.
+
+**Product import** *(Settled)* — Bringing the shop's product spreadsheet into Sukoon
+(Stock → Import, Admin only). The file is first **staged**: its rows wait in an import
+batch, nothing is a product yet, while the owner chooses between duplicates, prices rows
+that have no price, or skips rows. **Add to stock** then turns every ready row into a
+product at once. A batch can be **undone**. See ADR-0043.
+
+**Import file** *(Settled)* — Sukoon's own CSV format for a product list: `Name, Category,
+Cost Price, Selling Price, Low Stock Level` (Name and Selling Price required). Deliberately
+has **no barcode column**; barcodes are scanned on afterwards. `scripts/prepare_product_import.py`
+makes one from an OpenSourcePOS export.
+
+**Duplicate group** *(Settled)* — Rows in an import with the same name, ignoring case and
+spaces. Identical copies collapse onto the first without asking; copies that differ wait
+on the review screen until the owner ticks which to keep ("Choose which to keep").
+
+**Worklist** *(Settled)* — The "Scan barcodes & correct" screen for an import's products:
+search a few letters, scan the item into its row, Enter. Filtered to "No barcode yet" by
+default, so each product leaves the list as its barcode is attached.
 
 **Normalised phone** *(Settled)* — A phone number reduced to one canonical form so
 that `0300 5541298`, `03005541298` and `+923005541298` all match each other. Stored

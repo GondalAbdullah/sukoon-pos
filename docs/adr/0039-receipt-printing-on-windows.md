@@ -1,6 +1,7 @@
 # 0039 — Receipt Printing on Windows, and the Printer a Background Account Cannot See
 
 Status: **Accepted** 2026-09-17 — the client named the hardware in the Phase 7 grill; the model is still outstanding (O-25)
+Amended by: [ADR-0046](0046-exact-amounts-and-store-style-receipt.md) (2026-10-29) — the receipt's layout (store style, shop details at the bottom)
 Date: 2026-09-17
 Phase: 7
 Grilled: `docs/proposals/phase-7-packaging.md` (D9, U6)

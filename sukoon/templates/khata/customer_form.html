@@ -86,7 +86,7 @@
     </label>
 
     {% if not customer %}
-      <p class="text-xs text-muted mb-5">Starts with the shop's credit limit of <b class="text-inkSoft">Rs {{ '{:,}'.format(default_limit // 100) }}</b>. An Admin can change it.</p>
+      <p class="text-xs text-muted mb-5">Starts with the shop's credit limit of <b class="text-inkSoft">{{ default_limit | rupees }}</b>. An Admin can change it.</p>
     {% endif %}
 
     <button type="submit" class="btn-primary w-full">{{ 'Save' if customer else 'Open Khata' }}</button>

@@ -73,7 +73,9 @@ def shop(seeded):
     atta = product(
         "Atta (loose)", 170, 140, groceries, 20_000, allows_fractional=True, unit_label="kg"
     )
-    biscuits = product("Local Biscuits", 80, None, None, 0)  # never counted, cost unknown
+    # cost unknown; delivered 5 — since ADR-0047 nothing sells from an empty shelf
+    biscuits = product("Local Biscuits", 80, None, None, 5_000)
+    product("New Toffee", 10, 8, None, 0)  # never counted, never sold
     sugar = product("Sugar 1kg", 300, 250, groceries, 5_000)
     inv.apply_stock_movement(
         product=sugar,
@@ -308,7 +310,7 @@ def test_low_stock_separates_out_low_and_never_counted(shop):
     names = {s.heading: [r[0] for r in s.rows] for s in doc.sections}
     assert names["Out of stock — reorder now"] == ["Sugar 1kg"]
     assert names["Running low"] == ["Soap"]  # 6 left, threshold 6
-    assert names["Never counted"] == ["Local Biscuits"]
+    assert names["Never counted"] == ["New Toffee"]
 
 
 def test_credit_lists_owing_oldest_overdue_first_and_credit_separately(shop):

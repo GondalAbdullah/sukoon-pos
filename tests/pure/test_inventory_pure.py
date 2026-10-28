@@ -73,14 +73,13 @@ def test_stock_status_null_threshold_never_low():
 
 # --- money / quantity validation (ADR-0007 / ADR-0004) ---
 
-def test_whole_rupee_validation():
-    assert inv.validate_whole_rupee(15000, field="x") == 15000
+def test_price_validation_allows_paisa_but_not_negative_or_missing():
+    assert inv.validate_price(15000, field="x") == 15000
+    assert inv.validate_price(15050, field="x") == 15050  # paisa allowed (ADR-0044)
     with pytest.raises(inv.ValidationError):
-        inv.validate_whole_rupee(15050, field="x")  # not a whole rupee
+        inv.validate_price(-100, field="x")
     with pytest.raises(inv.ValidationError):
-        inv.validate_whole_rupee(-100, field="x")
-    with pytest.raises(inv.ValidationError):
-        inv.validate_whole_rupee(None, field="x")
+        inv.validate_price(None, field="x")
 
 
 def test_fractional_quantity_rejected_for_sealed_pack():

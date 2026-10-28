@@ -508,3 +508,81 @@ def test_only_an_approver_is_pointed_at_the_pending_queue(client, seeded, login)
     assert "1 refund waiting for your approval" in html
     assert 'href="/refunds/pending"' in html
     assert 'class="rail-badge">1<' in html
+
+
+# --- paisa prices (ADR-0044) ----------------------------------------------------------------
+
+@pytest.fixture
+def biscuits(app, staff):
+    p = inv.create_product(name="Biscuits", sell_price_paisa=10_550)  # Rs 105.50
+    inv.apply_stock_movement(product=p, movement_type="stock_in", quantity_milli=10_000,
+                             reason="in", user_id=staff["admin"].id)
+    return p
+
+
+def _refund(staff, sale, milli):
+    r = refund_service.initiate_refund(
+        sale_id=sale.id,
+        lines=[RefundLineSpec(sale_item_id=sale.items[0].id, quantity_milli=milli)],
+        reason="returned", initiated_by_user_id=staff["cashier"].id)
+    refund_service.approve_refund(refund_id=r.id, approved_by_user_id=staff["admin"].id)
+    return r.total_paisa
+
+
+def test_a_paisa_price_stays_exact_to_the_total(staff, biscuits):
+    sale = _cash_sale(staff, CartLine(product=biscuits, quantity_milli=3_000,
+                                      unit_price_paisa=10_550, quantity_source="stepper"))
+    assert (sale.items[0].line_total_paisa, sale.total_paisa) == (31_650, 31_650)  # ADR-0046
+
+
+def test_refunds_one_at_a_time_return_exactly_what_was_paid(staff, biscuits):
+    sale = _cash_sale(staff, CartLine(product=biscuits, quantity_milli=3_000,
+                                      unit_price_paisa=10_550, quantity_source="stepper"))
+    refunds = [_refund(staff, sale, 1_000) for _ in range(3)]
+    assert refunds == [10_550, 10_550, 10_550]
+    assert sum(refunds) == sale.total_paisa == 31_650
+
+
+def test_refunding_the_rest_of_a_line_returns_exactly_what_is_left(staff, biscuits):
+    sale = _cash_sale(staff, CartLine(product=biscuits, quantity_milli=3_000,
+                                      unit_price_paisa=10_550, quantity_source="stepper"))
+    assert _refund(staff, sale, 1_000) + _refund(staff, sale, 2_000) == sale.total_paisa == 31_650
+
+
+def test_a_pending_refund_counts_against_whats_left(staff, biscuits):
+    sale = _cash_sale(staff, CartLine(product=biscuits, quantity_milli=2_000,
+                                      unit_price_paisa=10_550, quantity_source="stepper"))
+    first = refund_service.initiate_refund(
+        sale_id=sale.id, lines=[RefundLineSpec(sale_item_id=sale.items[0].id,
+                                               quantity_milli=1_000)],
+        reason="x", initiated_by_user_id=staff["cashier"].id)
+    second = refund_service.initiate_refund(
+        sale_id=sale.id, lines=[RefundLineSpec(sale_item_id=sale.items[0].id,
+                                               quantity_milli=1_000)],
+        reason="x", initiated_by_user_id=staff["cashier"].id)
+    assert first.total_paisa + second.total_paisa == sale.total_paisa == 21_100
+
+
+def test_refunding_a_whole_paisa_bill_returns_it_exactly(staff, biscuits, milk):
+    """Rs 105.50 + Rs 280 = Rs 385.50 paid; refunding both returns Rs 385.50."""
+    sale = _cash_sale(staff,
+                      CartLine(product=biscuits, quantity_milli=1_000, unit_price_paisa=10_550,
+                               quantity_source="stepper"),
+                      CartLine(product=milk, quantity_milli=1_000, unit_price_paisa=28_000,
+                               quantity_source="stepper"))
+    r = refund_service.initiate_refund(
+        sale_id=sale.id,
+        lines=[RefundLineSpec(sale_item_id=i.id, quantity_milli=1_000) for i in sale.items],
+        reason="x", initiated_by_user_id=staff["cashier"].id)
+    assert (sale.total_paisa, r.total_paisa) == (38_550, 38_550)
+    assert all(i.line_total_paisa in (10_550, 28_000) for i in r.items)
+
+
+def test_compute_refund_total_is_exact_and_capped():
+    f = refund_service.compute_refund_total_paisa
+    assert f(lines_paisa=10_550, sale_total_paisa=31_650, already_refunded_paisa=0,
+             takes_the_rest=False) == 10_550
+    assert f(lines_paisa=10_550, sale_total_paisa=31_650, already_refunded_paisa=31_200,
+             takes_the_rest=False) == 450  # never more than is left
+    assert f(lines_paisa=99_999, sale_total_paisa=31_650, already_refunded_paisa=21_100,
+             takes_the_rest=True) == 10_550

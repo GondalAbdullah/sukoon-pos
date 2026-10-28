@@ -1,6 +1,8 @@
 # 0011 — Catalog Onboarding
 
 Status: **Accepted**
+Amended by: [ADR-0043](0043-product-spreadsheet-import.md) (2026-10-28) — §4's trigger was met: the client produced a real file, and a staged product import is built
+Amended by: [ADR-0047](0047-nothing-sells-from-an-empty-shelf.md) (2026-10-29) — §2–§3 superseded: the till no longer creates products; typed text matching several products lists them to choose
 Date: 2026-09-09
 Phase: 0 (grill-with-docs session 1)
 Depends on: [ADR-0008](0008-authentication-and-access-control.md), [ADR-0009](0009-multiple-barcodes-per-product.md)
