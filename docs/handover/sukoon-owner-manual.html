@@ -342,7 +342,7 @@
       </tr>
       <tr>
         <td><strong>The installer file</strong></td>
-        <td><span class="kbd">Sukoon-Setup-1.1.0.exe</span>, on a USB stick or downloaded. It is
+        <td><span class="kbd">Sukoon-Setup-1.2.0.exe</span>, on a USB stick or downloaded. It is
         about 27 MB.</td>
       </tr>
       <tr>
@@ -396,7 +396,7 @@
 
   <ol class="steps">
     <li>
-      <span class="st">Double-click <span class="kbd">Sukoon-Setup-1.1.0.exe</span></span>
+      <span class="st">Double-click <span class="kbd">Sukoon-Setup-1.2.0.exe</span></span>
       If Windows asks whether to allow the program to make changes, say yes.
     </li>
     <li>
@@ -597,7 +597,16 @@
   <p class="lede">Nothing can be sold until it exists in the catalogue. The catalogue is the list of
   everything your shop sells — separately from whether any of it is on the shelf right now.</p>
 
-  <h3>The fast way in: Bulk entry</h3>
+  <h3>The fastest way in: import your product list</h3>
+  <p>If you already have your products in a spreadsheet, <span class="path">Stock → Import</span>
+  brings them all in at once. Sukoon first shows you what needs a decision — the same item listed
+  twice with different prices, items with no price — and adds nothing until you press
+  <span class="ui">Add … to stock</span>. Then <span class="ui">Scan barcodes &amp; correct</span> lists
+  every imported item: type a few letters of the one in your hand, press <span class="kbd">Enter</span>,
+  type how many are on the shelf in <span class="ui">In stock</span>, and scan its barcode. If the wrong
+  file went in, <span class="ui">Undo this import</span> takes it all back.</p>
+
+  <h3>Item by item: Bulk entry</h3>
   <p><span class="path">Stock → Bulk entry</span> is built for exactly this day. Scan a barcode,
   type a name, type a selling price, press <span class="kbd">Enter</span> — and the cursor jumps
   straight back to the barcode box, ready for the next item. You can do several hundred items
@@ -608,13 +617,13 @@
   amber <span class="ui">Needs completing</span> badge on anything that is missing them. That badge
   is a to-do list, not an error. The item sells perfectly well.</p>
 
-  <div class="box tip">
-    <p class="t">How to approach the first day</p>
-    <p>Do not try to enter 2,000 lines perfectly before you start trading. Enter your fastest-moving
-    few hundred items with just name and price, and start selling. When a cashier scans something
-    that is not in the catalogue yet, Sukoon lets them create it on the spot mid-sale — and marks
-    it <span class="ui">Needs completing</span> for you to tidy up later. Within a fortnight your
-    catalogue fills itself.</p>
+  <div class="box warn">
+    <p class="t">An item sells only once its stock is entered</p>
+    <p>Sukoon will not sell anything it thinks you have none of. A new item starts at 0 in stock, so
+    before it can be rung up, enter how many you have: the <span class="ui">In stock</span> box on the
+    import screen, or <span class="path">Stock → the item → Stock in</span>. Start with your
+    fastest-moving items. A cashier cannot add new items at the till: if something is not in the
+    catalogue, an Admin adds it in Stock.</p>
   </div>
 
   <h3>Careful, one at a time</h3>
@@ -623,7 +632,8 @@
   <table class="compact">
     <thead><tr><th style="width:30%">Field</th><th>What it means</th></tr></thead>
     <tbody>
-      <tr><td><strong>Name and price</strong></td><td>Required. The price is what you charge.</td></tr>
+      <tr><td><strong>Name and price</strong></td><td>Required. The price is what you charge, and can
+      have paisa: Rs 150.50 stays exactly Rs 150.50.</td></tr>
       <tr><td><strong>Cost price</strong></td><td>What you paid your supplier. Optional — but until
       you enter it, Sukoon cannot tell you what your shelves are worth or estimate your profit. It
       will show nothing rather than guess.</td></tr>
@@ -712,15 +722,16 @@
 
   <h3>The very first time: name the counter</h3>
   <p>Each counter asks <span class="ui">Name this till</span> once, and you type
-  <strong>Till 1</strong>, <strong>Till 2</strong> and so on. It never asks again. That name prints
-  on every receipt from that counter — so when Rs 400 is missing at the end of a day, you can tell
-  which counter rang the sale.</p>
+  <strong>Till 1</strong>, <strong>Till 2</strong> and so on. It never asks again. That name is kept
+  with every sale from that counter — so when Rs 400 is missing at the end of a day, you can tell
+  which counter rang the sale. (It no longer prints on the customer's receipt.)</p>
 
   <h3>Ringing up a customer</h3>
   <ol class="steps">
     <li>
       <span class="st">Scan or type each item</span>
-      A <strong>sealed pack</strong> appears with a <span class="kbd">−  3  +</span> stepper for the
+      If what you type matches several items — <em>shezan</em> — Sukoon lists them with their price
+      and stock, and you tap the right one. A <strong>sealed pack</strong> appears with a <span class="kbd">−  3  +</span> stepper for the
       quantity. A <strong>loose</strong> item opens a small weight box instead, because the assistant
       has to walk to the scale and come back. You can type the weight in kg, or press
       <span class="ui">by amount</span> and type the rupees the customer asked for — Sukoon works
@@ -741,8 +752,9 @@
     <li>
       <span class="st">For cash, tap the note they handed you</span>
       Beside <span class="ui">Cash received</span> are shortcut buttons: <span class="ui">Exact</span>,
-      then the next round Rs 100, Rs 500, Rs 1,000. On a Rs 255 bill they read
-      <em>Exact · Rs 300 · Rs 500</em>. Tap the one matching the note they gave you and
+      then the next round Rs 100, Rs 500, Rs 1,000. On a Rs 255.50 bill they read
+      <em>Exact · Rs 300 · Rs 500</em>. Bills are exact to the paisa, and so is the change
+      (Rs 44.50 from Rs 300); hand back the nearest you can. Tap the one matching the note they gave you and
       <span class="ui">Change to return</span> shows what to hand back — no mental arithmetic with a
       queue watching.
     </li>
@@ -758,9 +770,13 @@
   <table class="compact">
     <thead><tr><th style="width:38%">What you see</th><th>Why</th></tr></thead>
     <tbody>
-      <tr><td><strong>"Only 4 in stock"</strong></td>
-        <td>You cannot sell more of a counted item than you have. If the shelf really does have
-        more, your count is wrong — do a stock in to correct it, with a reason.</td></tr>
+      <tr><td><strong>"… is out of stock"</strong> or <strong>"Only 4 in stock"</strong></td>
+        <td>You cannot sell more of an item than Sukoon says you have — and 0 means none. If the shelf
+        really does have more, the count is wrong: an Admin enters it (Stock → the item → Stock in,
+        with a reason), and you try again.</td></tr>
+      <tr><td><strong>"Nothing in the catalogue matches"</strong></td>
+        <td>The barcode or name is not in Sukoon. Cashiers cannot create items at the till; an Admin
+        adds it in Stock.</td></tr>
       <tr><td><strong>An Admin password is demanded mid-sale</strong></td>
         <td>This khata customer would go past their credit limit. See Section 10.</td></tr>
       <tr><td><strong><span class="ui">Complete sale</span> stays grey</strong></td>
@@ -789,9 +805,19 @@
   <p class="sec-intro">Set the printer up once. If it ever fails, your sales carry on regardless.</p>
 
   <h3>Setting it up</h3>
-  <p>Go to <span class="path">Settings → Receipt printer</span>, pick your printer under
+  <p>First, <span class="path">Settings → Shop details</span>: your shop's name, address and phone.
+  They print at the bottom of every receipt and on khata statements.</p>
+
+  <p>Then go to <span class="path">Settings → Receipt printer</span>, pick your printer under
   <span class="ui">Which printer</span>, save, and press <span class="ui">Print a test receipt</span>.
-  If paper comes out, you are finished.</p>
+  Your shop's name prints large, with three number lines (rulers) below it. If the <strong>48</strong>
+  ruler fits on one line, you are finished. If it runs onto a second line, choose
+  <span class="ui">80 mm paper — 42 characters a line</span> under <span class="ui">Receipt width</span>
+  and save. (For 58 mm paper, choose 32.)</p>
+
+  <p>A receipt shows the invoice number and date (28-Oct-2026), a table of items in capital letters
+  with quantity, rate and amount, the <strong>NET AMOUNT</strong> in bold, how it was paid and the
+  change, and your shop's details at the bottom.</p>
 
   <p>Sukoon prints through Windows' own printing system, using your printer's own driver. This means
   two things: your printer must be installed and working in Windows first, and it should be
@@ -799,10 +825,10 @@
   added under one Windows account only, Sukoon may not be able to see it.</p>
 
   <div class="box note">
-    <p class="t">Honest note: printing has never been tested on your actual printer</p>
-    <p>Everything in the printing path was built and tested, but never against the physical printer
-    in your shop, because its make and model were not known while Sukoon was being written. Your
-    first test receipt is genuinely the first test.</p>
+    <p class="t">Honest note: tested on your printer's test slip, not yet on a full receipt</p>
+    <p>Your printer (Black Copper BC-85ACG1, USB) prints from Sukoon through Windows — the test
+    slips you sent proved it. It ignored the command 1.1.0 used to make the shop name large; 1.2.0
+    uses the one it supports. The new test receipt is the first check of that, and of the width.</p>
     <p>If it does not work, nothing is lost — see below. Tell your installer the printer's make and
     model and it will be sorted out.</p>
   </div>

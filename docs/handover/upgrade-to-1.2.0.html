@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sukoon — Upgrading to 1.2.0</title>
+<style>
+  :root{
+    --ink:#1C1C1E; --ink-soft:#48484D; --muted:#86868B; --faint:#B9B9BE;
+    --hairline:#E8E7E3; --paper:#FAF9F6; --surface:#FFFFFF; --sunk:#F2F1EC;
+    --teal:#0E6B57; --teal-deep:#0A4F41; --teal-tint:#E7F3EF; --teal-tint-2:#D6ECE4;
+    --amber:#B8873B; --amber-tint:#FBF3E4;
+    --coral:#C15B45; --coral-tint:#FBEEEA;
+    --sky:#3E6FBF; --sky-tint:#EAF1FC;
+  }
+
+  @page { size: A4; margin: 18mm 16mm 16mm 16mm; }
+
+  *{ box-sizing:border-box; }
+  html{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  body{
+    font-family:"Noto Sans","Liberation Sans","DejaVu Sans",sans-serif;
+    color:var(--ink); background:var(--surface);
+    font-size:10.4pt; line-height:1.58; margin:0;
+    text-rendering:optimizeLegibility;
+  }
+
+  /* ---------- cover ---------- */
+  .cover{
+    page-break-after:always; height:297mm; width:210mm; position:relative;
+    background:var(--teal); color:#fff; overflow:hidden;
+    display:flex; flex-direction:column; justify-content:space-between;
+    padding:26mm 20mm 18mm 20mm;
+  }
+  .cover::after{
+    content:""; position:absolute; right:-70mm; top:-40mm;
+    width:190mm; height:190mm; border-radius:50%;
+    background:rgba(255,255,255,0.055);
+  }
+  .cover::before{
+    content:""; position:absolute; left:-55mm; bottom:-70mm;
+    width:150mm; height:150mm; border-radius:50%;
+    background:rgba(255,255,255,0.04);
+  }
+  .cover > *{ position:relative; z-index:1; }
+  .cover .shop{
+    font-size:10pt; letter-spacing:.20em; text-transform:uppercase;
+    color:rgba(255,255,255,.72); font-weight:600;
+  }
+  .cover h1{
+    font-size:62pt; line-height:.95; margin:0 0 6mm; font-weight:700; letter-spacing:-.025em;
+  }
+  .cover .sub{
+    font-size:17pt; line-height:1.4; font-weight:400;
+    color:rgba(255,255,255,.93); max-width:125mm; margin:0;
+  }
+  .cover .rule{ width:26mm; height:3px; background:rgba(255,255,255,.55); margin:0 0 8mm; border-radius:2px; }
+  .cover-foot{ display:flex; justify-content:space-between; align-items:flex-end; gap:10mm; }
+  .cover-foot .note{
+    font-size:9.6pt; line-height:1.55; color:rgba(255,255,255,.80); max-width:105mm;
+  }
+  .cover-foot .meta{ font-size:9pt; color:rgba(255,255,255,.62); text-align:right; }
+
+  /* ---------- structure ---------- */
+  h2{
+    font-size:20pt; font-weight:700; letter-spacing:-.02em; color:var(--teal-deep);
+    margin:0 0 1mm; page-break-after:avoid; line-height:1.2;
+  }
+  h2 .num{
+    display:inline-block; min-width:9mm; color:var(--amber); font-weight:700;
+  }
+  .sec-intro{
+    color:var(--ink-soft); font-size:11pt; margin:0 0 6mm; max-width:150mm; line-height:1.5;
+  }
+  h3{
+    font-size:12.2pt; font-weight:700; color:var(--ink); margin:7mm 0 1.5mm;
+    page-break-after:avoid; letter-spacing:-.01em;
+  }
+  h4{ font-size:10.6pt; font-weight:700; color:var(--ink); margin:5mm 0 1mm; page-break-after:avoid; }
+  p{ margin:0 0 2.6mm; }
+  ul,ol{ margin:0 0 3mm; padding-left:5.5mm; }
+  li{ margin-bottom:1.4mm; }
+  strong{ font-weight:700; }
+  em{ font-style:normal; color:var(--teal-deep); font-weight:600; }
+
+  .section{ page-break-before:always; }
+  .divider{ border:0; border-top:1px solid var(--hairline); margin:7mm 0; }
+
+  /* ---------- UI words ---------- */
+  .ui{
+    font-weight:600; color:var(--teal-deep); background:var(--teal-tint);
+    padding:.3mm 1.1mm; border-radius:4px; white-space:nowrap; font-size:9.6pt;
+  }
+  .path{ font-weight:600; color:var(--ink); white-space:nowrap; }
+  .kbd{
+    font-family:"DejaVu Sans Mono",monospace; font-size:9pt; background:var(--sunk);
+    border:1px solid var(--hairline); border-radius:4px; padding:.3mm 1.4mm; white-space:nowrap;
+  }
+
+  /* ---------- callouts ---------- */
+  .box{
+    border-radius:11px; padding:4mm 5mm; margin:4mm 0; page-break-inside:avoid;
+    border:1px solid var(--hairline); background:var(--paper);
+  }
+  .box p:last-child{ margin-bottom:0; }
+  .box .t{ font-weight:700; margin:0 0 1.5mm; font-size:10.4pt; }
+  .box.warn{ background:var(--coral-tint); border-color:#EBC9C0; }
+  .box.warn .t{ color:#8E3B29; }
+  .box.note{ background:var(--amber-tint); border-color:#EAD9B7; }
+  .box.note .t{ color:#7A5A20; }
+  .box.tip{ background:var(--teal-tint); border-color:#C5E0D6; }
+  .box.tip .t{ color:var(--teal-deep); }
+  .box.info{ background:var(--sky-tint); border-color:#C8D8F2; }
+  .box.info .t{ color:#2C5290; }
+
+  /* ---------- steps ---------- */
+  ol.steps{ list-style:none; padding:0; margin:3mm 0 4mm; counter-reset:s; }
+  ol.steps > li{
+    counter-increment:s; position:relative; padding-left:10mm; margin-bottom:3.6mm;
+    page-break-inside:avoid;
+  }
+  ol.steps > li::before{
+    content:counter(s); position:absolute; left:0; top:0.2mm;
+    width:6.4mm; height:6.4mm; border-radius:50%; background:var(--teal); color:#fff;
+    font-size:9pt; font-weight:700; display:flex; align-items:center; justify-content:center;
+  }
+  ol.steps > li .st{ font-weight:700; display:block; }
+
+  /* ---------- tables ---------- */
+  table{ width:100%; border-collapse:collapse; margin:3mm 0 4mm; font-size:9.8pt; page-break-inside:avoid; }
+  thead th{
+    text-align:left; background:var(--teal-deep); color:#fff; font-weight:600;
+    padding:2.2mm 3mm; font-size:9.2pt; letter-spacing:.02em;
+  }
+  thead th:first-child{ border-top-left-radius:7px; }
+  thead th:last-child{ border-top-right-radius:7px; }
+  tbody td{ padding:2.4mm 3mm; border-bottom:1px solid var(--hairline); vertical-align:top; }
+  tbody tr:nth-child(even){ background:var(--paper); }
+  table.compact tbody td{ padding:1.9mm 3mm; }
+
+  /* ---------- contents ---------- */
+  .toc{ margin:0; padding:0; list-style:none; column-count:2; column-gap:12mm; }
+  .toc li{
+    padding:2.1mm 0; border-bottom:1px solid var(--hairline);
+    break-inside:avoid; display:flex; gap:3mm; align-items:baseline;
+  }
+  .toc .n{ color:var(--amber); font-weight:700; min-width:6mm; font-size:9.6pt; }
+  .toc .l{ font-weight:600; font-size:10pt; }
+  .toc .d{ color:var(--muted); font-size:8.8pt; display:block; font-weight:400; }
+
+  /* ---------- misc ---------- */
+  .lede{
+    font-size:12.6pt; line-height:1.5; color:var(--ink-soft);
+    border-left:3px solid var(--teal); padding-left:5mm; margin:0 0 6mm;
+  }
+  .cards{ display:flex; gap:4mm; flex-wrap:wrap; margin:4mm 0; }
+  .card{
+    flex:1 1 44%; border:1px solid var(--hairline); border-radius:11px;
+    padding:3.5mm 4mm; background:var(--surface); page-break-inside:avoid;
+  }
+  .card .h{ font-weight:700; color:var(--teal-deep); margin-bottom:1mm; font-size:10.4pt; }
+  .card p{ margin:0; font-size:9.6pt; color:var(--ink-soft); line-height:1.5; }
+
+  .screen{
+    border:1px solid var(--hairline); border-radius:11px; overflow:hidden;
+    margin:4mm 0; page-break-inside:avoid; background:var(--paper);
+  }
+  .screen .bar{
+    background:var(--sunk); padding:2mm 4mm; font-size:9pt; font-weight:700;
+    color:var(--ink-soft); border-bottom:1px solid var(--hairline);
+  }
+  .screen .body{ padding:3.5mm 4mm; font-size:9.6pt; }
+  .screen .body p{ margin-bottom:1.5mm; }
+  .screen .body p:last-child{ margin-bottom:0; }
+
+  .checklist{ list-style:none; padding:0; margin:3mm 0; }
+  .checklist li{
+    padding-left:7mm; position:relative; margin-bottom:2mm; page-break-inside:avoid;
+  }
+  .checklist li::before{
+    content:""; position:absolute; left:0; top:1.2mm;
+    width:3.6mm; height:3.6mm; border:1.6px solid var(--teal); border-radius:3px;
+  }
+
+  .pill{
+    display:inline-block; font-size:8.4pt; font-weight:700; padding:.6mm 2.4mm;
+    border-radius:999px; letter-spacing:.02em;
+  }
+  .pill.on{ background:var(--teal-tint-2); color:var(--teal-deep); }
+  .pill.off{ background:var(--coral-tint); color:#8E3B29; }
+
+  .big-num{
+    font-size:26pt; font-weight:700; color:var(--teal); line-height:1; letter-spacing:-.02em;
+  }
+  .avoid{ page-break-inside:avoid; }
+  .end{
+    margin-top:8mm; padding:5mm 6mm; background:var(--teal-deep); color:#fff;
+    border-radius:13px; page-break-inside:avoid;
+  }
+  .end .t{ font-size:13pt; font-weight:700; margin-bottom:2mm; }
+  .end p{ color:rgba(255,255,255,.88); margin-bottom:1.5mm; font-size:10pt; }
+  .end p:last-child{ margin-bottom:0; }
+  /* 1.2.0 has more to say than 1.1.0: a touch tighter so the sheet stays on two pages */
+  body{ font-size:10pt; line-height:1.5; }
+  h3{ margin:5mm 0 1.2mm; }
+  li{ margin-bottom:1mm; }
+  ol.steps > li{ margin-bottom:2.6mm; }
+</style>
+</head>
+
+<body>
+
+<h2>Upgrading to Sukoon 1.2.0</h2>
+<p class="sec-intro">For the main shop computer, the one Sukoon was first installed on. About ten
+minutes, including two new settings. Your sales, stock, khatas and staff accounts all carry over.</p>
+
+<p class="lede">Before it changes anything, Sukoon makes its own copy of all your data. If anything goes
+wrong during the upgrade, it puts that copy back and does not start. Nothing is lost.</p>
+
+<h3>What is new</h3>
+<ul>
+  <li><strong>Your product list goes in all at once.</strong> <span class="path">Stock → Import</span> reads
+  your spreadsheet, shows you the items to decide about (the same item listed twice, items with no
+  price), then adds the rest in one go. A new screen lets you scan each item's barcode on, correct prices
+  and categories, and type how many are on the shelf.</li>
+  <li><strong>Prices with paisa.</strong> Rs 150.50 stays Rs 150.50, on the bill and in the total. Change,
+  card payments and khatas are exact too.</li>
+  <li><strong>A new receipt.</strong> Items in a table, in capital letters, the date as 28-Oct-2026, no
+  cashier name, the total in bold, and your shop's name, address and phone at the bottom. It uses the
+  full width of 80&nbsp;mm paper.</li>
+  <li><strong>The till only sells what is in stock.</strong> An item with 0 in stock cannot be sold. Typing
+  part of a name that matches several items lists them to choose from.</li>
+  <li><strong>The stock list</strong> shows each item's cost price and low-stock level.</li>
+</ul>
+
+<div class="box warn">
+  <p class="t">Important: stock must be entered before items can be sold</p>
+  <p>From this version, an item with <strong>0 in stock cannot be rung up</strong>. Items you have
+  already received into stock sell as before. Anything new, including everything you import, needs its
+  quantity entered first: in the import's barcode screen (the <span class="ui">In stock</span> box), or in
+  <span class="path">Stock → the item → Stock in</span>. If a cashier finds an item on the shelf that
+  Sukoon calls "out of stock", an Admin enters its stock and the cashier tries again.</p>
+</div>
+
+<h3>Before you start</h3>
+<ul class="checklist">
+  <li>Pick a quiet moment with <strong>no sale in progress at any counter</strong>. Every counter will
+  stop working for a minute or two.</li>
+  <li>Use the <strong>main shop computer</strong>. The other counters only use a web browser, so they
+  need nothing.</li>
+  <li>Have <span class="kbd">Sukoon-Setup-1.2.0.exe</span> on this computer, on a USB stick or
+  downloaded. Have your shop's address and phone number to hand.</li>
+</ul>
+
+<h3>The upgrade</h3>
+<ol class="steps">
+  <li><span class="st">Double-click <span class="kbd">Sukoon-Setup-1.2.0.exe</span>.</span>
+    Windows will say <strong>"Windows protected your PC"</strong>, as before. Click
+    <span class="ui">More info</span>, then <span class="ui">Run anyway</span>. When Windows asks whether
+    to allow changes, click <span class="ui">Yes</span>.</li>
+  <li><span class="st">Click through the installer.</span> You don't need to close Sukoon first; the
+    installer closes it for you. The other counters will show that they cannot connect until it finishes.</li>
+  <li><span class="st">Wait.</span> Sukoon backs up your data, then brings it up to date. This takes a
+    minute or two. Don't switch the computer off.</li>
+  <li><span class="st">Click <span class="ui">Finish</span>, with <span class="ui">Open Sukoon now</span>
+    ticked, and sign in as the owner.</span></li>
+  <li><span class="st">Check that it all came across.</span> Open <span class="path">Khata</span>: your
+    customers and balances should be exactly as they were. Open <span class="path">Insights</span>:
+    today's sales should be there. Press <span class="kbd">F5</span> on each of the other counters.</li>
+  <li><span class="st">Enter your shop's details.</span> Go to <span class="path">Settings → Shop details</span>,
+    check the name, type the <span class="ui">Address</span> and <span class="ui">Phone</span>, and press
+    <span class="ui">Save</span>. They print at the bottom of every receipt.</li>
+  <li><span class="st">Print a test receipt.</span> In <span class="path">Settings → Receipt printer</span>,
+    press <span class="ui">Print a test receipt</span>. Your shop's name should print large, and three
+    number lines (rulers) print below it. If the <strong>48</strong> ruler fits on one line, you're done.
+    If it runs onto a second line, choose <span class="ui">80 mm paper — 42 characters a line</span> under
+    <span class="ui">Receipt width</span> and press <span class="ui">Save</span>. Please send a photo of the
+    test receipt to the developer.</li>
+</ol>
+
+<h3>If something goes wrong</h3>
+<p>If a message says <strong>"Sukoon is installed, but needs attention"</strong>, or Sukoon does not
+open, <strong>your data is safe</strong>: Sukoon put back the copy it took and did not change
+anything. Don't delete anything and don't install again. Call the developer, and keep these two files
+from the main computer for them:</p>
+<p><span class="kbd">C:\ProgramData\Sukoon\install.log</span> and
+<span class="kbd">C:\ProgramData\Sukoon\logs\sukoon.log</span></p>
+
+<h3>Importing your product list</h3>
+<p>The developer will send you a prepared file (<span class="kbd">sukoon-products-import.csv</span>).
+Go to <span class="path">Stock → Import</span>, choose the file and press
+<span class="ui">Read the file</span>. Nothing is added yet. Work down the page:</p>
+<ul>
+  <li><strong>Choose which to keep</strong>: the same item listed more than once with different prices.
+  Tick the one to keep and press <span class="ui">Keep ticked</span>, or <span class="ui">Skip all of these</span>.</li>
+  <li><strong>Need a selling price</strong>: type a price and press <span class="ui">Set price</span>, or skip.</li>
+  <li>Press <span class="ui">Add … to stock</span>. Items you haven't decided about stay on the page
+  for later.</li>
+</ul>
+<p>Then, on <span class="path">Scan barcodes &amp; correct</span>, take items from the shelf one at a time:
+type a few letters of the name and press <span class="kbd">Enter</span>, type how many are on the shelf in
+<span class="ui">In stock</span>, then scan the item's barcode. It is saved and leaves the list. Changing a
+selling price there asks for your password. If the wrong file was imported, <span class="ui">Undo this
+import</span> at the bottom of the import page takes it all back.</p>
+
+</body>
+</html>

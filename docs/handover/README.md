@@ -1,22 +1,24 @@
 # Handover — what goes to the shop, and what must not
 
-## Upgrading a shop already running 1.0.0 (the client's case, as of 2026-10-14)
+## Upgrading a shop already running 1.1.0 (the client's case, as of 2026-10-29)
 
-Send exactly two files:
+Send these:
 
 | Item | Where it is |
 |---|---|
-| `Sukoon-Setup-1.1.0.exe` | built on the Windows VM at `dist\installer\`; a copy in the developer's `dist/installer/` (gitignored). SHA-256 `f32ff27989b4bcb2820ef780ea33fcdedf5d46a46d4a12db870263273ac97fd1` |
-| **The upgrade sheet** | **[Sukoon-Upgrade-to-1.1.0.pdf](Sukoon-Upgrade-to-1.1.0.pdf)**, 2 pages: the steps, what to check, **reprinting the recovery sheet**, and what to do if it fails. Source: [upgrade-to-1.1.0.html](upgrade-to-1.1.0.html); `node docs/handover/render-upgrade.js` |
+| `Sukoon-Setup-1.2.0.exe` | built on the Windows VM at `dist\installer\`; a copy in the developer's `dist/installer/` (gitignored). SHA-256 `1caf906bbbd0389ce515fcf38dcb5163d6e1d035462dec61bdf9937a0ae061ff` |
+| **The upgrade sheet** | **[Sukoon-Upgrade-to-1.2.0.pdf](Sukoon-Upgrade-to-1.2.0.pdf)**, 2 pages: what's new, **stock must be entered before items sell**, the steps (incl. Settings → Shop details and a test print with width rulers), importing the product list, and what to do if it fails. Source: [upgrade-to-1.2.0.html](upgrade-to-1.2.0.html); `node docs/handover/render-upgrade.js` |
+| **The owner's manual** | **[Sukoon-Owner-Manual.pdf](Sukoon-Owner-Manual.pdf)**: updated for 1.2.0 (import, paisa, the till's stock rule and pick list, the receipt and Shop details). Worth resending. |
+| The prepared product list | `docs/import/sukoon-products-import.csv` — **on the developer's machine only** (the repository is public). Regenerate with `python scripts/prepare_product_import.py Grocery_Items_list.csv docs/import/sukoon-products-import.csv --categories docs/import/category-mapping.csv` |
 
-The owner's manual is unchanged apart from the installer name, a several-khatas paragraph and a
-corrected button name. Resending it is optional.
+A shop still on **1.0.0** can go straight to 1.2.0 (both migrations run); send the 1.1.0 sheet's
+"reprint the recovery sheet" step too — [Sukoon-Upgrade-to-1.1.0.pdf](Sukoon-Upgrade-to-1.1.0.pdf).
 
 ## What to take on install day
 
 | Item | Where it is |
 |---|---|
-| `Sukoon-Setup-1.1.0.exe` | built on the Windows VM at `dist\installer\` |
+| `Sukoon-Setup-1.2.0.exe` | built on the Windows VM at `dist\installer\` |
 | The install checklist | [install-checklist.md](install-checklist.md) — print it |
 | **The owner's manual** | **[Sukoon-Owner-Manual.pdf](Sukoon-Owner-Manual.pdf)** — the single document the client is sent. 32 pages, install to daily use. Source: [sukoon-owner-manual.html](sukoon-owner-manual.html) |
 | The owner's guide | [owner-guide.md](owner-guide.md) — print it and leave it at the counter |

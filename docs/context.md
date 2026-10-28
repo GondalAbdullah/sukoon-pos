@@ -12,8 +12,8 @@ work session, not just every phase.
 |---|---|
 | **Phase** | **Phase 6 — Reports & Dashboard — functionally complete** (session 27, [ADR-0034](adr/0034-phase-6-reporting-policy.md); DoD §4m; no gate in the spec). **Phase 7 — Windows Packaging & Offline Installable App — next, opening with a scheduled `grill-with-docs` session.** Phase 5 closed 2026-09-15 (real send under O-23). |
 | **Status** | **Session 27:** Phase 6 built — Insights dashboard, five reports (sales, estimated profit, stock value, low stock, outstanding credit) with CSV and PDF exports, Admin only; profit estimated at today's cost prices with coverage stated; every figure checked against a hand-calculated scenario; 10,000-sale performance test. 497 tests. **Session 26:** Phase 5 built against ADR-0027…0033 in three parts — queue/consent/rules, Meta adapter/key store/scheduler, screens — 475 tests, and an end-to-end browser run where the real background worker in `python -m sukoon.run` sent a credit-sale notice by itself (fake provider). Three real bugs found by the tests and fixed (§6). **Session 25:** the Phase 5 `grill-with-docs` session ran on the session-24 proposal — 26 questions, 7 ADRs (0027–0033), O-20 resolved, O-18's trigger sharpened, O-23 opened for Meta facts that must be checked when the account exists. **Session 23:** Phase 4 built — customers with duplicate-number and in-person confirmation (ADR-0013), a single ledger writer that sales, refunds and payments all go through, full/partial/over-payments, credit limits with Admin approval at the till (ADR-0014), overdue flags (ADR-0015), month statements on shop time with an A4 PDF, the Khata screen, and a Khata picker replacing the till's raw customer ID. 363 tests pass; verified in real Chrome. **Session 22:** the client answered O-21/O-22 — shop timezone (ADR-0024) and stock limits at the till (ADR-0025) built; along the way found and fixed a latent bug (items created at the till could never be sold) and B9 (htmx swaps silently dropped every till error message). **Session 21:** a bug sweep driven by the developer's own walkthrough screenshots — 8 real bugs fixed and verified in a real browser (session 21 changelog), plus a plain-language field manual at `docs/field-manual.html` (untracked). Phase 3.5 built out sessions 13–19 (toolchain, Login, Till, Sale Complete, terminal ID, Stock, Refunds, landing page, htmx pass — §4i), then the Design System §13 DoD side-by-side (session 20, §4j) — fresh screenshots of every screen plus an actually-rendered receipt PDF against all 9 reference images, not a documentation exercise. Found and fixed three real issues (two undersized/no-hover buttons, a receipt footer line that ran off the page, fixed with real word-wrapping + regression tests) and restored two missing Login details. One genuine tension between ADR-0006 (prototype pixel-fidelity) and the Design System's written 44px touch-target rule was put to the client rather than picked unilaterally: **keep the prototype-exact stepper size, no change** — recorded with rationale. **Phase 3.5 is now formally closed.** `ruff` clean, **245 tests green, 95% coverage**. |
-| **Last session** | 2026-10-29 (session 38 — product spreadsheet import, ADR-0043; paisa in product prices, ADR-0044; exact amounts everywhere and a store-style receipt, ADR-0046; nothing sells from an empty shelf, no products created at the till, ADR-0047; none released) |
-| **Next action** | **Product import (ADR-0043), paisa prices (ADR-0044), exact amounts everywhere and the store-style receipt (ADR-0046) are built and tested, not yet committed or released; the developer is testing them on his machine first.** After install, enter the address and phone under Settings → Shop details. **Since ADR-0047 nothing sells until its stock is entered** — after importing, count stock on the worklist's In stock box (or per product in Stock) before trading on those items. 1.2.0 carries both: test a paisa-priced item on the shop's real printer (the receipt's unit/line layout). Before 1.2.0: the developer reviews `correct_category` in `docs/import/category-mapping.csv` (Claude's first pass: 74 categories) and, after any change, re-runs `python scripts/prepare_product_import.py Grocery_Items_list.csv docs/import/sukoon-products-import.csv --categories docs/import/category-mapping.csv`; bump the version; build on the VM and **prove the upgrade over the shop's installed 1.1.0 data** (memory: sukoon-windows-vm-release); add the import to the owner's manual. Still open: O-25 printing (questions sent to the shop), O-27 acceptance, and before WhatsApp, O-23. The 1.1.0 hand-off (installer + upgrade sheet) stands if not yet sent. |
+| **Last session** | 2026-10-29 (session 38 — **Sukoon 1.2.0 released**, tag `v1.2.0`: product import ADR-0043, paisa ADR-0044/0046, store-style receipt ADR-0046, stock guard ADR-0047) |
+| **Next action** | **Send the client 1.2.0:** `Sukoon-Setup-1.2.0.exe` (tag `v1.2.0`, SHA-256 `1caf906b…61ff`, copy in the developer's `dist/installer/`) with `docs/handover/Sukoon-Upgrade-to-1.2.0.pdf` and the updated owner's manual; the prepared product list `docs/import/sukoon-products-import.csv` (developer's machine only — the repo is public). **Ask back:** a photo of the new test print (O-25: large name, which width ruler fits), and stock counts — since ADR-0047 nothing sells until counted. Still open: O-23 (WhatsApp), O-27 (acceptance). Small open choices: cost visible to cashiers, the now-unprinted till name prompt, the Stock toolbar search width, an automatic cash-drawer kick. |
 
 ## 2. Decisions made so far
 
@@ -1369,6 +1369,26 @@ This list grows as new cases are found.
 ## 6. Session changelog
 
 *Reverse-chronological. Newest first.*
+
+### 2026-10-29 — Session 38 (cont. 6): Sukoon 1.2.0 released
+
+- **Commits:** `5d7df5e` (the work) and `ffeca6f` (version 1.2.0), pushed to `main`; tag `v1.2.0`.
+  The client's product list is **not** in git: the repository turned out to be public (an
+  unauthenticated GitHub API call answers 200), so `Grocery_Items_list.csv` and `docs/import/*.csv` are
+  gitignored. `gh`'s active account (`eng-adan`) reports "suspended"; pushing uses SSH as the owner
+  (`GondalAbdullah`), which works.
+- **Windows suite:** 809 passed, 4 skipped (the real-file import test, by design, and the three skipped
+  before), 11 min.
+- **Upgrade proven over the VM's installed 1.1.0 shop data** (16 sales, 6 refunds, 4 Khatas): installer
+  exit 0 and "finished with no problems"; Sukoon took `pre-upgrade-20261028-224349-1bf82363992f-to-abb9f3b8c306.db`
+  itself, migrated to `abb9f3b8c306`, and every count and money total (sales Rs 23,000, Khata balances
+  and ledger both −Rs 7,950, stock 36.5) is identical before and after; the import tables exist; the
+  live stylesheet carries the new screens' classes; `/stock/import/` exists and asks for sign-in.
+- **Installer:** `Sukoon-Setup-1.2.0.exe`, 31.7 MB, SHA-256 `1caf906bbbd0389ce515fcf38dcb5163d6e1d035462dec61bdf9937a0ae061ff`
+  (same on the VM and the developer's copy).
+- **Hand-off:** `Sukoon-Upgrade-to-1.2.0.pdf` (2 pages: what's new, stock must be entered before items
+  sell, Shop details, the test print with rulers, importing); the owner's manual updated for 1.2.0;
+  `render-upgrade.js` takes the version as an argument.
 
 ### 2026-10-29 — Session 38 (cont. 5): the till — no create-at-till, and 0 in stock can't sell (ADR-0047)
 
